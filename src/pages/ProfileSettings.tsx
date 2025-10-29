@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Mountain,
   User,
   Building2,
   Save,
@@ -25,8 +24,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import UserMenu from "@/components/UserMenu";
 import type { Database } from "../lib/database.types";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters").optional(),
@@ -184,24 +183,8 @@ const ProfileSettings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <Mountain className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">RentAloo</h1>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout>
+      <div className="max-w-3xl mx-auto">
         <div className="mb-6">
           <Link
             to={getDashboardLink()}
@@ -357,8 +340,8 @@ const ProfileSettings = () => {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

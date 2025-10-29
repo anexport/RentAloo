@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useVerification } from "@/hooks/useVerification";
-import { Mountain, Shield, CheckCircle, ArrowLeft } from "lucide-react";
+import { Shield, CheckCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +16,7 @@ import DocumentUpload from "@/components/verification/DocumentUpload";
 import VerificationBadge from "@/components/verification/VerificationBadge";
 import TrustScore from "@/components/verification/TrustScore";
 import { getVerificationProgress } from "../../lib/verification";
-import UserMenu from "@/components/UserMenu";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const VerifyIdentity = () => {
   const { user } = useAuth();
@@ -57,27 +57,11 @@ const VerifyIdentity = () => {
   const progress = profile ? getVerificationProgress(profile) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Mountain className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">RentAloo</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <UserMenu />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <Link
-          to="/renter"
+          to="/renter/dashboard"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -296,8 +280,8 @@ const VerifyIdentity = () => {
             </Card>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
