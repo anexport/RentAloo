@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { X, AlertCircle, CheckCircle, Clock, DollarSign, Shield } from "lucide-react";
+import {
+  X,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Shield,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,7 +51,9 @@ const NotificationsPanel = () => {
         newNotifications.push({
           id: "pending-bookings",
           type: "pending_booking",
-          title: `${pendingCount} Pending ${pendingCount === 1 ? "Request" : "Requests"}`,
+          title: `${pendingCount} Pending ${
+            pendingCount === 1 ? "Request" : "Requests"
+          }`,
           description: `You have ${pendingCount} booking ${
             pendingCount === 1 ? "request" : "requests"
           } waiting for owner approval.`,
@@ -73,10 +82,10 @@ const NotificationsPanel = () => {
 
       // Check for payment actions required
       const { data: paymentActions } = await supabase
-        .from("transactions")
-        .select("id, status")
-        .eq("payer_id", user.id)
-        .eq("status", "pending")
+        .from("payments")
+        .select("id, payment_status")
+        .eq("renter_id", user.id)
+        .eq("payment_status", "pending")
         .limit(1);
 
       if (paymentActions && paymentActions.length > 0) {
@@ -104,7 +113,9 @@ const NotificationsPanel = () => {
         newNotifications.push({
           id: "unread-messages",
           type: "message",
-          title: `${unreadCount} Unread ${unreadCount === 1 ? "Message" : "Messages"}`,
+          title: `${unreadCount} Unread ${
+            unreadCount === 1 ? "Message" : "Messages"
+          }`,
           description: `You have ${unreadCount} unread ${
             unreadCount === 1 ? "message" : "messages"
           } from equipment owners.`,
@@ -128,7 +139,9 @@ const NotificationsPanel = () => {
         newNotifications.push({
           id: "approved-bookings",
           type: "success",
-          title: `${approvedCount} Upcoming ${approvedCount === 1 ? "Rental" : "Rentals"}`,
+          title: `${approvedCount} Upcoming ${
+            approvedCount === 1 ? "Rental" : "Rentals"
+          }`,
           description: `You have ${approvedCount} approved ${
             approvedCount === 1 ? "booking" : "bookings"
           } coming up.`,
@@ -189,7 +202,10 @@ const NotificationsPanel = () => {
   return (
     <div className="space-y-4">
       {visibleNotifications.map((notification) => (
-        <Alert key={notification.id} variant={getAlertVariant(notification.type)}>
+        <Alert
+          key={notification.id}
+          variant={getAlertVariant(notification.type)}
+        >
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-2 flex-1">
               {getIcon(notification.type)}
@@ -213,7 +229,7 @@ const NotificationsPanel = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 flex-shrink-0"
+                className="h-6 w-6 shrink-0"
                 onClick={() => handleDismiss(notification.id)}
                 aria-label="Dismiss notification"
               >
@@ -228,4 +244,3 @@ const NotificationsPanel = () => {
 };
 
 export default NotificationsPanel;
-
