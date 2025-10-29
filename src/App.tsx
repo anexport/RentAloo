@@ -7,6 +7,10 @@ import LoginPage from "@/pages/auth/LoginPage";
 import RenterDashboard from "@/pages/renter/RenterDashboard";
 import OwnerDashboard from "@/pages/owner/OwnerDashboard";
 import EquipmentSearch from "@/pages/EquipmentSearch";
+import MessagingPage from "@/pages/MessagingPage";
+import PaymentConfirmation from "@/pages/payment/PaymentConfirmation";
+import VerifyIdentity from "@/pages/verification/VerifyIdentity";
+import ProfileSettings from "@/pages/ProfileSettings";
 
 function App() {
   const { user, loading } = useAuth();
@@ -33,8 +37,17 @@ function App() {
           {/* Protected routes */}
           {user && (
             <>
+              <Route path="/renter" element={<RenterDashboard />} />
               <Route path="/renter/dashboard" element={<RenterDashboard />} />
+              <Route path="/owner" element={<OwnerDashboard />} />
               <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+              <Route path="/messages" element={<MessagingPage />} />
+              <Route
+                path="/payment/confirmation"
+                element={<PaymentConfirmation />}
+              />
+              <Route path="/verification" element={<VerifyIdentity />} />
+              <Route path="/settings" element={<ProfileSettings />} />
             </>
           )}
         </Routes>

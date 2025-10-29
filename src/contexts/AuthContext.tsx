@@ -54,52 +54,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Create user profile on sign up
-      if (event === "SIGNED_UP" && session?.user) {
-        const { role } = session.user.user_metadata;
-        await createUserProfile(session.user, role);
-      }
+      // Profile creation is now handled by database trigger
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const createUserProfile = async (user: User, role: "renter" | "owner") => {
-    try {
-      // Create base profile
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        email: user.email!,
-        role,
-      } as any);
-
-      if (profileError) throw profileError;
-
-      // Create role-specific profile
-      if (role === "renter") {
-        const { error: renterError } = await supabase
-          .from("renter_profiles")
-          .insert({
-            profile_id: user.id,
-            verification_status: "unverified",
-          } as any);
-
-        if (renterError) throw renterError;
-      } else if (role === "owner") {
-        const { error: ownerError } = await supabase
-          .from("owner_profiles")
-          .insert({
-            profile_id: user.id,
-            verification_level: "unverified",
-            earnings_total: 0,
-          } as any);
-
-        if (ownerError) throw ownerError;
-      }
-    } catch (error) {
-      console.error("Error creating user profile:", error);
-    }
-  };
 
   const signUp = async (
     email: string,
