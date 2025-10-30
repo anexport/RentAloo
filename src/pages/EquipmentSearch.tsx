@@ -11,6 +11,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -215,6 +223,54 @@ const EquipmentSearch = () => {
               </Link>
               <div className="flex items-center space-x-4">
                 <ThemeToggle variant="icon" />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const el = document.getElementById("categories-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  aria-label="Browse categories"
+                >
+                  Browse Categories
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" aria-label="How it works">
+                      How it works
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>How RentAloo works</DialogTitle>
+                      <DialogDescription>
+                        Renting and listing outdoor gear is simple and secure.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 text-foreground">
+                      <div>
+                        <h3 className="font-semibold mb-2">For renters</h3>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                          <li>Browse or search for equipment near you.</li>
+                          <li>Check details, photos, and reviews.</li>
+                          <li>Send a booking request and pick dates.</li>
+                          <li>Pay securely and coordinate pickup/return.</li>
+                        </ol>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">For owners</h3>
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                          <li>Register as an owner and list your gear.</li>
+                          <li>Set price, availability, and conditions.</li>
+                          <li>Approve booking requests from renters.</li>
+                          <li>Get paid securely after a successful rental.</li>
+                        </ol>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="secondary" asChild aria-label="List your equipment">
+                  <Link to="/register/owner">List your equipment</Link>
+                </Button>
                 <Button variant="outline" asChild>
                   <Link to="/login">Sign In</Link>
                 </Button>
@@ -247,7 +303,7 @@ const EquipmentSearch = () => {
           </div>
 
           {/* Category Filters */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div id="categories-section" className="flex flex-wrap gap-2 mb-6">
             <Button
               variant={selectedCategory === "all" ? "default" : "outline"}
               onClick={() => setSelectedCategory("all")}

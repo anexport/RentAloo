@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
-import LandingPage from "../pages/LandingPage";
+import EquipmentSearch from "../pages/EquipmentSearch";
 import RenterDashboard from "../pages/renter/RenterDashboard";
 import OwnerDashboard from "../pages/owner/OwnerDashboard";
 
@@ -44,7 +44,7 @@ const TestApp = () => {
     <div className="min-h-screen bg-background">
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<EquipmentSearch />} />
 
         {/* Protected routes */}
         {user && (
@@ -63,7 +63,7 @@ describe("App", () => {
     vi.clearAllMocks();
   });
 
-  it("renders landing page when user is not authenticated", () => {
+  it("renders equipment search when user is not authenticated", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       session: null,
@@ -82,8 +82,8 @@ describe("App", () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText("Rent Outdoor Equipment")).toBeInTheDocument();
-    expect(screen.getByText("From Local Owners")).toBeInTheDocument();
+    expect(screen.getByText("Find Equipment")).toBeInTheDocument();
+    expect(screen.getByText("Browse Categories")).toBeInTheDocument();
   });
 
   it("renders renter dashboard when user is authenticated as renter", () => {
