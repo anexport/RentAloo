@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Star, Package } from "lucide-react";
+import { Calendar, Star, Package, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,9 +22,7 @@ import QuickActions from "@/components/renter/QuickActions";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
 import { Separator } from "@/components/ui/separator";
 import { useVerification } from "@/hooks/useVerification";
-import VerificationProgressCard from "@/components/verification/VerificationProgressCard";
 import { getVerificationProgress } from "@/lib/verification";
-import { AlertTriangle } from "lucide-react";
 
 const RenterDashboard = () => {
   const { user } = useAuth();
@@ -75,12 +73,6 @@ const RenterDashboard = () => {
     checkEquipment();
   }, [user]);
 
-  const verificationIncomplete =
-    profile &&
-    (!profile.identityVerified ||
-      !profile.emailVerified ||
-      !profile.phoneVerified ||
-      !profile.addressVerified);
   const progress = profile ? getVerificationProgress(profile) : 0;
   const hasAnyVerification =
     !!profile &&
@@ -88,12 +80,14 @@ const RenterDashboard = () => {
       profile.phoneVerified ||
       profile.emailVerified ||
       profile.addressVerified);
+
   return (
     <DashboardLayout>
       <PageHeader
         title="Dashboard Overview"
         description="Welcome back! Here's what's happening with your rentals."
       />
+
       {/* High-Emphasis Banner for 0% progress and no uploads */}
       {!verificationLoading &&
         profile &&
@@ -131,12 +125,7 @@ const RenterDashboard = () => {
             </Card>
           </div>
         )}
-      {/* Show verification card if not fully verified */}
-      {verificationIncomplete && !verificationLoading && (
-        <div className="mb-8">
-          <VerificationProgressCard profile={profile} />
-        </div>
-      )}
+
       {/* Notifications Panel */}
       <div className="mb-6">
         <NotificationsPanel />
