@@ -69,10 +69,10 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --trust-excellent: oklch(0.55 0.18 145);
-  --trust-good: oklch(0.65 0.15 135);
-  --trust-fair: oklch(0.7 0.15 95);
-  --trust-low: oklch(0.6 0.15 50);
+  --trust-excellent: oklch(0.48 0.20 145);
+  --trust-good: oklch(0.52 0.17 135);
+  --trust-fair: oklch(0.58 0.17 95);
+  --trust-low: oklch(0.55 0.17 50);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
