@@ -268,7 +268,11 @@ const EquipmentSearch = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button variant="secondary" asChild aria-label="List your equipment">
+                <Button
+                  variant="secondary"
+                  asChild
+                  aria-label="List your equipment"
+                >
                   <Link to="/register/owner">List your equipment</Link>
                 </Button>
                 <Button variant="outline" asChild>
@@ -284,426 +288,426 @@ const EquipmentSearch = () => {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
-            Find Equipment
-          </h2>
+          {/* Search Section */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              Find Equipment
+            </h2>
 
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Search for equipment..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-3 text-lg"
-            />
-          </div>
+            {/* Search Bar */}
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Search for equipment..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-3 text-lg"
+              />
+            </div>
 
-          {/* Category Filters */}
-          <div id="categories-section" className="flex flex-wrap gap-2 mb-6">
-            <Button
-              variant={selectedCategory === "all" ? "default" : "outline"}
-              onClick={() => setSelectedCategory("all")}
-              className="text-sm"
-            >
-              All
-            </Button>
-            {categories.map((category) => (
+            {/* Category Filters */}
+            <div id="categories-section" className="flex flex-wrap gap-2 mb-6">
               <Button
-                key={category.id}
-                variant={
-                  selectedCategory === category.id ? "default" : "outline"
-                }
-                onClick={() => setSelectedCategory(category.id)}
+                variant={selectedCategory === "all" ? "default" : "outline"}
+                onClick={() => setSelectedCategory("all")}
                 className="text-sm"
               >
-                {category.name}
+                All
               </Button>
-            ))}
-          </div>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={
+                    selectedCategory === category.id ? "default" : "outline"
+                  }
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="text-sm"
+                >
+                  {category.name}
+                </Button>
+              ))}
+            </div>
 
-          {/* Filter Toggle and Reset */}
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2"
-            >
-              <Filter className="h-4 w-4" />
-              <span>{showFilters ? "Hide" : "Show"} Advanced Filters</span>
-            </Button>
-
-            {hasActiveFilters() && (
+            {/* Filter Toggle and Reset */}
+            <div className="flex items-center justify-between mb-4">
               <Button
-                variant="ghost"
-                onClick={resetFilters}
-                className="flex items-center space-x-1 text-muted-foreground hover:text-foreground"
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center space-x-2"
               >
-                <X className="h-4 w-4" />
-                <span>Clear All Filters</span>
+                <Filter className="h-4 w-4" />
+                <span>{showFilters ? "Hide" : "Show"} Advanced Filters</span>
               </Button>
-            )}
-          </div>
 
-          {/* Advanced Filters Panel */}
-          {showFilters && (
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Price Range */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Price Range ($/day)
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                        className="w-full"
-                      />
-                      <span className="text-muted-foreground">-</span>
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Condition */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Condition</label>
-                    <select
-                      value={selectedCondition}
-                      onChange={(e) => setSelectedCondition(e.target.value)}
-                      className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="all">All Conditions</option>
-                      <option value="new">New</option>
-                      <option value="excellent">Excellent</option>
-                      <option value="good">Good</option>
-                      <option value="fair">Fair</option>
-                    </select>
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Location</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        type="text"
-                        placeholder="City or ZIP"
-                        value={locationSearch}
-                        onChange={(e) => setLocationSearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Results Count */}
-                  <div className="flex items-end">
-                    <div className="w-full p-3 bg-muted rounded-md">
-                      <div className="text-sm text-muted-foreground">
-                        Results
-                      </div>
-                      <div className="text-2xl font-bold text-foreground">
-                        {filteredEquipment.length}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <div className="flex flex-wrap gap-4 items-center text-sm text-muted-foreground">
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4" />
-              <span>Location: San Francisco Bay Area</span>
+              {hasActiveFilters() && (
+                <Button
+                  variant="ghost"
+                  onClick={resetFilters}
+                  className="flex items-center space-x-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Clear All Filters</span>
+                </Button>
+              )}
             </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span>Available dates</span>
-            </div>
-            <Button variant="ghost" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
-          </div>
-        </div>
 
-        {/* Results */}
-        <div className="mb-4">
-          <p className="text-muted-foreground">
-            {filteredEquipment.length} equipment found
-            {searchQuery && ` for "${searchQuery}"`}
-            {selectedCategory !== "all" && ` in ${selectedCategory}`}
-          </p>
-        </div>
-
-        {/* Equipment Grid */}
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="text-muted-foreground">Loading equipment...</div>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEquipment.map((item) => (
-              <Card
-                key={item.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="aspect-video bg-muted relative overflow-hidden">
-                  {item.photos && item.photos.length > 0 ? (
-                    <img
-                      src={item.photos[0].photo_url}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                      <Mountain className="h-12 w-12" />
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2">
-                    <span className="bg-card px-2 py-1 rounded text-xs font-medium shadow-sm">
-                      {item.category.name}
-                    </span>
-                  </div>
-                  {item.photos && item.photos.length > 1 && (
-                    <div className="absolute bottom-2 right-2">
-                      <span className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                        +{item.photos.length - 1} more
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg line-clamp-1">
-                      {item.title}
-                    </h3>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-primary">
-                        ${item.daily_rate}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        per day
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                    {item.description}
-                  </p>
-
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="h-4 w-4" />
-                      <span>{item.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <span className="capitalize text-xs bg-muted px-2 py-1 rounded">
-                        {item.condition}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Rating Display */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    {item.reviews && item.reviews.length > 0 ? (
-                      <>
-                        <StarRating
-                          rating={calculateAverageRating(item.reviews)}
-                          size="sm"
+            {/* Advanced Filters Panel */}
+            {showFilters && (
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Price Range */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Price Range ($/day)
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={priceMin}
+                          onChange={(e) => setPriceMin(e.target.value)}
+                          className="w-full"
                         />
-                        <span className="text-sm text-muted-foreground">
-                          {calculateAverageRating(item.reviews).toFixed(1)} (
-                          {item.reviews.length})
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        No reviews yet
-                      </span>
-                    )}
-                  </div>
+                        <span className="text-muted-foreground">-</span>
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={priceMax}
+                          onChange={(e) => setPriceMax(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
 
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleViewDetails(item)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={() => handleBookEquipment(item)}
-                    >
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Book Now
-                    </Button>
+                    {/* Condition */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Condition</label>
+                      <select
+                        value={selectedCondition}
+                        onChange={(e) => setSelectedCondition(e.target.value)}
+                        className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="all">All Conditions</option>
+                        <option value="new">New</option>
+                        <option value="excellent">Excellent</option>
+                        <option value="good">Good</option>
+                        <option value="fair">Fair</option>
+                      </select>
+                    </div>
+
+                    {/* Location */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Location</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          type="text"
+                          placeholder="City or ZIP"
+                          value={locationSearch}
+                          onChange={(e) => setLocationSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Results Count */}
+                    <div className="flex items-end">
+                      <div className="w-full p-3 bg-muted rounded-md">
+                        <div className="text-sm text-muted-foreground">
+                          Results
+                        </div>
+                        <div className="text-2xl font-bold text-foreground">
+                          {filteredEquipment.length}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-
-        {/* No Results */}
-        {filteredEquipment.length === 0 && !loading && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Mountain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No equipment found
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Try adjusting your search terms or filters
-              </p>
-              <Button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("all");
-                }}
-              >
-                Clear Filters
+            )}
+            <div className="flex flex-wrap gap-4 items-center text-sm text-muted-foreground">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4" />
+                <span>Location: San Francisco Bay Area</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Available dates</span>
+              </div>
+              <Button variant="ghost" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                More Filters
               </Button>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </div>
 
-        {/* Equipment Detail Modal */}
-        {showEquipmentDetail && selectedEquipment && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-card rounded-lg max-w-4xl w-full my-8 border border-border">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">
-                      {selectedEquipment.title}
-                    </h2>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+          {/* Results */}
+          <div className="mb-4">
+            <p className="text-muted-foreground">
+              {filteredEquipment.length} equipment found
+              {searchQuery && ` for "${searchQuery}"`}
+              {selectedCategory !== "all" && ` in ${selectedCategory}`}
+            </p>
+          </div>
+
+          {/* Equipment Grid */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">Loading equipment...</div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEquipment.map((item) => (
+                <Card
+                  key={item.id}
+                  className="overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    {item.photos && item.photos.length > 0 ? (
+                      <img
+                        src={item.photos[0].photo_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                        <Mountain className="h-12 w-12" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-card px-2 py-1 rounded text-xs font-medium shadow-sm">
+                        {item.category.name}
+                      </span>
+                    </div>
+                    {item.photos && item.photos.length > 1 && (
+                      <div className="absolute bottom-2 right-2">
+                        <span className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                          +{item.photos.length - 1} more
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-lg line-clamp-1">
+                        {item.title}
+                      </h3>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-primary">
+                          ${item.daily_rate}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          per day
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                      {item.description}
+                    </p>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
                       <div className="flex items-center space-x-1">
                         <MapPin className="h-4 w-4" />
-                        <span>{selectedEquipment.location}</span>
+                        <span>{item.location}</span>
                       </div>
-                      <span className="capitalize">
-                        Condition: {selectedEquipment.condition}
+                      <div className="flex items-center space-x-1">
+                        <span className="capitalize text-xs bg-muted px-2 py-1 rounded">
+                          {item.condition}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Rating Display */}
+                    <div className="flex items-center space-x-2 mb-4">
+                      {item.reviews && item.reviews.length > 0 ? (
+                        <>
+                          <StarRating
+                            rating={calculateAverageRating(item.reviews)}
+                            size="sm"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {calculateAverageRating(item.reviews).toFixed(1)} (
+                            {item.reviews.length})
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          No reviews yet
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleViewDetails(item)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleBookEquipment(item)}
+                      >
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Book Now
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* No Results */}
+          {filteredEquipment.length === 0 && !loading && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Mountain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No equipment found
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Try adjusting your search terms or filters
+                </p>
+                <Button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Equipment Detail Modal */}
+          {showEquipmentDetail && selectedEquipment && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+              <div className="bg-card rounded-lg max-w-4xl w-full my-8 border border-border">
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                        {selectedEquipment.title}
+                      </h2>
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="h-4 w-4" />
+                          <span>{selectedEquipment.location}</span>
+                        </div>
+                        <span className="capitalize">
+                          Condition: {selectedEquipment.condition}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowEquipmentDetail(false);
+                        setSelectedEquipment(null);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Close"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+
+                  {/* Photos */}
+                  {selectedEquipment.photos &&
+                    selectedEquipment.photos.length > 0 && (
+                      <div className="mb-6">
+                        <img
+                          src={selectedEquipment.photos[0].photo_url}
+                          alt={selectedEquipment.title}
+                          className="w-full h-64 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+
+                  {/* Description */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2">Description</h3>
+                    <p className="text-foreground">
+                      {selectedEquipment.description}
+                    </p>
+                  </div>
+
+                  {/* Pricing */}
+                  <div className="mb-6 p-4 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-foreground">Daily Rate:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        ${selectedEquipment.daily_rate}
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setShowEquipmentDetail(false);
-                      setSelectedEquipment(null);
-                    }}
-                    className="text-muted-foreground hover:text-foreground"
-                    aria-label="Close"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
 
-                {/* Photos */}
-                {selectedEquipment.photos &&
-                  selectedEquipment.photos.length > 0 && (
+                  {/* Reviews Section */}
+                  {selectedEquipment.owner && (
                     <div className="mb-6">
-                      <img
-                        src={selectedEquipment.photos[0].photo_url}
-                        alt={selectedEquipment.title}
-                        className="w-full h-64 object-cover rounded-lg"
+                      <h3 className="text-lg font-semibold mb-4">
+                        Owner Reviews
+                      </h3>
+                      <ReviewList
+                        revieweeId={selectedEquipment.owner_id}
+                        showSummary={true}
+                        showEquipment={false}
                       />
                     </div>
                   )}
 
-                {/* Description */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Description</h3>
-                  <p className="text-foreground">
-                    {selectedEquipment.description}
-                  </p>
-                </div>
-
-                {/* Pricing */}
-                <div className="mb-6 p-4 bg-muted rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-foreground">Daily Rate:</span>
-                    <span className="text-2xl font-bold text-primary">
-                      ${selectedEquipment.daily_rate}
-                    </span>
+                  {/* Action Buttons */}
+                  <div className="flex space-x-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowEquipmentDetail(false);
+                        setSelectedEquipment(null);
+                      }}
+                    >
+                      Close
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        setShowEquipmentDetail(false);
+                        handleBookEquipment(selectedEquipment);
+                      }}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Book Now
+                    </Button>
                   </div>
-                </div>
-
-                {/* Reviews Section */}
-                {selectedEquipment.owner && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Owner Reviews
-                    </h3>
-                    <ReviewList
-                      revieweeId={selectedEquipment.owner_id}
-                      showSummary={true}
-                      showEquipment={false}
-                    />
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex space-x-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      setShowEquipmentDetail(false);
-                      setSelectedEquipment(null);
-                    }}
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      setShowEquipmentDetail(false);
-                      handleBookEquipment(selectedEquipment);
-                    }}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Book Now
-                  </Button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Booking Form Modal */}
-        {showBookingForm && selectedEquipment && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-border">
-              <BookingRequestForm
-                equipment={selectedEquipment}
-                onSuccess={handleBookingSuccess}
-                onCancel={() => {
-                  setShowBookingForm(false);
-                  setSelectedEquipment(null);
-                }}
-              />
+          {/* Booking Form Modal */}
+          {showBookingForm && selectedEquipment && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-border">
+                <BookingRequestForm
+                  equipment={selectedEquipment}
+                  onSuccess={handleBookingSuccess}
+                  onCancel={() => {
+                    setShowBookingForm(false);
+                    setSelectedEquipment(null);
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          )}
+        </main>
+      </div>
     );
   }
 
@@ -730,7 +734,7 @@ const EquipmentSearch = () => {
         </div>
 
         {/* Category Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div id="categories-section" className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={selectedCategory === "all" ? "default" : "outline"}
             onClick={() => setSelectedCategory("all")}
@@ -741,9 +745,7 @@ const EquipmentSearch = () => {
           {categories.map((category) => (
             <Button
               key={category.id}
-              variant={
-                selectedCategory === category.id ? "default" : "outline"
-              }
+              variant={selectedCategory === category.id ? "default" : "outline"}
               onClick={() => setSelectedCategory(category.id)}
               className="text-sm"
             >
@@ -838,9 +840,7 @@ const EquipmentSearch = () => {
                 {/* Results Count */}
                 <div className="flex items-end">
                   <div className="w-full p-3 bg-muted rounded-md">
-                    <div className="text-sm text-muted-foreground">
-                      Results
-                    </div>
+                    <div className="text-sm text-muted-foreground">Results</div>
                     <div className="text-2xl font-bold text-foreground">
                       {filteredEquipment.length}
                     </div>
@@ -921,9 +921,7 @@ const EquipmentSearch = () => {
                     <div className="text-xl font-bold text-primary">
                       ${item.daily_rate}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      per day
-                    </div>
+                    <div className="text-sm text-muted-foreground">per day</div>
                   </div>
                 </div>
 
@@ -1075,9 +1073,7 @@ const EquipmentSearch = () => {
               {/* Reviews Section */}
               {selectedEquipment.owner && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Owner Reviews
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-4">Owner Reviews</h3>
                   <ReviewList
                     revieweeId={selectedEquipment.owner_id}
                     showSummary={true}
