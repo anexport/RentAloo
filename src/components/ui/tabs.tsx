@@ -48,17 +48,16 @@ function TabsTrigger({
   )
 }
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
-  return (
+const TabsContent = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof TabsPrimitive.Content>>(
+  ({ className, ...props }, ref) => (
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn("flex-1 outline-none", className)}
+      ref={ref}
       {...props}
     />
   )
-}
+);
+TabsContent.displayName = "TabsContent";
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }
