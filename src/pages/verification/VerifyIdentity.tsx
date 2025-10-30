@@ -63,14 +63,25 @@ const VerifyIdentity = () => {
   const handlePhoneVerify = async (phoneNumber: string, code: string) => {
     // Simulate verification (in production, this would call an API)
     return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
+      setTimeout(async () => {
         // Demo: accept code "123456"
         if (code === "123456") {
-          toast({
-            title: "Phone verified successfully",
-            description: "Your phone number has been verified.",
-          });
-          resolve();
+          try {
+            // Refresh profile to update phoneVerified status
+            await fetchVerificationProfile();
+            toast({
+              title: "Phone verified successfully",
+              description: "Your phone number has been verified.",
+            });
+            resolve();
+          } catch (error) {
+            toast({
+              title: "Verification incomplete",
+              description: "Phone verified but profile refresh failed. Please reload the page.",
+              variant: "destructive",
+            });
+            reject(error);
+          }
         } else {
           reject(new Error("Invalid verification code. Try 123456 for demo."));
         }
