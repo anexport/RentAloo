@@ -14,7 +14,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Calendar as CalendarIcon, Info, MessageSquare, Package, CheckCircle2 } from "lucide-react";
+import {
+  MapPin,
+  Calendar as CalendarIcon,
+  Info,
+  MessageSquare,
+  Package,
+  CheckCircle2,
+} from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import StarRating from "@/components/reviews/StarRating";
 import { fetchListingById } from "@/features/equipment/services/listings";
@@ -65,7 +72,7 @@ const EquipmentDetailDialog = ({
   const secondaryPhotos = photos.slice(1, 5); // Up to 4 secondary photos
 
   const renderContent = () => {
-    if (isLoading || isFetching) {
+    if (isLoading) {
       return (
         <div className="py-12 text-center text-muted-foreground">
           Loading...
@@ -87,7 +94,9 @@ const EquipmentDetailDialog = ({
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground">{data.title}</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                {data.title}
+              </h1>
               <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" /> {data.location}
@@ -171,19 +180,35 @@ const EquipmentDetailDialog = ({
           <div className="space-y-6">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2" aria-label="Overview">
+                <TabsTrigger
+                  value="overview"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Overview"
+                >
                   <Info className="h-4 w-4" />
                   <span className="hidden sm:inline">Overview</span>
                 </TabsTrigger>
-                <TabsTrigger value="availability" className="flex items-center gap-1 sm:gap-2" aria-label="Availability">
+                <TabsTrigger
+                  value="availability"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Availability"
+                >
                   <CalendarIcon className="h-4 w-4" />
                   <span className="hidden sm:inline">Availability</span>
                 </TabsTrigger>
-                <TabsTrigger value="location" className="flex items-center gap-1 sm:gap-2" aria-label="Location">
+                <TabsTrigger
+                  value="location"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Location"
+                >
                   <MapPin className="h-4 w-4" />
                   <span className="hidden sm:inline">Location</span>
                 </TabsTrigger>
-                <TabsTrigger value="reviews" className="flex items-center gap-1 sm:gap-2" aria-label="Reviews">
+                <TabsTrigger
+                  value="reviews"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Reviews"
+                >
                   <MessageSquare className="h-4 w-4" />
                   <span className="hidden sm:inline">Reviews</span>
                 </TabsTrigger>
@@ -191,7 +216,9 @@ const EquipmentDetailDialog = ({
 
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">About this item</h2>
+                  <h2 className="text-xl font-semibold mb-3">
+                    About this item
+                  </h2>
                   <p className="text-foreground leading-relaxed whitespace-pre-wrap">
                     {data.description}
                   </p>
@@ -204,7 +231,9 @@ const EquipmentDetailDialog = ({
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground font-medium">Condition</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Condition
+                          </span>
                           <Badge variant="outline" className="capitalize w-fit">
                             {data.condition}
                           </Badge>
@@ -216,13 +245,22 @@ const EquipmentDetailDialog = ({
 
                       {/* Category */}
                       <div className="flex items-center gap-2">
-                        {data.category && (() => {
-                          const CategoryIcon = getCategoryIcon(data.category.name);
-                          return <CategoryIcon className="h-4 w-4 text-muted-foreground shrink-0" />;
-                        })()}
-                        {!data.category && <Package className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        {data.category &&
+                          (() => {
+                            const CategoryIcon = getCategoryIcon(
+                              data.category.name
+                            );
+                            return (
+                              <CategoryIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                            );
+                          })()}
+                        {!data.category && (
+                          <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs text-muted-foreground font-medium">Category</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Category
+                          </span>
                           <Badge variant="secondary" className="w-fit">
                             {data.category?.name || "N/A"}
                           </Badge>
@@ -274,7 +312,8 @@ const EquipmentDetailDialog = ({
                   <div className="mt-2 flex items-center gap-2">
                     <StarRating rating={avgRating} size="sm" />
                     <span className="text-sm text-muted-foreground">
-                      {avgRating.toFixed(1)} ({data.reviews?.length || 0} reviews)
+                      {avgRating.toFixed(1)} ({data.reviews?.length || 0}{" "}
+                      reviews)
                     </span>
                   </div>
                 )}
@@ -301,7 +340,11 @@ const EquipmentDetailDialog = ({
                 </div>
               </div>
 
-              <Button className="w-full" size="lg" aria-label="Request to book this equipment">
+              <Button
+                className="w-full"
+                size="lg"
+                aria-label="Request to book this equipment"
+              >
                 Request to Book
               </Button>
             </Card>
