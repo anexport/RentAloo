@@ -25,6 +25,17 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Database } from "../lib/database.types";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 
+type EquipmentFormData = {
+  title: string;
+  description: string;
+  category_id: string;
+  daily_rate: number;
+  condition: "new" | "excellent" | "good" | "fair";
+  location: string;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
+};
+
 const equipmentFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -32,51 +43,69 @@ const equipmentFormSchema = z.object({
   daily_rate: z.preprocess(
     (val) => {
       // Handle empty values and NaN from valueAsNumber: true
-      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) return undefined;
+      if (
+        val === "" ||
+        val === null ||
+        val === undefined ||
+        (typeof val === "number" && isNaN(val))
+      )
+        return undefined;
       const num = typeof val === "number" ? val : Number(val);
       return isNaN(num) ? undefined : num;
     },
-    z.union([z.undefined(), z.number()]).superRefine((val, ctx) => {
-      // First check if it's undefined
-      if (val === undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Daily rate is required",
-        });
-        return;
-      }
-      // Check if it's >= 1
-      if (val < 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Daily rate must be at least $1",
-        });
-      }
-    }) as z.ZodType<number>
-  ),
+    z
+      .union([z.undefined(), z.number()])
+      .superRefine((val, ctx) => {
+        // First check if it's undefined
+        if (val === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Daily rate is required",
+          });
+          return;
+        }
+        // At this point, TypeScript knows val is number
+        // Check if it's >= 1
+        if (val < 1) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Daily rate must be at least $1",
+          });
+        }
+      })
+      .refine(
+        (val): val is number =>
+          val !== undefined && typeof val === "number" && val >= 1
+      )
+      .pipe(z.number())
+  ) as z.ZodType<number>,
   condition: z.enum(["new", "excellent", "good", "fair"]),
   location: z.string().min(1, "Location is required"),
-  latitude: z.preprocess(
-    (val) => {
-      // Handle empty values and NaN from valueAsNumber: true
-      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) return undefined;
-      const num = typeof val === "number" ? val : Number(val);
-      return isNaN(num) ? undefined : num;
-    },
-    z.number().optional()
-  ),
-  longitude: z.preprocess(
-    (val) => {
-      // Handle empty values and NaN from valueAsNumber: true
-      if (val === "" || val === null || val === undefined || (typeof val === "number" && isNaN(val))) return undefined;
-      const num = typeof val === "number" ? val : Number(val);
-      return isNaN(num) ? undefined : num;
-    },
-    z.number().optional()
-  ),
+  latitude: z.preprocess((val) => {
+    // Handle empty values and NaN from valueAsNumber: true
+    if (
+      val === "" ||
+      val === null ||
+      val === undefined ||
+      (typeof val === "number" && isNaN(val))
+    )
+      return undefined;
+    const num = typeof val === "number" ? val : Number(val);
+    return isNaN(num) ? undefined : num;
+  }, z.number().optional()) as z.ZodType<number | undefined>,
+  longitude: z.preprocess((val) => {
+    // Handle empty values and NaN from valueAsNumber: true
+    if (
+      val === "" ||
+      val === null ||
+      val === undefined ||
+      (typeof val === "number" && isNaN(val))
+    )
+      return undefined;
+    const num = typeof val === "number" ? val : Number(val);
+    return isNaN(num) ? undefined : num;
+  }, z.number().optional()) as z.ZodType<number | undefined>,
 });
-
-type EquipmentFormData = z.infer<typeof equipmentFormSchema>;
 
 interface EquipmentListingFormProps {
   equipment?: Database["public"]["Tables"]["equipment"]["Row"];
@@ -105,7 +134,7 @@ const EquipmentListingForm = ({
     setValue,
     watch,
   } = useForm<EquipmentFormData>({
-    resolver: zodResolver(equipmentFormSchema),
+    resolver: zodResolver(equipmentFormSchema as any),
     defaultValues: equipment
       ? {
           title: equipment.title,

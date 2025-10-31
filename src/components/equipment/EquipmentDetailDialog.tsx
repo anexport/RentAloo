@@ -434,7 +434,6 @@ const EquipmentDetailDialog = ({
                     });
                     return;
                   }
-                  setActiveTab("book");
                   if (!data?.category) {
                     toast({
                       variant: "destructive",
@@ -443,6 +442,7 @@ const EquipmentDetailDialog = ({
                     });
                     return;
                   }
+                  setActiveTab("book");
                 }}
               >
                 {!user
