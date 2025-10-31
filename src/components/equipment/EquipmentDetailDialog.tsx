@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
   MessageSquare,
   Package,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import StarRating from "@/components/reviews/StarRating";
@@ -34,6 +36,9 @@ import EquipmentLocationMap from "./EquipmentLocationMap";
 import ReviewList from "@/components/reviews/ReviewList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
+import { useAuth } from "@/hooks/useAuth";
+import BookingRequestForm from "@/components/booking/BookingRequestForm";
+import type { Database } from "@/lib/database.types";
 
 type EquipmentDetailDialogProps = {
   open: boolean;
@@ -47,6 +52,8 @@ const EquipmentDetailDialog = ({
   listingId,
 }: EquipmentDetailDialogProps) => {
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const { data, isLoading } = useQuery({
     queryKey: ["listing", listingId],
@@ -187,8 +194,8 @@ const EquipmentDetailDialog = ({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           {/* Main content tabs */}
           <div className="space-y-6">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger
                   value="overview"
                   className="flex items-center gap-1 sm:gap-2"
@@ -220,6 +227,14 @@ const EquipmentDetailDialog = ({
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span className="hidden sm:inline">Reviews</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="book"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Book"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Book</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -303,6 +318,22 @@ const EquipmentDetailDialog = ({
                   showEquipment={false}
                 />
               </TabsContent>
+
+              <TabsContent value="book" className="mt-6">
+                <BookingRequestForm
+                  equipment={
+                    data as Database["public"]["Tables"]["equipment"]["Row"] & {
+                      category: Database["public"]["Tables"]["categories"]["Row"];
+                    }
+                  }
+                  onSuccess={() => {
+                    setActiveTab("overview");
+                    alert("Booking request submitted successfully!");
+                  }}
+                  onCancel={undefined}
+                  isEmbedded={true}
+                />
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -353,12 +384,33 @@ const EquipmentDetailDialog = ({
                 className="w-full"
                 size="lg"
                 aria-label="Request to book this equipment"
+                onClick={() => {
+                  if (!user) {
+                    alert("Please log in to request a booking.");
+                    return;
+                  }
+                  if (data?.owner?.id === user.id) {
+                    alert("You cannot book your own equipment.");
+                    return;
+                  }
+                  if (!data?.category) {
+                    alert("Equipment category information is missing.");
+                    return;
+                  }
+                  setActiveTab("book");
+                }}
+                disabled={!user || data?.owner?.id === user.id || !data?.category}
               >
-                Request to Book
+                {!user
+                  ? "Login to Book"
+                  : data?.owner?.id === user.id
+                    ? "Your Equipment"
+                    : "Request to Book"}
               </Button>
             </Card>
           </aside>
         </div>
+
       </div>
     );
   };

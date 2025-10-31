@@ -56,12 +56,14 @@ interface BookingRequestFormProps {
   };
   onSuccess?: () => void;
   onCancel?: () => void;
+  isEmbedded?: boolean;
 }
 
 const BookingRequestForm = ({
   equipment,
   onSuccess,
   onCancel,
+  isEmbedded = false,
 }: BookingRequestFormProps) => {
   const { user } = useAuth();
   const { getOrCreateConversation } = useMessaging();
@@ -228,19 +230,8 @@ const BookingRequestForm = ({
   const isOwnEquipment = user?.id === equipment.owner_id;
   const canSubmit = !hasConflicts && calculation && user && !isOwnEquipment;
 
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          <span>Request Equipment Rental</span>
-        </CardTitle>
-        <CardDescription>
-          Book "{equipment.title}" from {equipment.category.name}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+  const formContent = (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Equipment Info */}
           <div className="bg-muted p-4 rounded-lg">
             <h3 className="font-semibold text-lg text-foreground">
@@ -396,6 +387,29 @@ const BookingRequestForm = ({
             </Button>
           </div>
         </form>
+  );
+
+  if (isEmbedded) {
+    return (
+      <div className="w-full">
+        {formContent}
+      </div>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Calendar className="h-5 w-5 text-primary" />
+          <span>Request Equipment Rental</span>
+        </CardTitle>
+        <CardDescription>
+          Book "{equipment.title}" from {equipment.category.name}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {formContent}
       </CardContent>
     </Card>
   );
