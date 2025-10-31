@@ -148,10 +148,10 @@ const EquipmentManagement = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               {showingCalendar.title}
             </h2>
-            <p className="text-gray-600">Manage availability and pricing</p>
+            <p className="text-muted-foreground">Manage availability and pricing</p>
           </div>
           <Button variant="outline" onClick={handleCloseCalendar}>
             Back to Equipment
@@ -177,8 +177,8 @@ const EquipmentManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Equipment</h2>
-          <p className="text-gray-600">Manage your equipment listings</p>
+          <h2 className="text-2xl font-bold text-foreground">My Equipment</h2>
+          <p className="text-muted-foreground">Manage your equipment listings</p>
         </div>
         <Button onClick={() => setShowForm(true)}>Add New Equipment</Button>
       </div>

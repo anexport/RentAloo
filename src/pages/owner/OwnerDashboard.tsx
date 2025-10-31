@@ -54,18 +54,13 @@ const OwnerDashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (bookingRequests.length > 0) {
-      const bookingStats = {
-        pending: bookingRequests.filter((r) => r.status === "pending").length,
-        approved: bookingRequests.filter((r) => r.status === "approved").length,
-        total: bookingRequests.length,
-      };
+    // Always update pendingRequests based on bookingRequests, even when empty
+    const pendingCount = bookingRequests.filter((r) => r.status === "pending").length;
 
-      setStats((prev) => ({
-        ...prev,
-        pendingRequests: bookingStats.pending,
-      }));
-    }
+    setStats((prev) => ({
+      ...prev,
+      pendingRequests: pendingCount,
+    }));
   }, [bookingRequests]);
 
   const fetchStats = async () => {
@@ -79,11 +74,22 @@ const OwnerDashboard = () => {
         .eq("owner_id", user.id);
 
       // Fetch pending booking requests
-      const { count: pendingCount } = await supabase
-        .from("booking_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("equipment.owner_id", user.id)
-        .eq("status", "pending");
+      // First get equipment IDs owned by this user
+      const { data: equipmentData } = await supabase
+        .from("equipment")
+        .select("id")
+        .eq("owner_id", user.id);
+
+      let pendingCount = 0;
+      if (equipmentData && equipmentData.length > 0) {
+        const equipmentIds = equipmentData.map((eq) => eq.id);
+        const { count } = await supabase
+          .from("booking_requests")
+          .select("*", { count: "exact", head: true })
+          .in("equipment_id", equipmentIds)
+          .eq("status", "pending");
+        pendingCount = count || 0;
+      }
 
       // Fetch total earnings (this would need to be calculated from completed bookings)
       const { data: earningsData } = await supabase
