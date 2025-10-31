@@ -1,28 +1,23 @@
 import { useEffect, useState } from "react";
-import { Calendar, DollarSign, Shield, Package } from "lucide-react";
+import { Calendar, DollarSign, Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { useVerification } from "@/hooks/useVerification";
-import { getVerificationProgress } from "@/lib/verification";
 import { supabase } from "@/lib/supabase";
 
 interface Stats {
   activeBookings: number;
   pendingRequests: number;
   totalSpent: number;
-  trustScore: number;
 }
 
 const StatsOverview = () => {
   const { user } = useAuth();
-  const { profile } = useVerification();
   const [stats, setStats] = useState<Stats>({
     activeBookings: 0,
     pendingRequests: 0,
     totalSpent: 0,
-    trustScore: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -56,14 +51,10 @@ const StatsOverview = () => {
 
         const totalSpent = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
 
-        // Get trust score from verification progress
-        const trustScore = profile ? getVerificationProgress(profile) : 0;
-
         setStats({
           activeBookings: activeCount || 0,
           pendingRequests: pendingCount || 0,
           totalSpent,
-          trustScore,
         });
       } catch (error) {
         console.error("Error fetching stats:", error);
@@ -73,12 +64,12 @@ const StatsOverview = () => {
     };
 
     fetchStats();
-  }, [user, profile]);
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
@@ -119,18 +110,10 @@ const StatsOverview = () => {
       badge: undefined,
       badgeVariant: undefined,
     },
-    {
-      title: "Trust Score",
-      value: `${stats.trustScore}%`,
-      icon: Shield,
-      description: "Verification level",
-      badge: stats.trustScore === 100 ? "Verified" : stats.trustScore >= 50 ? "Good" : undefined,
-      badgeVariant: stats.trustScore === 100 ? "default" : "secondary" as const,
-    },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (

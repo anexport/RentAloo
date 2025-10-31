@@ -105,21 +105,6 @@ const NotificationsPanel = () => {
           );
         }
 
-        // Check for incomplete verification
-        if (verificationProgress < 100) {
-          newNotifications.push({
-            id: "incomplete-verification",
-            type: "verification",
-            title: "Complete Your Verification",
-            description: `Your trust score is ${verificationProgress}%. Complete verification to unlock all features and gain priority access to equipment.`,
-            action: {
-              label: "Verify Now",
-              href: "/verification",
-            },
-            dismissible: true,
-          });
-        }
-
         // Process pending payments
         if (pendingPaymentsResult.status === "fulfilled") {
           const paymentActions = pendingPaymentsResult.value.data ?? [];

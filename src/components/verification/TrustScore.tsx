@@ -20,6 +20,7 @@ import {
   getTrustScoreBgColor,
   getTrustScoreLabel,
 } from "../../lib/verification";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 interface TrustScoreProps {
   score: TrustScoreType;
@@ -60,6 +61,9 @@ const TrustScore = ({ score, showBreakdown = true }: TrustScoreProps) => {
     },
   ];
 
+  const isZeroScore = score.overall === 0;
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -84,7 +88,13 @@ const TrustScore = ({ score, showBreakdown = true }: TrustScoreProps) => {
           <div
             className={`relative rounded-full ${getTrustScoreBgColor(
               score.overall
-            )} p-8 mb-4 transition-all duration-300 hover:scale-105`}
+            )} p-8 mb-4 transition-all duration-300 hover:scale-105 ${
+              isZeroScore && !prefersReducedMotion
+                ? "ring-2 ring-destructive/50 animate-pulse"
+                : isZeroScore
+                ? "ring-2 ring-destructive/50"
+                : ""
+            }`}
           >
             <div className="text-center">
               <div
@@ -104,7 +114,9 @@ const TrustScore = ({ score, showBreakdown = true }: TrustScoreProps) => {
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${getTrustScoreColor(
                 score.overall
-              )} ${getTrustScoreBgColor(score.overall)}`}
+              )} ${getTrustScoreBgColor(score.overall)} ${
+                isZeroScore ? "ring-1 ring-destructive/40" : ""
+              }`}
             >
               {getTrustScoreLabel(score.overall)}
             </span>

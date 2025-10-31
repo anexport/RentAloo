@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/useAuth";
 import { useVerification } from "@/hooks/useVerification";
 import {
   Shield,
@@ -8,6 +7,7 @@ import {
   Mail,
   MapPin,
   Info,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,9 +36,10 @@ import PhoneVerification from "@/components/verification/PhoneVerification";
 import { getVerificationProgress } from "../../lib/verification";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/useToast";
+import { useMemo, useRef, useState } from "react";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const VerifyIdentity = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const {
     profile,
@@ -47,6 +48,21 @@ const VerifyIdentity = () => {
     uploadVerificationDocument,
     fetchVerificationProfile,
   } = useVerification();
+
+  const [activeTab, setActiveTab] = useState<string>("overview");
+  const identitySectionRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  // Moved useMemo above all early returns to comply with the Rules of Hooks
+  const hasAnyVerification = useMemo(() => {
+    if (!profile) return false;
+    return (
+      profile.identityVerified ||
+      profile.phoneVerified ||
+      profile.emailVerified ||
+      profile.addressVerified
+    );
+  }, [profile]);
 
   const handleUpload = async (
     file: File,
@@ -69,7 +85,7 @@ const VerifyIdentity = () => {
     }
   };
 
-  const handlePhoneVerify = async (phoneNumber: string, code: string) => {
+  const handlePhoneVerify = async (_phoneNumber: string, code: string) => {
     // Simulate verification (in production, this would call an API)
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
@@ -115,6 +131,20 @@ const VerifyIdentity = () => {
 
   const progress = profile ? getVerificationProgress(profile) : 0;
 
+  const handleClickVerifyNow = () => {
+    setActiveTab("identity");
+    setTimeout(() => {
+      const el = identitySectionRef.current;
+      if (el && el instanceof HTMLElement) {
+        el.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+        el.focus({ preventScroll: true });
+      }
+    }, 50);
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -140,6 +170,38 @@ const VerifyIdentity = () => {
             completing verification
           </p>
         </div>
+
+        {/* High-Emphasis Banner for 0% progress and no uploads */}
+        {progress === 0 && !hasAnyVerification && (
+          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20">
+            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-destructive">
+                    Complete your verification
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Your account is unverified (0%). Verify now to start renting
+                    safely.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="default"
+                size="lg"
+                className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+                aria-label="Verify now"
+                onClick={handleClickVerifyNow}
+                data-testid="verify-now-banner"
+              >
+                Verify now
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Overall Progress Card */}
         <Card>
@@ -255,7 +317,7 @@ const VerifyIdentity = () => {
         {profile && <TrustScore score={profile.trustScore} />}
 
         {/* Tabs for Verification Steps */}
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="identity">
@@ -301,6 +363,15 @@ const VerifyIdentity = () => {
                           Passport, or State ID)
                         </p>
                       </div>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="font-medium"
+                        aria-label="Verify identity now"
+                        onClick={handleClickVerifyNow}
+                      >
+                        Verify now
+                      </Button>
                     </div>
                     {!profile?.identityVerified && (
                       <p className="text-xs text-primary font-medium mt-3">
@@ -349,7 +420,11 @@ const VerifyIdentity = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="identity" className="space-y-4 mt-6">
+          <TabsContent
+            value="identity"
+            className="space-y-4 mt-6"
+            ref={identitySectionRef}
+          >
             <Card>
               <CardHeader>
                 <CardTitle>Identity Verification</CardTitle>

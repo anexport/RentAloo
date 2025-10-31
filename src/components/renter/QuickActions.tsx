@@ -1,18 +1,14 @@
 import { Link } from "react-router-dom";
-import { Search, Shield, MessageSquare, Calendar } from "lucide-react";
+import { Search, MessageSquare, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useVerification } from "@/hooks/useVerification";
-import { getVerificationProgress } from "@/lib/verification";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
 const QuickActions = () => {
   const { user } = useAuth();
-  const { profile } = useVerification();
-  const verificationProgress = profile ? getVerificationProgress(profile) : 0;
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [upcomingBookings, setUpcomingBookings] = useState(0);
 
@@ -70,18 +66,6 @@ const QuickActions = () => {
       badge: unreadMessages > 0 ? `${unreadMessages} unread` : null,
     },
   ];
-
-  // Add verification action if not complete
-  if (verificationProgress < 100) {
-    actions.push({
-      title: "Complete Verification",
-      description: "Increase your trust score for better access",
-      icon: Shield,
-      href: "/verification",
-      variant: "outline" as const,
-      badge: `${verificationProgress}% complete`,
-    });
-  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
