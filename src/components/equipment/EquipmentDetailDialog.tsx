@@ -14,7 +14,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Calendar as CalendarIcon, Info, MessageSquare } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, Info, MessageSquare, Package, CheckCircle2 } from "lucide-react";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import StarRating from "@/components/reviews/StarRating";
 import { fetchListingById } from "@/features/equipment/services/listings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -197,19 +198,36 @@ const EquipmentDetailDialog = ({
                 </div>
 
                 <Card>
-                  <div className="p-4 space-y-4">
-                    <div>
-                      <h3 className="font-semibold mb-2">Condition</h3>
-                      <Badge variant="outline" className="capitalize">
-                        {data.condition}
-                      </Badge>
-                    </div>
-                    <Separator />
-                    <div>
-                      <h3 className="font-semibold mb-2">Category</h3>
-                      <p className="text-muted-foreground">
-                        {data.category?.name || "N/A"}
-                      </p>
+                  <div className="p-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      {/* Condition */}
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground font-medium">Condition</span>
+                          <Badge variant="outline" className="capitalize w-fit">
+                            {data.condition}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Vertical divider */}
+                      <div className="h-8 w-px bg-border" />
+
+                      {/* Category */}
+                      <div className="flex items-center gap-2">
+                        {data.category && (() => {
+                          const CategoryIcon = getCategoryIcon(data.category.name);
+                          return <CategoryIcon className="h-4 w-4 text-muted-foreground shrink-0" />;
+                        })()}
+                        {!data.category && <Package className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground font-medium">Category</span>
+                          <Badge variant="secondary" className="w-fit">
+                            {data.category?.name || "N/A"}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Card>
