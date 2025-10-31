@@ -262,9 +262,9 @@ const EquipmentManagement = () => {
                     />
                   ) : null}
                   {!showImage && (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50" role="img" aria-label={`No photo available for ${item.title}`}>
                       <div className="text-center text-muted-foreground">
-                        <div className="text-4xl mb-2">📷</div>
+                        <div className="text-4xl mb-2" aria-hidden="true">📷</div>
                         <p className="text-xs">No photo</p>
                       </div>
                     </div>
