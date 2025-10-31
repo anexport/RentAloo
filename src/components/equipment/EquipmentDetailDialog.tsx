@@ -356,7 +356,11 @@ const EquipmentDetailDialog = ({
                     }}
                     onSuccess={() => {
                       setActiveTab("overview");
-                      alert("Booking request submitted successfully!");
+                      toast({
+                        title: "Booking Request Submitted",
+                        description:
+                          "Your booking request has been submitted successfully!",
+                      });
                     }}
                     onCancel={undefined}
                     isEmbedded={true}
