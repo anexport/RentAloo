@@ -6,18 +6,27 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, EyeOff, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Edit, Trash2, Eye, EyeOff, Calendar, MapPin } from "lucide-react";
 import EquipmentListingForm from "./EquipmentListingForm";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 
 type EquipmentWithCategory =
   Database["public"]["Tables"]["equipment"]["Row"] & {
     category: Database["public"]["Tables"]["categories"]["Row"];
+    photos: Database["public"]["Tables"]["equipment_photos"]["Row"][];
   };
 
 const EquipmentManagement = () => {
@@ -31,6 +40,11 @@ const EquipmentManagement = () => {
   const [showingCalendar, setShowingCalendar] = useState<
     Database["public"]["Tables"]["equipment"]["Row"] | null
   >(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(
+    null
+  );
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -41,13 +55,17 @@ const EquipmentManagement = () => {
   const fetchEquipment = async () => {
     if (!user) return;
 
+    // Reset failed images on refetch to allow retrying previously failed URLs
+    setFailedImages(new Set());
+
     try {
       const { data, error } = await supabase
         .from("equipment")
         .select(
           `
           *,
-          category:categories(*)
+          category:categories(*),
+          photos:equipment_photos(*)
         `
         )
         .eq("owner_id", user.id)
@@ -55,7 +73,21 @@ const EquipmentManagement = () => {
 
       if (error) throw error;
 
-      setEquipment(data || []);
+      // Sort photos by order_index and is_primary
+      const equipmentWithSortedPhotos = (data || []).map((item) => ({
+        ...item,
+        photos: (item.photos || []).sort((a, b) => {
+          // Primary photos first
+          const aPrimary = a.is_primary === true;
+          const bPrimary = b.is_primary === true;
+          if (aPrimary && !bPrimary) return -1;
+          if (!aPrimary && bPrimary) return 1;
+          // Then by order_index
+          return (a.order_index || 0) - (b.order_index || 0);
+        }),
+      }));
+
+      setEquipment(equipmentWithSortedPhotos);
     } catch (error) {
       console.error("Error fetching equipment:", error);
     } finally {
@@ -87,19 +119,27 @@ const EquipmentManagement = () => {
     }
   };
 
-  const handleDeleteEquipment = async (equipmentId: string) => {
-    if (!confirm("Are you sure you want to delete this equipment listing?"))
-      return;
+  const handleDeleteClick = (equipmentId: string) => {
+    setEquipmentToDelete(equipmentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!equipmentToDelete) return;
 
     try {
       const { error } = await supabase
         .from("equipment")
         .delete()
-        .eq("id", equipmentId);
+        .eq("id", equipmentToDelete);
 
       if (error) throw error;
 
-      setEquipment((prev) => prev.filter((item) => item.id !== equipmentId));
+      setEquipment((prev) =>
+        prev.filter((item) => item.id !== equipmentToDelete)
+      );
+      setDeleteDialogOpen(false);
+      setEquipmentToDelete(null);
     } catch (error) {
       console.error("Error deleting equipment:", error);
     }
@@ -148,10 +188,10 @@ const EquipmentManagement = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               {showingCalendar.title}
             </h2>
-            <p className="text-gray-600">Manage availability and pricing</p>
+            <p className="text-muted-foreground">Manage availability and pricing</p>
           </div>
           <Button variant="outline" onClick={handleCloseCalendar}>
             Back to Equipment
@@ -177,8 +217,8 @@ const EquipmentManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Equipment</h2>
-          <p className="text-gray-600">Manage your equipment listings</p>
+          <h2 className="text-2xl font-bold text-foreground">My Equipment</h2>
+          <p className="text-muted-foreground">Manage your equipment listings</p>
         </div>
         <Button onClick={() => setShowForm(true)}>Add New Equipment</Button>
       </div>
@@ -196,96 +236,180 @@ const EquipmentManagement = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {equipment.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{item.title}</CardTitle>
-                    <CardDescription>{item.category.name}</CardDescription>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {equipment.map((item) => {
+            const primaryPhoto = item.photos?.find((p) => p.is_primary) || item.photos?.[0];
+            const imageHasError = primaryPhoto
+              ? failedImages.has(primaryPhoto.id)
+              : true;
+            const showImage = primaryPhoto && !imageHasError;
+            
+            return (
+              <Card
+                key={item.id}
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
+              >
+                {/* Image Section - Airbnb Style */}
+                <div className="relative aspect-video bg-muted overflow-hidden">
+                  {showImage ? (
+                    <img
+                      src={primaryPhoto.photo_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      onError={() => {
+                        if (primaryPhoto) {
+                          setFailedImages((prev) => new Set(prev).add(primaryPhoto.id));
+                        }
+                      }}
+                    />
+                  ) : null}
+                  {!showImage && (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50" role="img" aria-label={`No photo available for ${item.title}`}>
+                      <div className="text-center text-muted-foreground">
+                        <div className="text-4xl mb-2" aria-hidden="true">📷</div>
+                        <p className="text-xs">No photo</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Availability Badge Overlay */}
+                  <div className="absolute top-3 right-3">
+                    <Badge
+                      variant={item.is_available ? "default" : "secondary"}
+                      className="shadow-md"
+                    >
+                      {item.is_available ? "Available" : "Unavailable"}
+                    </Badge>
                   </div>
-                  <Badge variant={item.is_available ? "default" : "secondary"}>
-                    {item.is_available ? "Available" : "Unavailable"}
-                  </Badge>
+                  
+                  {/* Category Badge Overlay */}
+                  <div className="absolute top-3 left-3">
+                    <Badge variant="secondary" className="shadow-md bg-background/80 backdrop-blur-sm">
+                      {item.category.name}
+                    </Badge>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600 line-clamp-2">
+
+                {/* Content Section */}
+                <CardContent className="p-4 space-y-3">
+                  {/* Title and Location */}
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-semibold line-clamp-1 leading-tight">
+                      {item.title}
+                    </CardTitle>
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="line-clamp-1">{item.location}</span>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">
-                      ${item.daily_rate}/day
-                    </span>
-                    <span className="text-sm text-gray-500 capitalize">
-                      {item.condition}
-                    </span>
-                  </div>
-
-                  <div className="text-sm text-gray-500">
-                    📍 {item.location}
-                  </div>
-
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          handleToggleAvailability(item.id, item.is_available)
-                        }
-                      >
-                        {item.is_available ? (
-                          <>
-                            <EyeOff className="h-4 w-4 mr-1" />
-                            Hide
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Show
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteEquipment(item.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  {/* Price and Condition */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <span className="text-lg font-semibold text-foreground">
+                        ${item.daily_rate}
+                      </span>
+                      <span className="text-sm text-muted-foreground">/day</span>
                     </div>
+                    <Badge variant="outline" className="capitalize text-xs">
+                      {item.condition}
+                    </Badge>
+                  </div>
+                </CardContent>
 
+                {/* Actions Footer */}
+                <CardFooter className="p-4 pt-0 flex-col gap-2 border-t">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleShowCalendar(item)}
+                    className="w-full"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Manage Availability
+                  </Button>
+                  <div className="flex gap-2 w-full">
                     <Button
                       size="sm"
-                      variant="default"
-                      onClick={() => handleShowCalendar(item)}
-                      className="w-full"
+                      variant="outline"
+                      onClick={() => handleEdit(item)}
+                      className="flex-1"
                     >
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Manage Availability
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleToggleAvailability(item.id, item.is_available)
+                      }
+                      className="flex-1"
+                    >
+                      {item.is_available ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-1" />
+                          Hide
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Show
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteClick(item.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Equipment Listing</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this equipment listing? This
+              action cannot be undone and will remove all associated photos and
+              booking history.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setEquipmentToDelete(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

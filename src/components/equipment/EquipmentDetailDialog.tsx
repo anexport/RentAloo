@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -21,12 +22,13 @@ import {
   MessageSquare,
   Package,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import StarRating from "@/components/reviews/StarRating";
 import { fetchListingById } from "@/features/equipment/services/listings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
@@ -34,11 +36,22 @@ import EquipmentLocationMap from "./EquipmentLocationMap";
 import ReviewList from "@/components/reviews/ReviewList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
+import BookingRequestForm from "@/components/booking/BookingRequestForm";
+import type { Listing } from "@/features/equipment/services/listings";
 
 type EquipmentDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   listingId?: string;
+};
+
+// Type guard to check if listing has category
+const hasCategory = (
+  listing: Listing | undefined
+): listing is Listing & { category: NonNullable<Listing["category"]> } => {
+  return !!listing?.category;
 };
 
 const EquipmentDetailDialog = ({
@@ -47,6 +60,9 @@ const EquipmentDetailDialog = ({
   listingId,
 }: EquipmentDetailDialogProps) => {
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const { data, isLoading } = useQuery({
     queryKey: ["listing", listingId],
@@ -187,8 +203,12 @@ const EquipmentDetailDialog = ({
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           {/* Main content tabs */}
           <div className="space-y-6">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger
                   value="overview"
                   className="flex items-center gap-1 sm:gap-2"
@@ -220,6 +240,14 @@ const EquipmentDetailDialog = ({
                 >
                   <MessageSquare className="h-4 w-4" />
                   <span className="hidden sm:inline">Reviews</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="book"
+                  className="flex items-center gap-1 sm:gap-2"
+                  aria-label="Book"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Book</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -303,6 +331,41 @@ const EquipmentDetailDialog = ({
                   showEquipment={false}
                 />
               </TabsContent>
+
+              <TabsContent value="book" className="mt-6">
+                {!hasCategory(data) ? (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">
+                          Category Information Missing
+                        </h3>
+                        <p className="text-muted-foreground max-w-md">
+                          This equipment is missing category information. Please
+                          contact the owner or try again later.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <BookingRequestForm
+                    equipment={{
+                      ...data,
+                      category: data.category,
+                    }}
+                    onSuccess={() => {
+                      setActiveTab("overview");
+                      toast({
+                        title: "Booking Request Submitted",
+                        description:
+                          "Your booking request has been submitted successfully!",
+                      });
+                    }}
+                    isEmbedded={true}
+                  />
+                )}
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -353,8 +416,39 @@ const EquipmentDetailDialog = ({
                 className="w-full"
                 size="lg"
                 aria-label="Request to book this equipment"
+                onClick={() => {
+                  if (!user) {
+                    toast({
+                      variant: "destructive",
+                      title: "Login Required",
+                      description: "Please log in to request a booking.",
+                    });
+                    return;
+                  }
+                  if (data?.owner?.id === user.id) {
+                    toast({
+                      variant: "destructive",
+                      title: "Cannot Book Own Equipment",
+                      description: "You cannot book your own equipment.",
+                    });
+                    return;
+                  }
+                  if (!data?.category) {
+                    toast({
+                      variant: "destructive",
+                      title: "Missing Category Information",
+                      description: "Equipment category information is missing.",
+                    });
+                    return;
+                  }
+                  setActiveTab("book");
+                }}
               >
-                Request to Book
+                {!user
+                  ? "Login to Book"
+                  : data?.owner?.id === user.id
+                  ? "Your Equipment"
+                  : "Request to Book"}
               </Button>
             </Card>
           </aside>
