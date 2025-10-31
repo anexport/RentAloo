@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 import RenterRegistration from "@/pages/auth/RenterRegistration";
@@ -6,7 +6,8 @@ import OwnerRegistration from "@/pages/auth/OwnerRegistration";
 import LoginPage from "@/pages/auth/LoginPage";
 import RenterDashboard from "@/pages/renter/RenterDashboard";
 import OwnerDashboard from "@/pages/owner/OwnerDashboard";
-import EquipmentSearch from "@/pages/EquipmentSearch";
+import ExplorePage from "@/pages/ExplorePage";
+import EquipmentDetailPage from "@/pages/equipment/EquipmentDetailPage";
 import MessagingPage from "@/pages/MessagingPage";
 import PaymentConfirmation from "@/pages/payment/PaymentConfirmation";
 import VerifyIdentity from "@/pages/verification/VerifyIdentity";
@@ -28,11 +29,12 @@ function App() {
       <div className="min-h-screen bg-background">
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<EquipmentSearch />} />
+          <Route path="/" element={<ExplorePage />} />
           <Route path="/register/renter" element={<RenterRegistration />} />
           <Route path="/register/owner" element={<OwnerRegistration />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/equipment" element={<EquipmentSearch />} />
+          <Route path="/equipment" element={<Navigate to="/" replace />} />
+          <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
 
           {/* Protected routes */}
           {user && (

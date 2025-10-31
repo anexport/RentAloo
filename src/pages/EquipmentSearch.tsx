@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   MapPin,
-  Star,
   Calendar,
   Eye,
   X,
@@ -18,13 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +26,6 @@ import type { Database } from "../lib/database.types";
 import BookingRequestForm from "@/components/booking/BookingRequestForm";
 import ReviewList from "@/components/reviews/ReviewList";
 import StarRating from "@/components/reviews/StarRating";
-import UserMenu from "@/components/UserMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/layout/PageHeader";
