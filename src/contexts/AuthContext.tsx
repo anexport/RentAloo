@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      void supabase.realtime.setAuth(session?.access_token ?? null);
     });
 
     // Listen for auth changes
@@ -53,6 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      void supabase.realtime.setAuth(session?.access_token ?? null);
 
       // Profile creation is now handled by database trigger
     });

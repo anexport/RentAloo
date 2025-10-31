@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "../lib/supabase";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import type {
   ConversationWithDetails,
   MessageWithSender,
@@ -15,6 +16,23 @@ export const useMessaging = () => {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
+  const currentConversationIdRef = useRef<string | null>(null);
+  const userConversationIdsRef = useRef<Set<string>>(new Set());
+  const conversationChannelRef = useRef<RealtimeChannel | null>(null);
+  const userChannelRef = useRef<RealtimeChannel | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setConversations([]);
+      setMessages([]);
+      setActiveConversationId(null);
+      currentConversationIdRef.current = null;
+      userConversationIdsRef.current = new Set();
+    }
+  }, [user]);
 
   // Fetch user's conversations
   const fetchConversations = useCallback(async () => {
@@ -35,6 +53,7 @@ export const useMessaging = () => {
 
       if (conversationIds.length === 0) {
         setConversations([]);
+        userConversationIdsRef.current = new Set();
         setLoading(false);
         return;
       }
@@ -96,6 +115,9 @@ export const useMessaging = () => {
       );
 
       setConversations(conversationsWithDetails);
+      
+      // Update user conversation IDs ref for filtering
+      userConversationIdsRef.current = new Set(conversationIds);
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setError(
@@ -109,6 +131,10 @@ export const useMessaging = () => {
   // Fetch messages for a specific conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
+      // Update current conversation ID ref
+      currentConversationIdRef.current = conversationId;
+      setActiveConversationId(conversationId);
+      
       const { data, error } = await supabase
         .from("messages")
         .select(
@@ -160,7 +186,7 @@ export const useMessaging = () => {
           .eq("id", messageData.conversation_id);
 
         // Refresh conversations to update last message
-        fetchConversations();
+        await fetchConversations();
 
         return data;
       } catch (err) {
@@ -271,41 +297,186 @@ export const useMessaging = () => {
     [user, fetchConversations]
   );
 
-  // Set up real-time subscriptions
+  // Subscribe to broadcast events for the active conversation
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeConversationId) {
+      if (conversationChannelRef.current) {
+        supabase.removeChannel(conversationChannelRef.current);
+        conversationChannelRef.current = null;
+      }
+      return;
+    }
 
-    // Subscribe to new messages
-    const messageSubscription = supabase
-      .channel("messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        (payload) => {
-          const newMessage = payload.new as MessageWithSender;
+    const topic = `room:${activeConversationId}:messages`;
 
-          // Only update if the message is for a conversation we're viewing
-          if (
-            messages.length > 0 &&
-            newMessage.conversation_id === messages[0]?.conversation_id
-          ) {
-            setMessages((prev) => [...prev, newMessage]);
+    if (
+      conversationChannelRef.current &&
+      conversationChannelRef.current.topic === topic
+    ) {
+      return;
+    }
+
+    if (conversationChannelRef.current) {
+      supabase.removeChannel(conversationChannelRef.current);
+      conversationChannelRef.current = null;
+    }
+
+    const channel = supabase.channel(topic, {
+      config: {
+        broadcast: { self: true, ack: true },
+        private: true,
+      },
+    });
+
+    conversationChannelRef.current = channel;
+
+    channel.on("broadcast", { event: "message_created" }, async (payload) => {
+      const rawPayload = payload?.payload as
+        | { record?: Record<string, any>; new?: Record<string, any> }
+        | undefined;
+
+      const record = (rawPayload?.record || rawPayload?.new || null) as
+        | { id?: string; conversation_id?: string }
+        | null;
+
+      const conversationId = record?.conversation_id;
+      const messageId = record?.id;
+
+      if (!conversationId || !messageId) {
+        return;
+      }
+
+      if (!userConversationIdsRef.current.has(conversationId)) {
+        userConversationIdsRef.current.add(conversationId);
+      }
+
+      const { data: fullMessage, error: fetchError } = await supabase
+        .from("messages")
+        .select(
+          `
+          *,
+          sender:profiles(*)
+        `
+        )
+        .eq("id", messageId)
+        .single();
+
+      if (fetchError || !fullMessage) {
+        console.error("Error fetching new message:", fetchError);
+        return;
+      }
+
+      if (currentConversationIdRef.current === conversationId) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === fullMessage.id)) {
+            return prev;
           }
+          return [...prev, fullMessage as MessageWithSender];
+        });
+      }
 
-          // Refresh conversations to update last message
-          fetchConversations();
-        }
-      )
-      .subscribe();
+      await fetchConversations();
+    });
+
+    channel.subscribe((status) => {
+      if (status === "CHANNEL_ERROR") {
+        console.error(
+          "Realtime channel error for messages topic:",
+          topic
+        );
+        setError("Failed to subscribe to message updates");
+      }
+    });
 
     return () => {
-      messageSubscription.unsubscribe();
+      if (conversationChannelRef.current) {
+        supabase.removeChannel(conversationChannelRef.current);
+        conversationChannelRef.current = null;
+      }
     };
-  }, [user, messages, fetchConversations]);
+  }, [user, activeConversationId, fetchConversations]);
+
+  // Listen for user-specific conversation updates
+  useEffect(() => {
+    if (!user) {
+      if (userChannelRef.current) {
+        supabase.removeChannel(userChannelRef.current);
+        userChannelRef.current = null;
+      }
+      return;
+    }
+
+    const topic = `user:${user.id}:conversations`;
+
+    if (userChannelRef.current) {
+      supabase.removeChannel(userChannelRef.current);
+      userChannelRef.current = null;
+    }
+
+    const channel = supabase.channel(topic, {
+      config: {
+        broadcast: { self: true, ack: true },
+        private: true,
+      },
+    });
+
+    userChannelRef.current = channel;
+
+    channel.on("broadcast", { event: "participant_added" }, (payload) => {
+      const rawPayload = payload?.payload as
+        | { record?: Record<string, any>; new?: Record<string, any> }
+        | undefined;
+
+      const record = (rawPayload?.record || rawPayload?.new || null) as
+        | { conversation_id?: string }
+        | null;
+
+      const conversationId = record?.conversation_id;
+
+      if (!conversationId) {
+        return;
+      }
+
+      userConversationIdsRef.current.add(conversationId);
+      void fetchConversations();
+    });
+
+    channel.on("broadcast", { event: "message_created" }, (payload) => {
+      const messagePayload = payload?.payload as
+        | { conversation_id?: string; message_id?: string }
+        | undefined;
+
+      const conversationId = messagePayload?.conversation_id;
+
+      if (!conversationId) {
+        return;
+      }
+
+      if (!userConversationIdsRef.current.has(conversationId)) {
+        userConversationIdsRef.current.add(conversationId);
+      }
+
+      if (conversationId !== currentConversationIdRef.current) {
+        void fetchConversations();
+      }
+    });
+
+    channel.subscribe((status) => {
+      if (status === "CHANNEL_ERROR") {
+        console.error(
+          "Realtime channel error for user topic:",
+          topic
+        );
+      }
+    });
+
+    return () => {
+      if (userChannelRef.current) {
+        supabase.removeChannel(userChannelRef.current);
+        userChannelRef.current = null;
+      }
+    };
+  }, [user, fetchConversations]);
 
   // Initial fetch
   useEffect(() => {
