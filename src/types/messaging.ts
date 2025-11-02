@@ -7,7 +7,8 @@ export interface MessageWithSender extends Message {
   sender: Database["public"]["Tables"]["profiles"]["Row"];
 }
 
-export interface ConversationWithDetails extends Conversation {
+export interface ConversationWithDetails
+  extends Omit<Conversation, "participants"> {
   participants: Database["public"]["Tables"]["profiles"]["Row"][];
   last_message?: MessageWithSender | null;
   booking_request?: Database["public"]["Tables"]["booking_requests"]["Row"] & {
@@ -19,11 +20,16 @@ export interface MessageFormData {
   content: string;
 }
 
-export type MessageType = "text" | "system" | "booking_update";
+export type MessageType =
+  | "text"
+  | "system"
+  | "booking_update"
+  | "booking_approved"
+  | "booking_cancelled"
+  | "booking_declined";
 
 export interface NewMessage {
   conversation_id: string;
   content: string;
   message_type?: MessageType;
 }
-

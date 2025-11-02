@@ -8,6 +8,42 @@ import type {
   NewMessage,
 } from "../types/messaging";
 
+// Payload types for broadcast events
+interface MessageCreatedPayload {
+  record?: {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    content: string;
+    created_at: string;
+    message_type?: string | null;
+  };
+  new?: {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    content: string;
+    created_at: string;
+    message_type?: string | null;
+  };
+}
+
+interface ParticipantAddedPayload {
+  record?: {
+    conversation_id: string;
+    profile_id: string;
+  };
+  new?: {
+    conversation_id: string;
+    profile_id: string;
+  };
+}
+
+interface UserMessagePayload {
+  conversation_id?: string;
+  message_id?: string;
+}
+
 export const useMessaging = () => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<ConversationWithDetails[]>(
@@ -31,6 +67,16 @@ export const useMessaging = () => {
       setActiveConversationId(null);
       currentConversationIdRef.current = null;
       userConversationIdsRef.current = new Set();
+
+      // Explicitly clean up channels on logout
+      if (conversationChannelRef.current) {
+        supabase.removeChannel(conversationChannelRef.current);
+        conversationChannelRef.current = null;
+      }
+      if (userChannelRef.current) {
+        supabase.removeChannel(userChannelRef.current);
+        userChannelRef.current = null;
+      }
     }
   }, [user]);
 
@@ -332,17 +378,15 @@ export const useMessaging = () => {
     conversationChannelRef.current = channel;
 
     channel.on("broadcast", { event: "message_created" }, async (payload) => {
-      const rawPayload = payload?.payload as
-        | { record?: Record<string, any>; new?: Record<string, any> }
-        | undefined;
+      const rawPayload = payload?.payload as MessageCreatedPayload | undefined;
+      const record = rawPayload?.record || rawPayload?.new;
 
-      const record = (rawPayload?.record || rawPayload?.new || null) as {
-        id?: string;
-        conversation_id?: string;
-      } | null;
+      if (!record) {
+        return;
+      }
 
-      const conversationId = record?.conversation_id;
-      const messageId = record?.id;
+      const conversationId = record.conversation_id;
+      const messageId = record.id;
 
       if (!conversationId || !messageId) {
         return;
@@ -423,14 +467,15 @@ export const useMessaging = () => {
 
     channel.on("broadcast", { event: "participant_added" }, (payload) => {
       const rawPayload = payload?.payload as
-        | { record?: Record<string, any>; new?: Record<string, any> }
+        | ParticipantAddedPayload
         | undefined;
+      const record = rawPayload?.record || rawPayload?.new;
 
-      const record = (rawPayload?.record || rawPayload?.new || null) as {
-        conversation_id?: string;
-      } | null;
+      if (!record) {
+        return;
+      }
 
-      const conversationId = record?.conversation_id;
+      const conversationId = record.conversation_id;
 
       if (!conversationId) {
         return;
@@ -441,11 +486,13 @@ export const useMessaging = () => {
     });
 
     channel.on("broadcast", { event: "message_created" }, (payload) => {
-      const messagePayload = payload?.payload as
-        | { conversation_id?: string; message_id?: string }
-        | undefined;
+      const messagePayload = payload?.payload as UserMessagePayload | undefined;
 
-      const conversationId = messagePayload?.conversation_id;
+      if (!messagePayload) {
+        return;
+      }
+
+      const conversationId = messagePayload.conversation_id;
 
       if (!conversationId) {
         return;

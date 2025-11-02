@@ -10,17 +10,19 @@ interface MessageBubbleProps {
 const MessageBubble = ({ message }: MessageBubbleProps) => {
   const { user } = useAuth();
   const isOwnMessage = user?.id === message.sender_id;
-  const isSystemMessage = message.message_type === "system";
+  const isSystemMessage =
+    message.message_type === "system" ||
+    message.message_type === "booking_approved" ||
+    message.message_type === "booking_cancelled" ||
+    message.message_type === "booking_declined";
 
   // System messages are centered and styled differently
   if (isSystemMessage) {
-    // Determine message type based on content
-    const isApprovalMessage = message.content
-      .toLowerCase()
-      .includes("approved");
+    // Determine message type based on structured message_type field
+    const isApprovalMessage = message.message_type === "booking_approved";
     const isCancellationMessage =
-      message.content.toLowerCase().includes("cancelled") ||
-      message.content.toLowerCase().includes("declined");
+      message.message_type === "booking_cancelled" ||
+      message.message_type === "booking_declined";
 
     // Get styles and icon based on message type
     let cardClasses = "";
