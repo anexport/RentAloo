@@ -76,6 +76,7 @@ WITH CHECK (
 
 -- Add RLS policy for presence channels in realtime.messages
 -- Allow authenticated users to track presence on global presence channel
+-- For room topics, require the user to be a participant of that room
 DROP POLICY IF EXISTS "authenticated can track presence" ON realtime.messages;
 CREATE POLICY "authenticated can track presence"
 ON realtime.messages
@@ -85,7 +86,16 @@ WITH CHECK (
   realtime.messages.extension = 'presence'
   AND (
     split_part(topic, ':', 1) = 'presence'
-    OR split_part(topic, ':', 1) = 'room'
+    OR (
+      split_part(topic, ':', 1) = 'room'
+      AND split_part(topic, ':', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      AND EXISTS (
+        SELECT 1
+        FROM public.conversation_participants cp
+        WHERE cp.conversation_id = split_part(topic, ':', 2)::uuid
+          AND cp.profile_id = auth.uid()
+      )
+    )
   )
 );
 
