@@ -226,23 +226,25 @@ export const useMessaging = () => {
 
         if (error) throw error;
 
+        const timestamp = new Date().toISOString();
+
         // Add the new message to the current messages
         setMessages((prev) => [...prev, data]);
 
-        // Update conversation's updated_at timestamp
-        await supabase
-          .from("conversations")
-          .update({ updated_at: new Date().toISOString() })
-          .eq("id", messageData.conversation_id);
+        // Update related metadata without blocking the UI any longer than needed
+        await Promise.all([
+          supabase
+            .from("conversations")
+            .update({ updated_at: timestamp })
+            .eq("id", messageData.conversation_id),
+          supabase
+            .from("profiles")
+            .update({ last_seen_at: timestamp })
+            .eq("id", user.id),
+        ]);
 
-        // Update last_seen_at when sending a message
-        await supabase
-          .from("profiles")
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq("id", user.id);
-
-        // Refresh conversations to update last message
-        await fetchConversations();
+        // Refresh conversations to update last message, but do it in the background
+        void fetchConversations();
 
         return data;
       } catch (err) {

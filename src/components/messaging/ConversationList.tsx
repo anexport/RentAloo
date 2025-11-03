@@ -1,18 +1,30 @@
-import type { ConversationWithDetails } from "../../types/messaging";
-import { useAuth } from "../../hooks/useAuth";
-import { usePresence } from "../../hooks/usePresence";
-import { MessageSquare, Clock } from "lucide-react";
-import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { OnlineStatusIndicator } from "./OnlineStatusIndicator";
-import { LastSeenBadge } from "./LastSeenBadge";
+import type { ConversationWithDetails } from "../../types/messaging"
+import { useAuth } from "../../hooks/useAuth"
+import { usePresence } from "../../hooks/usePresence"
+import { Skeleton } from "../ui/skeleton"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "../ui/empty"
+import { MessageSquare } from "lucide-react"
+import { TooltipProvider } from "../ui/tooltip"
+import { ConversationListItem } from "./shared/ConversationListItem"
 
 interface ConversationListProps {
-  conversations: ConversationWithDetails[];
-  selectedConversationId?: string;
-  onSelectConversation: (conversation: ConversationWithDetails) => void;
-  loading?: boolean;
+  conversations: ConversationWithDetails[]
+  selectedConversationId?: string
+  onSelectConversation: (conversation: ConversationWithDetails) => void
+  loading?: boolean
+}
+
+const getInitials = (value?: string | null) => {
+  if (!value) return "?"
+  const trimmed = value.trim()
+  if (!trimmed) return "?"
+  return trimmed.charAt(0).toUpperCase()
 }
 
 const ConversationList = ({
@@ -21,103 +33,75 @@ const ConversationList = ({
   onSelectConversation,
   loading = false,
 }: ConversationListProps) => {
-  const { user } = useAuth();
-  const { isOnline } = usePresence();
+  const { user } = useAuth()
+  const { isOnline } = usePresence()
 
   if (loading) {
     return (
-      <div className="space-y-2">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="h-4 bg-muted rounded mb-2"></div>
-              <div className="h-3 bg-muted rounded w-2/3"></div>
-            </CardContent>
-          </Card>
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-20 w-full rounded-xl" />
         ))}
       </div>
-    );
+    )
   }
 
   if (conversations.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted" />
-        <p>No conversations yet</p>
-        <p className="text-sm">Start a conversation by booking equipment</p>
-      </div>
-    );
+      <Empty className="py-12">
+        <EmptyMedia>
+          <MessageSquare className="h-6 w-6" />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>No conversations yet</EmptyTitle>
+          <EmptyDescription>
+            You&apos;ll see booking messages and renter chats here once they
+            start.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
   }
 
   return (
-    <div className="space-y-2">
-      {conversations.map((conversation) => {
-        const otherParticipant = conversation.participants.find(
-          (p) => p.id !== user?.id
-        );
-        const isSelected = conversation.id === selectedConversationId;
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-2">
+        {conversations.map((conversation) => {
+          const otherParticipant = conversation.participants.find(
+            (participant) => participant.id !== user?.id
+          )
 
-        return (
-          <Card
-            key={conversation.id}
-            className={`cursor-pointer transition-colors ${
-              isSelected ? "bg-primary/5 border-primary" : "hover:bg-accent"
-            }`}
-            onClick={() => onSelectConversation(conversation)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3 mb-2">
-                {/* Avatar with online status indicator */}
-                <div className="relative shrink-0">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>
-                      {otherParticipant?.email?.charAt(0).toUpperCase() || "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  {otherParticipant && (
-                    <OnlineStatusIndicator
-                      isOnline={isOnline(otherParticipant.id)}
-                      size="md"
-                    />
-                  )}
-                </div>
+          const otherParticipantName =
+            otherParticipant?.email || "Unknown user"
+          const otherParticipantInitials = getInitials(
+            otherParticipant?.email
+          )
+          const lastSeenAt =
+            (otherParticipant as { last_seen_at?: string } | undefined)
+              ?.last_seen_at || null
+          const unread =
+            conversation.last_message?.sender_id !== undefined &&
+            conversation.last_message.sender_id !== user?.id
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-sm truncate">
-                      {otherParticipant?.email || "Unknown User"}
-                    </h3>
-                    <div className="flex items-center space-x-2 shrink-0 ml-2">
-                      {conversation.booking_request && (
-                        <Badge variant="outline" className="text-xs">
-                          {conversation.booking_request.status}
-                        </Badge>
-                      )}
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  </div>
-                  {otherParticipant && (
-                    <LastSeenBadge
-                      isOnline={isOnline(otherParticipant.id)}
-                      lastSeenAt={
-                        (otherParticipant as any).last_seen_at || null
-                      }
-                      className="mb-1"
-                    />
-                  )}
-                  {conversation.booking_request && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {conversation.booking_request.equipment.title}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-};
+          return (
+            <ConversationListItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={conversation.id === selectedConversationId}
+              onSelect={onSelectConversation}
+              otherParticipantName={otherParticipantName}
+              otherParticipantInitials={otherParticipantInitials}
+              isOnline={
+                otherParticipant ? isOnline(otherParticipant.id) : false
+              }
+              lastSeenAt={lastSeenAt}
+              unread={Boolean(unread)}
+            />
+          )
+        })}
+      </div>
+    </TooltipProvider>
+  )
+}
 
-export default ConversationList;
+export default ConversationList
