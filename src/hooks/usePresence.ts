@@ -150,6 +150,10 @@ export const usePresence = () => {
         // Page is visible again, resume tracking
         if (channelRef.current) {
           void trackPresence();
+          // Clear any existing interval before creating a new one
+          if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+          }
           heartbeatIntervalRef.current = setInterval(() => {
             void trackPresence();
           }, PRESENCE_HEARTBEAT_INTERVAL);
