@@ -164,9 +164,15 @@ const ConversationList = ({
             }
 
             // Fallback 2: Check localStorage for persisted read state (secondary backup)
-            if (conversation.id && user?.id) {
+            if (
+              conversation.id &&
+              user?.id &&
+              typeof window !== "undefined" &&
+              window.localStorage
+            ) {
               const storageKey = `conversation_read_${user.id}_${conversation.id}`;
-              const persistedReadState = localStorage.getItem(storageKey);
+              const persistedReadState =
+                window.localStorage.getItem(storageKey);
               if (persistedReadState !== null) {
                 return persistedReadState === "false"; // false means unread
               }
