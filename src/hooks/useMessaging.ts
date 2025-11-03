@@ -389,13 +389,10 @@ export const useMessaging = () => {
         setMessages((prev) => [...prev, data]);
 
         // Update related metadata without blocking the UI any longer than needed
-        await Promise.all([
-          supabase
-            .from("conversations")
-            .update({ updated_at: timestamp })
-            .eq("id", messageData.conversation_id),
-          supabase.rpc("update_last_seen"),
-        ]);
+        await supabase
+          .from("conversations")
+          .update({ updated_at: timestamp })
+          .eq("id", messageData.conversation_id);
 
         // Refresh conversations to update last message, but do it in the background
         void fetchConversations();
@@ -581,17 +578,6 @@ export const useMessaging = () => {
         setMessages((prev) => {
           if (prev.some((m) => m.id === fullMessage.id)) {
             return prev;
-          }
-          // Update last_seen_at when receiving a message
-          if (user?.id) {
-            supabase
-              .rpc("update_last_seen")
-              .then(() => {
-                // Silently handle - don't block message rendering
-              })
-              .catch((error) => {
-                console.error('Failed to update last seen:', error);
-              });
           }
           return [...prev, fullMessage as MessageWithSender];
         });

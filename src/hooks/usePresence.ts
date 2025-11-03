@@ -24,16 +24,6 @@ export const usePresence = () => {
     null
   );
 
-  const updateLastSeen = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
-      await supabase.rpc("update_last_seen");
-    } catch (error) {
-      console.error("Error updating last_seen_at:", error);
-    }
-  }, [user?.id]);
-
   const trackPresence = useCallback(async () => {
     if (!user?.id || !channelRef.current) return;
 
@@ -45,12 +35,10 @@ export const usePresence = () => {
 
     try {
       await channelRef.current.track(presenceData);
-      // Update last_seen_at when tracking presence
-      await updateLastSeen();
     } catch (error) {
       console.error("Error tracking presence:", error);
     }
-  }, [user?.id, updateLastSeen]);
+  }, [user?.id]);
 
   // Initialize presence channel
   useEffect(() => {
