@@ -588,6 +588,9 @@ export const useMessaging = () => {
               .rpc("update_last_seen")
               .then(() => {
                 // Silently handle - don't block message rendering
+              })
+              .catch((error) => {
+                console.error('Failed to update last seen:', error);
               });
           }
           return [...prev, fullMessage as MessageWithSender];
