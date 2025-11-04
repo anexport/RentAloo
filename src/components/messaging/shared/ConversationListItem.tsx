@@ -23,11 +23,6 @@ interface ConversationListItemProps {
   unread: boolean
 }
 
-const truncateMessage = (content: string, maxLength = 120) => {
-  if (content.length <= maxLength) return content
-  return `${content.slice(0, maxLength).trimEnd()}…`
-}
-
 export const ConversationListItem = ({
   conversation,
   isSelected = false,
@@ -38,9 +33,6 @@ export const ConversationListItem = ({
   lastSeenAt,
   unread,
 }: ConversationListItemProps) => {
-  const lastMessageContent =
-    conversation.last_message?.content?.trim() || "No messages yet"
-
   const lastActivityTimestamp =
     conversation.last_message?.created_at ||
     conversation.updated_at ||
@@ -110,15 +102,6 @@ export const ConversationListItem = ({
                 {lastActivityLabel}
               </span>
             </div>
-            <p
-              className={cn(
-                "mt-2 line-clamp-2 text-sm text-muted-foreground",
-                unread && "text-foreground"
-              )}
-            >
-              {truncateMessage(lastMessageContent)}
-            </p>
-
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {bookingRequest && (
                 <Tooltip>

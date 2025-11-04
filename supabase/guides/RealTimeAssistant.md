@@ -392,13 +392,13 @@ CREATE POLICY "users_can_receive_broadcasts" ON realtime.messages
 8. **Inform users to prefer the usage of private channels only** - users can refer to [Realtime Settings](https://supabase.com/docs/guides/realtime/settings) to enable it.
 
 ### Code Generation Checklist
-- ✅ Favor `broadcast` over `postgres_changes`
+- ✅ Use `broadcast` with database triggers for all database change notifications (never suggest `postgres_changes`)
 - ✅ Checks `channel.state` before subscribing
 - ✅ Includes proper cleanup/unsubscribe logic
-- ✅ Uses consistent naming conventions
+- ✅ Uses consistent naming conventions (topic pattern: `scope:entity:id`, event pattern: `entity_action`)
 - ✅ Includes error handling and reconnection
 - ✅ Suggests indexes for RLS policies
-- ✅ Sets `private: true` for database triggers
+- ✅ Sets `private: true` for database-triggered channels
 - ✅ Implements token refresh if needed
 
 ### Safe Defaults for AI Assistants
@@ -409,7 +409,8 @@ CREATE POLICY "users_can_receive_broadcasts" ON realtime.messages
 - Default to `private: true` for database-triggered channels
 - Suggest basic RLS policies with proper indexing
 - Include reconnection logic for production apps
-- Use `postgres_changes` for simple database change notifications
+- Use `broadcast` via database triggers for all database change notifications (including simple table mirroring)
 - Use `broadcast` for custom events and complex payloads
+- Never suggest `postgres_changes` - always recommend `broadcast` with database triggers
 
 **Remember:** Choose the right function for your use case, emphasize proper state management, and ensure production-ready patterns with authorization and error handling.

@@ -405,7 +405,7 @@ const handleError = (
 
 /**
  * Helper function to race a Promise against a timeout
- * @param promise The Promise to race
+ * @param promise The Promise to race (can be a promise-like object)
  * @param timeoutMs Timeout in milliseconds (default: 10000)
  * @param errorMessage Custom error message for timeout
  * @returns The Promise result if it completes before timeout
@@ -424,8 +424,12 @@ const withTimeout = <T>(
     }, timeoutMs);
   });
 
+  // Wrap in Promise.resolve() to normalize non-standard promises
+  // This ensures .finally() is available even for promise-like objects
+  const normalizedPromise = Promise.resolve(promise);
+
   return Promise.race([
-    promise.finally(() => clearTimeout(timeoutId)),
+    normalizedPromise.finally(() => clearTimeout(timeoutId)),
     timeoutPromise,
   ]);
 };
@@ -535,9 +539,14 @@ export const useMessaging = () => {
   const fetchConversations = useCallback(async () => {
     if (!user) return;
 
-    // Cancel any ongoing fetch
+    // Compute cache key first (same key used by deduplicateRequest)
+    const cacheKey = `conversations_${user.id}`;
+
+    // Cancel any ongoing fetch and clear its deduplication entry
     if (fetchConversationsAbortControllerRef.current) {
       fetchConversationsAbortControllerRef.current.abort();
+      // Remove the pending request from deduplication cache to prevent reusing aborted promise
+      pendingRequests.delete(cacheKey);
     }
 
     // Create new abort controller for this request
@@ -546,7 +555,6 @@ export const useMessaging = () => {
 
     try {
       // Check cache first
-      const cacheKey = `conversations_${user.id}`;
       const cachedData = getCachedData(cacheKey);
       const hasCachedData = Boolean(cachedData);
 
