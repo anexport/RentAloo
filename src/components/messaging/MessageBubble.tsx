@@ -1,7 +1,8 @@
 import type { MessageWithSender } from "../../types/messaging";
 import { useAuth } from "../../hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
-import { Info } from "lucide-react";
+import { SystemMessage } from "./shared/SystemMessage";
+import { cn } from "@/lib/utils";
 
 interface MessageBubbleProps {
   message: MessageWithSender;
@@ -10,24 +11,28 @@ interface MessageBubbleProps {
 const MessageBubble = ({ message }: MessageBubbleProps) => {
   const { user } = useAuth();
   const isOwnMessage = user?.id === message.sender_id;
-  const isSystemMessage = message.message_type === "system";
+  const isSystemMessage =
+    message.message_type === "system" ||
+    message.message_type === "booking_approved" ||
+    message.message_type === "booking_cancelled" ||
+    message.message_type === "booking_declined";
 
   // System messages are centered and styled differently
   if (isSystemMessage) {
+    const tone =
+      message.message_type === "booking_approved"
+        ? "success"
+        : message.message_type === "booking_cancelled" ||
+          message.message_type === "booking_declined"
+        ? "danger"
+        : "info";
+
     return (
-      <div className="flex justify-center mb-4">
-        <div className="max-w-md px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 flex items-center space-x-2">
-          <Info className="h-4 w-4" />
-          <div>
-            <div className="text-sm">{message.content}</div>
-            <div className="text-xs text-blue-600 mt-1">
-              {formatDistanceToNow(new Date(message.created_at || ""), {
-                addSuffix: true,
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+      <SystemMessage
+        content={message.content}
+        createdAt={message.created_at}
+        tone={tone}
+      />
     );
   }
 
@@ -36,19 +41,21 @@ const MessageBubble = ({ message }: MessageBubbleProps) => {
       className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} mb-4`}
     >
       <div
-        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        className={cn(
+          "max-w-[min(85%,360px)] rounded-2xl px-4 py-3 text-sm shadow-sm",
           isOwnMessage
             ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
-        }`}
+            : "border border-border/70 bg-card text-foreground"
+        )}
       >
-        <div className="text-sm">{message.content}</div>
+        <div className="break-words">{message.content}</div>
         <div
-          className={`text-xs mt-1 ${
+          className={cn(
+            "mt-2 text-xs",
             isOwnMessage
               ? "text-primary-foreground/70"
               : "text-muted-foreground"
-          }`}
+          )}
         >
           {formatDistanceToNow(new Date(message.created_at || ""), {
             addSuffix: true,

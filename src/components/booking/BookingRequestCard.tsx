@@ -116,12 +116,18 @@ const BookingRequestCard = ({
             cancelled: `Booking request has been cancelled.`,
           };
 
-          // Insert system message
+          const messageTypes = {
+            approved: "booking_approved" as const,
+            declined: "booking_declined" as const,
+            cancelled: "booking_cancelled" as const,
+          };
+
+          // Insert system message with structured message_type
           await supabase.from("messages").insert({
             conversation_id: conversation.id,
             sender_id: user.id,
             content: statusMessages[newStatus],
-            message_type: "system",
+            message_type: messageTypes[newStatus],
           });
         }
       } catch (msgError) {

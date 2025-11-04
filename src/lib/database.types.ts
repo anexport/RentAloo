@@ -6,6 +6,14 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Profile summary type used for conversation participants
+export type ProfileSummary = {
+  id: string;
+  email: string | null;
+  last_seen_at: string | null;
+  [key: string]: any;
+};
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -184,21 +192,21 @@ export type Database = {
           booking_request_id: string | null;
           created_at: string | null;
           id: string;
-          participants: string[];
+          participants: ProfileSummary[] | null;
           updated_at: string | null;
         };
         Insert: {
           booking_request_id?: string | null;
           created_at?: string | null;
           id?: string;
-          participants: string[];
+          participants?: string[] | null;
           updated_at?: string | null;
         };
         Update: {
           booking_request_id?: string | null;
           created_at?: string | null;
           id?: string;
-          participants?: string[];
+          participants?: string[] | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -207,6 +215,45 @@ export type Database = {
             columns: ["booking_request_id"];
             isOneToOne: false;
             referencedRelation: "booking_requests";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      conversation_participants: {
+        Row: {
+          conversation_id: string;
+          created_at: string | null;
+          id: string;
+          last_read_at: string | null;
+          profile_id: string;
+        };
+        Insert: {
+          conversation_id: string;
+          created_at?: string | null;
+          id?: string;
+          last_read_at?: string | null;
+          profile_id: string;
+        };
+        Update: {
+          conversation_id?: string;
+          created_at?: string | null;
+          id?: string;
+          last_read_at?: string | null;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_participants_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];
@@ -512,6 +559,7 @@ export type Database = {
           created_at: string | null;
           email: string;
           id: string;
+          last_seen_at: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at: string | null;
         };
@@ -519,6 +567,7 @@ export type Database = {
           created_at?: string | null;
           email: string;
           id?: string;
+          last_seen_at?: string | null;
           role: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
@@ -526,6 +575,7 @@ export type Database = {
           created_at?: string | null;
           email?: string;
           id?: string;
+          last_seen_at?: string | null;
           role?: Database["public"]["Enums"]["user_role"];
           updated_at?: string | null;
         };
@@ -694,10 +744,42 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      messaging_conversation_summaries: {
+        Row: {
+          id: string;
+          booking_request_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          last_message_id: string | null;
+          last_message_sender_id: string | null;
+          last_message_content: string | null;
+          last_message_type: string | null;
+          last_message_created_at: string | null;
+          participant_id: string;
+          participant_email: string;
+          last_seen_at: string | null;
+          booking_status: Database["public"]["Enums"]["booking_status"] | null;
+          start_date: string | null;
+          end_date: string | null;
+          total_amount: number | null;
+          equipment_title: string | null;
+          unread_count: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
-      [_ in never]: never;
+      update_last_seen: {
+        Args: {};
+        Returns: void;
+      };
+      mark_conversation_read: {
+        Args: {
+          /** UUID of the conversation to mark as read */
+          p_conversation: string;
+        };
+        Returns: void;
+      };
     };
     Enums: {
       booking_status: "pending" | "approved" | "declined" | "cancelled";

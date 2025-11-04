@@ -44,6 +44,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      supabase.realtime
+        .setAuth(session?.access_token ?? null)
+        .catch((error) => {
+          console.error("Failed to set realtime auth:", error);
+        });
     });
 
     // Listen for auth changes
@@ -53,6 +58,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      supabase.realtime
+        .setAuth(session?.access_token ?? null)
+        .catch((error) => {
+          console.error("Failed to set realtime auth:", error);
+        });
 
       // Profile creation is now handled by database trigger
     });
