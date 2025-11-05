@@ -77,6 +77,7 @@ BEGIN
     
     -- Mark dates as available again in availability_calendar
     -- Use set-based operation to generate date series and UPSERT all dates at once
+    -- Recompute availability: set to false if any approved booking still covers the date, otherwise true
     INSERT INTO availability_calendar (equipment_id, date, is_available)
     SELECT 
       OLD.equipment_id,
@@ -84,7 +85,17 @@ BEGIN
       true
     FROM generate_series(OLD.start_date, OLD.end_date, INTERVAL '1 day') AS date_series
     ON CONFLICT (equipment_id, date)
-    DO UPDATE SET is_available = true;
+    DO UPDATE SET is_available = (
+      NOT EXISTS (
+        SELECT 1 
+        FROM booking_requests br
+        WHERE br.equipment_id = availability_calendar.equipment_id
+          AND br.status = 'approved'
+          AND br.start_date <= availability_calendar.date
+          AND br.end_date >= availability_calendar.date
+          AND br.id != OLD.id
+      )
+    );
     
     -- Note: We keep the bookings record for history/audit purposes
     -- If you want to delete it, uncomment the following:
