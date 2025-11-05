@@ -15,28 +15,30 @@ ADD CONSTRAINT check_valid_date_range
 CHECK (end_date >= start_date);
 
 -- 3. Add UNIQUE constraint on bookings.booking_request_id
--- First, check if there are any duplicate booking_request_ids
+-- Note: Migration 013 already creates this constraint with IF NOT EXISTS guard
+-- This migration ensures it exists but doesn't fail if it's already there
 DO $$
-DECLARE
-  duplicate_count INTEGER;
 BEGIN
-  SELECT COUNT(*)
-  INTO duplicate_count
-  FROM (
-    SELECT booking_request_id, COUNT(*)
-    FROM bookings
-    GROUP BY booking_request_id
-    HAVING COUNT(*) > 1
-  ) duplicates;
-  
-  IF duplicate_count > 0 THEN
-    RAISE EXCEPTION 'Cannot add UNIQUE constraint: found % duplicate booking_request_ids in bookings table', duplicate_count;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'unique_booking_request'
+      AND conrelid = 'bookings'::regclass
+  ) THEN
+    -- Check for existing duplicates before adding constraint
+    IF EXISTS (
+      SELECT 1 FROM (
+        SELECT booking_request_id, COUNT(*)
+        FROM bookings
+        GROUP BY booking_request_id
+        HAVING COUNT(*) > 1
+      ) duplicates
+    ) THEN
+      RAISE EXCEPTION 'Cannot add UNIQUE constraint: found duplicate booking_request_ids in bookings table';
+    END IF;
+    
+    ALTER TABLE bookings ADD CONSTRAINT unique_booking_request UNIQUE (booking_request_id);
   END IF;
 END $$;
-
-ALTER TABLE bookings
-ADD CONSTRAINT unique_booking_request
-UNIQUE (booking_request_id);
 
 -- 4. Create function to handle booking completion
 CREATE OR REPLACE FUNCTION handle_booking_completion()
