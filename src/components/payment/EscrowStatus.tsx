@@ -108,7 +108,9 @@ const EscrowStatus = ({
           <>
             {isReleaseAvailable ? (
               <Button
-                onClick={handleReleaseEscrow}
+                onClick={() => {
+                  void handleReleaseEscrow();
+                }}
                 disabled={isReleasing || loading}
                 className="w-full"
               >

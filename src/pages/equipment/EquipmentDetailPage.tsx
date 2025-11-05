@@ -10,7 +10,12 @@ const EquipmentDetailPage = () => {
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["listing", id],
-    queryFn: () => fetchListingById(id!),
+    queryFn: () => {
+      if (!id) {
+        throw new Error("Equipment ID is required");
+      }
+      return fetchListingById(id);
+    },
     enabled: !!id,
   });
 
@@ -83,7 +88,7 @@ const EquipmentDetailPage = () => {
         {data.photos && data.photos.length > 0 && (
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <img
-              src={data.photos[0].photo_url}
+              src={data.photos[0]?.photo_url || ""}
               alt={data.title}
               className="w-full h-64 object-cover rounded-md"
             />

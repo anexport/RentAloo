@@ -195,7 +195,7 @@ const NotificationsPanel = () => {
       }
     };
 
-    loadNotifications();
+    void loadNotifications();
 
     // Cleanup function to prevent state updates after unmount
     return () => {

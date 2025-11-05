@@ -8,12 +8,12 @@ import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import ConversationList from "./ConversationList";
 import ConversationSearch from "./ConversationSearch";
+import { supabase } from "@/lib/supabase";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import { OnlineStatusIndicator } from "./OnlineStatusIndicator";
 import { LastSeenBadge } from "./LastSeenBadge";
 import { TypingIndicator } from "./TypingIndicator";
-import { supabase } from "../../lib/supabase";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import {
   ResizableHandle,
@@ -57,7 +57,9 @@ const MessagingInterface = ({
   const typingTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map()
   );
-  const typingChannelRef = useRef<any>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
+    null
+  );
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -105,7 +107,7 @@ const MessagingInterface = ({
       );
       if (conversation) {
         setSelectedConversation(conversation);
-        fetchMessages(conversation.id);
+        void fetchMessages(conversation.id);
         setIsMobileSidebarOpen(false);
       }
     }
@@ -124,7 +126,7 @@ const MessagingInterface = ({
 
     // Stop typing indicator
     if (typingChannelRef.current && user?.id) {
-      typingChannelRef.current.send({
+      void typingChannelRef.current.send({
         type: "broadcast",
         event: "typing",
         payload: {
@@ -154,7 +156,7 @@ const MessagingInterface = ({
     }
 
     // Broadcast typing status
-    typingChannelRef.current.send({
+    void typingChannelRef.current.send({
       type: "broadcast",
       event: "typing",
       payload: {
@@ -167,7 +169,7 @@ const MessagingInterface = ({
     // Set timeout to stop typing after 3 seconds of inactivity
     if (content.length > 0) {
       const timeout = setTimeout(() => {
-        typingChannelRef.current?.send({
+        void typingChannelRef.current?.send({
           type: "broadcast",
           event: "typing",
           payload: {
@@ -184,19 +186,24 @@ const MessagingInterface = ({
 
   // Cleanup timeouts on component unmount
   useEffect(() => {
+    const timeouts = typingTimeoutRef.current;
     return () => {
       // Clear all pending timeouts when component unmounts
-      typingTimeoutRef.current.forEach((timeout) => clearTimeout(timeout));
-      typingTimeoutRef.current.clear();
+      timeouts.forEach((timeout) => clearTimeout(timeout));
+      timeouts.clear();
     };
   }, []);
 
   // Set up typing indicator channel
   useEffect(() => {
+    // Capture ref value at the start of the effect for cleanup
+    const timeouts = typingTimeoutRef.current;
+    const channelRef = typingChannelRef;
+
     if (!selectedConversation || !user) {
-      if (typingChannelRef.current) {
-        supabase.removeChannel(typingChannelRef.current);
-        typingChannelRef.current = null;
+      if (channelRef.current) {
+        void supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
       setTypingUsers(new Set());
       return;
@@ -210,7 +217,7 @@ const MessagingInterface = ({
       },
     });
 
-    typingChannelRef.current = channel;
+    channelRef.current = channel;
 
     channel
       .on("broadcast", { event: "typing" }, (payload) => {
@@ -238,13 +245,13 @@ const MessagingInterface = ({
       .subscribe();
 
     return () => {
-      // Clean up timeouts
-      typingTimeoutRef.current.forEach((timeout) => clearTimeout(timeout));
-      typingTimeoutRef.current.clear();
+      // Clean up timeouts - use captured ref value
+      timeouts.forEach((timeout) => clearTimeout(timeout));
+      timeouts.clear();
 
-      if (typingChannelRef.current) {
-        supabase.removeChannel(typingChannelRef.current);
-        typingChannelRef.current = null;
+      if (channelRef.current) {
+        void supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
       setTypingUsers(new Set());
     };
@@ -268,7 +275,7 @@ const MessagingInterface = ({
 
       return true;
     });
-  }, [conversations, filter, user?.id]);
+  }, [conversations, filter, user]);
 
   const conversationSidebar = (
     <div className="flex h-full flex-col bg-card/60">
@@ -333,7 +340,9 @@ const MessagingInterface = ({
         <ConversationList
           conversations={filteredConversations}
           selectedConversationId={selectedConversation?.id}
-          onSelectConversation={handleSelectConversation}
+          onSelectConversation={(conversation) => {
+            void handleSelectConversation(conversation);
+          }}
           loading={loading}
         />
       </ScrollArea>
@@ -463,7 +472,7 @@ const MessagingInterface = ({
                     userName={
                       selectedConversation.participants.find((p) =>
                         typingUsers.has(p.id)
-                      )?.email
+                      )?.email ?? undefined
                     }
                   />
                 )}
@@ -475,7 +484,9 @@ const MessagingInterface = ({
 
         <div className="px-4 pb-5">
           <MessageInput
-            onSendMessage={handleSendMessage}
+            onSendMessage={(content) => {
+              void handleSendMessage(content);
+            }}
             onTyping={handleTyping}
             disabled={loading}
           />
@@ -530,7 +541,9 @@ const MessagingInterface = ({
         currentUserId={user?.id}
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        onSelect={handleSelectConversation}
+        onSelect={(conversation) => {
+          void handleSelectConversation(conversation);
+        }}
       />
     </div>
   );

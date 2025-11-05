@@ -63,7 +63,7 @@ const StatsOverview = () => {
       }
     };
 
-    fetchStats();
+    void fetchStats();
   }, [user]);
 
   if (loading) {

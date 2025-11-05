@@ -142,7 +142,7 @@ const BookingRequestForm = ({
         }
       };
 
-      checkConflicts();
+      void checkConflicts();
 
       // Cleanup: mark request as stale on unmount or dependency change
       return () => {
@@ -321,7 +321,12 @@ export const BookingFormContent = ({
   isSubmitting,
 }: BookingFormContentProps) => {
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(onSubmit)(e);
+      }}
+      className="space-y-6"
+    >
       {/* Equipment Info */}
       <div className="bg-muted p-4 rounded-lg">
         <h3 className="font-semibold text-lg text-foreground">

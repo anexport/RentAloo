@@ -27,16 +27,12 @@ const UserMenu = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user) {
-        const role = user.user_metadata?.role as "owner" | "renter" | undefined;
-        if (role) {
-          setUserRole(role);
-        }
+    if (user) {
+      const role = user.user_metadata?.role as "owner" | "renter" | undefined;
+      if (role) {
+        setUserRole(role);
       }
-    };
-
-    fetchUserRole();
+    }
   }, [user]);
 
   // Close dropdown when clicking outside
@@ -57,13 +53,17 @@ const UserMenu = () => {
   }, [isOpen]);
 
   const handleSignOut = async () => {
-    await signOut();
+    const { error } = await signOut();
+    if (error) {
+      console.error("Sign out error:", error);
+      return;
+    }
     setIsOpen(false);
     navigate("/");
   };
 
   const handleNavigation = (path: string) => {
-    navigate(path);
+    void navigate(path);
     setIsOpen(false);
   };
 
@@ -91,26 +91,25 @@ const UserMenu = () => {
   const displayName = user.user_metadata?.fullName || user.email;
 
   return (
-    <DropdownMenu ref={menuRef}>
-      <DropdownMenuTrigger
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 focus:outline-none"
-        aria-label="User menu"
-      >
-        {/* User Avatar with Initials */}
-        <div className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-white/20 dark:ring-white/10">
-            {initials}
+    <div ref={menuRef}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger
+          className="flex items-center space-x-2 focus:outline-none"
+          aria-label="User menu"
+        >
+          {/* User Avatar with Initials */}
+          <div className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-white/20 dark:ring-white/10">
+              {initials}
+            </div>
+            <ChevronDown
+              className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform hidden sm:block ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
           </div>
-          <ChevronDown
-            className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform hidden sm:block ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-      </DropdownMenuTrigger>
+        </DropdownMenuTrigger>
 
-      {isOpen && (
         <DropdownMenuContent>
           {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
@@ -169,7 +168,9 @@ const UserMenu = () => {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={handleSignOut}
+            onClick={() => {
+              void handleSignOut();
+            }}
             className="text-red-600 hover:bg-red-50"
           >
             <div className="flex items-center space-x-3">
@@ -178,8 +179,8 @@ const UserMenu = () => {
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
-      )}
-    </DropdownMenu>
+      </DropdownMenu>
+    </div>
   );
 };
 

@@ -10,11 +10,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Home, MessageSquare, Calendar } from "lucide-react";
+import type { Database } from "@/lib/database.types";
+
+type PaymentWithRelations = Database["public"]["Tables"]["payments"]["Row"] & {
+  booking_request?: Database["public"]["Tables"]["booking_requests"]["Row"] & {
+    equipment?: Database["public"]["Tables"]["equipment"]["Row"] & {
+      owner?: Database["public"]["Tables"]["profiles"]["Row"];
+    };
+  };
+};
 
 const PaymentConfirmation = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [payment, setPayment] = useState<any>(null);
+  const [payment, setPayment] = useState<PaymentWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
 
   const paymentId = searchParams.get("payment_id");
@@ -22,7 +31,7 @@ const PaymentConfirmation = () => {
   useEffect(() => {
     const fetchPaymentDetails = async () => {
       if (!paymentId) {
-        navigate("/");
+        void navigate("/");
         return;
       }
 
@@ -53,13 +62,13 @@ const PaymentConfirmation = () => {
         setPayment(data);
       } catch (error) {
         console.error("Error fetching payment:", error);
-        navigate("/");
+        void navigate("/");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPaymentDetails();
+    void fetchPaymentDetails();
   }, [paymentId, navigate]);
 
   if (loading) {
@@ -269,7 +278,9 @@ const PaymentConfirmation = () => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => navigate("/")}
+            onClick={() => {
+              void navigate("/");
+            }}
           >
             <Home className="h-4 w-4 mr-2" />
             Go Home
@@ -278,7 +289,9 @@ const PaymentConfirmation = () => {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => navigate("/messages")}
+            onClick={() => {
+              void navigate("/messages");
+            }}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             Message Owner
@@ -286,7 +299,9 @@ const PaymentConfirmation = () => {
 
           <Button
             className="w-full"
-            onClick={() => navigate("/renter/dashboard")}
+            onClick={() => {
+              void navigate("/renter/dashboard");
+            }}
           >
             <Calendar className="h-4 w-4 mr-2" />
             My Bookings

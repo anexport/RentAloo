@@ -92,13 +92,13 @@ const OwnerRegistration = () => {
         equipmentCategories: data.equipmentCategories,
         yearsExperience: data.yearsExperience,
         bankAccount: data.bankAccount,
-      } as any);
+      });
 
       if (error) {
         console.error("Registration error:", error.message);
         // Handle error (show toast notification)
       } else {
-        navigate("/owner/dashboard");
+        void navigate("/owner/dashboard");
       }
     } catch (error) {
       console.error("Registration error:", error);
@@ -132,7 +132,12 @@ const OwnerRegistration = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                void handleSubmit(onSubmit)(e);
+              }}
+              className="space-y-4"
+            >
               {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>

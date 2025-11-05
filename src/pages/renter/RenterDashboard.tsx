@@ -72,7 +72,7 @@ const RenterDashboard = () => {
       }
     };
 
-    checkEquipment();
+    void checkEquipment();
   }, [user]);
 
   const progress = profile ? getVerificationProgress(profile) : 0;
@@ -229,7 +229,9 @@ const RenterDashboard = () => {
               <BookingRequestCard
                 key={booking.id}
                 bookingRequest={booking}
-                onStatusChange={fetchRenterBookings}
+                onStatusChange={() => {
+                  void fetchRenterBookings();
+                }}
                 showActions={true}
               />
             ))}

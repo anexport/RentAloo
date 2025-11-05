@@ -91,7 +91,7 @@ const PaymentForm = ({
 
       if (payment) {
         // Navigate to payment confirmation page
-        navigate(`/payment/confirmation?payment_id=${payment.id}`);
+        void navigate(`/payment/confirmation?payment_id=${payment.id}`);
         onSuccess?.(payment.id);
       } else {
         throw new Error("Payment creation failed");
@@ -120,7 +120,12 @@ const PaymentForm = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              void handleSubmit(onSubmit)(e);
+            }}
+            className="space-y-4"
+          >
             {/* Security Notice */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start space-x-2">
               <Lock className="h-4 w-4 text-blue-600 mt-0.5" />

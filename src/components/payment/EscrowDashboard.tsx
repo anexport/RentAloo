@@ -79,13 +79,17 @@ const EscrowDashboard = () => {
       }
     };
 
-    fetchEscrowData();
+    void fetchEscrowData();
   }, [user, getEscrowBalance]);
 
   const handleEscrowReleased = () => {
     // Refresh escrow data
     if (user) {
-      getEscrowBalance(user.id).then(setTotalEscrow);
+      void getEscrowBalance(user.id)
+        .then(setTotalEscrow)
+        .catch((error) => {
+          console.error("Error refreshing escrow balance:", error);
+        });
     }
   };
 

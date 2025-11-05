@@ -37,7 +37,7 @@ const QuickActions = () => {
       setUpcomingBookings(bookingsCount || 0);
     };
 
-    fetchCounts();
+    void fetchCounts();
   }, [user]);
 
   const actions = [

@@ -63,8 +63,8 @@ const EquipmentSearch = () => {
   const [locationSearch, setLocationSearch] = useState("");
 
   useEffect(() => {
-    fetchEquipment();
-    fetchCategories();
+    void fetchEquipment();
+    void fetchCategories();
   }, []);
 
   const fetchEquipment = async () => {

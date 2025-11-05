@@ -58,17 +58,28 @@ const BookingRequestCard = ({
   // Check if payment exists for this booking
   useEffect(() => {
     const checkPayment = async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("id")
-        .eq("booking_request_id", bookingRequest.id)
-        .eq("payment_status", "succeeded")
-        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
+      try {
+        const { data, error } = await supabase
+          .from("payments")
+          .select("id")
+          .eq("booking_request_id", bookingRequest.id)
+          .eq("payment_status", "succeeded")
+          .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 results
 
-      setHasPayment(!!data && !error);
+        if (error) {
+          console.error("Error checking payment status:", error);
+          setHasPayment(false);
+          return;
+        }
+
+        setHasPayment(!!data);
+      } catch (error) {
+        console.error("Error checking payment status:", error);
+        setHasPayment(false);
+      }
     };
 
-    checkPayment();
+    void checkPayment();
   }, [bookingRequest.id]);
 
   const handleStatusUpdate = async (
@@ -329,7 +340,9 @@ const BookingRequestCard = ({
               <>
                 <Button
                   size="sm"
-                  onClick={() => handleStatusUpdate("approved")}
+                  onClick={() => {
+                    void handleStatusUpdate("approved");
+                  }}
                   disabled={isUpdating}
                   className="bg-green-600 hover:bg-green-700"
                 >
@@ -339,7 +352,9 @@ const BookingRequestCard = ({
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleStatusUpdate("declined")}
+                  onClick={() => {
+                    void handleStatusUpdate("declined");
+                  }}
                   disabled={isUpdating}
                 >
                   <XCircle className="h-4 w-4 mr-1" />
@@ -352,7 +367,9 @@ const BookingRequestCard = ({
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => handleStatusUpdate("cancelled")}
+                onClick={() => {
+                  void handleStatusUpdate("cancelled");
+                }}
                 disabled={isUpdating}
               >
                 <XCircle className="h-4 w-4 mr-1" />
@@ -378,7 +395,9 @@ const BookingRequestCard = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleOpenMessaging}
+              onClick={() => {
+                void handleOpenMessaging();
+              }}
               disabled={isLoadingConversation}
               className="ml-auto"
             >
@@ -461,9 +480,7 @@ const BookingRequestCard = ({
                 ✕
               </Button>
             </div>
-            <RenterScreening
-              renterId={bookingRequest.renter_id}
-            />
+            <RenterScreening renterId={bookingRequest.renter_id} />
           </div>
         </div>
       )}

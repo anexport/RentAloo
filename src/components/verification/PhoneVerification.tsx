@@ -51,7 +51,7 @@ const PhoneVerification = ({
 
   const handleResendCode = () => {
     if (countdown > 0) return;
-    handleSendCode();
+    void handleSendCode();
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -148,7 +148,9 @@ const PhoneVerification = ({
             )}
 
             <Button
-              onClick={handleSendCode}
+              onClick={() => {
+                void handleSendCode();
+              }}
               disabled={sending || !phoneNumber}
               className="w-full"
               size="lg"
@@ -216,7 +218,9 @@ const PhoneVerification = ({
               )}
 
               <Button
-                onClick={handleVerify}
+                onClick={() => {
+                  void handleVerify();
+                }}
                 disabled={!isOtpComplete || isVerifying}
                 className="w-full"
                 size="lg"

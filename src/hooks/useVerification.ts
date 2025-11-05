@@ -101,7 +101,7 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
   }, [options.userId]);
 
   useEffect(() => {
-    fetchVerificationProfile();
+    void fetchVerificationProfile();
   }, [fetchVerificationProfile]);
 
   const uploadVerificationDocument = useCallback(

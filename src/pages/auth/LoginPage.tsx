@@ -50,11 +50,11 @@ const LoginPage = () => {
       } else {
         // Redirect based on user role
         if (user?.user_metadata?.role === "renter") {
-          navigate("/renter/dashboard");
+          void navigate("/renter/dashboard");
         } else if (user?.user_metadata?.role === "owner") {
-          navigate("/owner/dashboard");
+          void navigate("/owner/dashboard");
         } else {
-          navigate("/");
+          void navigate("/");
         }
       }
     } catch {
@@ -87,7 +87,12 @@ const LoginPage = () => {
             <CardDescription>Sign in to your RentAloo account</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                void handleSubmit(onSubmit)(e);
+              }}
+              className="space-y-4"
+            >
               {/* Error Message */}
               {error && (
                 <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
