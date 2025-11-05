@@ -43,7 +43,12 @@ export async function reverseGeocodeNominatim(
     url.searchParams.set("addressdetails", "1");
     url.searchParams.set("accept-language", language);
 
-    const response = await fetch(url.toString(), { signal });
+    const response = await fetch(url.toString(), {
+      signal,
+      headers: {
+        "User-Agent": "rentaloo-ai/0.0.0",
+      },
+    });
 
     if (!response.ok) {
       return null;
