@@ -273,7 +273,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             ),
           });
           break;
-        case "insecure_origin":
+        case "insecure_origin": {
           const geoSupport = checkGeolocationSupport();
           toast({
             title: "Location unavailable",
@@ -281,6 +281,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             variant: "destructive",
           });
           break;
+        }
         case "unavailable":
           toast({
             title: "Location unavailable",
