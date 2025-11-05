@@ -13,7 +13,10 @@ Non-goals: no map, no distance filter changes, no server changes. Geolocation us
   - On tap: request location → reverse geocode → set `SearchBarFilters.location`.
   - Do not call `onSubmit()`. Let user press Search.
   - Provide loading state, toast feedback, and error handling.
-- Provider: Nominatim (no email param; keep volume very low, one call per explicit tap).
+- Provider: Nominatim
+  - **Identification**: Include either an `email` parameter (e.g., `email=rentaloo@gmail.com`) OR an explicit, descriptive `User-Agent` header identifying the application and contact (e.g., `User-Agent: RentAloo/1.0 (contact: rentaloo@gmail.com)`). Example: `?email=rentaloo@gmail.com` or `User-Agent: RentAloo/1.0 (contact: rentaloo@gmail.com)`.
+  - **Throttling**: Mandatory rate limiting of **one request per second per IP address** (max 1 request/second). Implement exponential backoff on 429 (Too Many Requests) responses with retry delays (e.g., 1s, 2s, 4s, 8s).
+  - **Usage Policy**: Callers must respect [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/) including identification requirements and rate limits. Ensure this function is only called on explicit tap; no automatic polling or retry loops.
 - Security/privacy: do not persist coordinates; use HTTPS (localhost in dev is OK), no background polling.
 
 ## Files to Add
@@ -37,8 +40,17 @@ Non-goals: no map, no distance filter changes, no server changes. Geolocation us
   - `async function reverseGeocodeNominatim(lat: number, lon: number, opts?: { signal?: AbortSignal; language?: string; baseUrl?: string; }): Promise<{ label: string } | null>`
 - Implementation details:
   - Default `baseUrl`: `https://nominatim.openstreetmap.org` (via `import.meta.env.VITE_NOMINATIM_BASE || ...`).
-  - Build URL: `/reverse?format=jsonv2&lat={lat}&lon={lon}&zoom=10&addressdetails=1&accept-language={lang}`.
-  - Fetch with `signal` if provided. Respect 1 req/sec by ensuring this function is only called on explicit tap; no built-in throttling required.
+  - Build URL: `/reverse?format=jsonv2&lat={lat}&lon={lon}&zoom=10&addressdetails=1&accept-language={lang}&email=rentaloo@gmail.com`.
+  - **Identification**: Include `email=rentaloo@gmail.com` parameter in the URL. Alternatively, set a descriptive `User-Agent` header: `User-Agent: RentAloo/1.0 (contact: rentaloo@gmail.com)`.
+  - **Throttling**: Implement mandatory rate limiting of **one request per second per IP address** (max 1 request/second). On 429 responses, implement exponential backoff with retry delays (e.g., 1s, 2s, 4s, 8s). Respect Nominatim usage policy; ensure this function is only called on explicit tap; no automatic polling or retry loops.
+  - Fetch with `signal` if provided. Example headers:
+    ```typescript
+    headers: {
+      'User-Agent': 'RentAloo/1.0 (contact: rentaloo@gmail.com)',
+      // ... other headers
+    }
+    ```
+    Or include in URL: `?email=rentaloo@gmail.com&format=jsonv2&...`
   - Parse `address`: choose first defined from `city | town | village | hamlet` as `locality`.
     - Region from `state | region`; country code from `country_code?.toUpperCase()`.
     - Return compact label: `"${locality}, ${regionCodeOrStateAbbrev}"` or `"${region}, ${countryCode}"` if no locality. If nothing useful, return rounded coords: `"${lat.toFixed(2)}, ${lon.toFixed(2)}"`.
