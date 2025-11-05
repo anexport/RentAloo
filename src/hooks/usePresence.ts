@@ -74,7 +74,7 @@ export const usePresence = () => {
         presence: {
           key: user.id, // Unique key per user
         },
-        visibility: "private",
+        private: true,
       },
     });
 
