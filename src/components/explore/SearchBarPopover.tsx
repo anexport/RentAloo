@@ -477,9 +477,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       type="button"
                       onClick={() => {
                         setActiveSection(section.key);
-                        if (section.key === "where") {
-                          addressAutocomplete.setQuery("");
-                        }
                       }}
                       className={cn(
                         "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",

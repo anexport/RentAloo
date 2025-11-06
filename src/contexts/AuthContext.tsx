@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           message: "User not authenticated",
           name: "AuthError",
           status: 401,
-        },
+        } as UpdateProfileError,
       };
     }
     try {
@@ -153,11 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { error: null };
     } catch (error) {
       return {
-        error: {
-          message: (error as Error).message,
-          name: "AuthError",
-          status: 500,
-        },
+        error: error as UpdateProfileError,
       };
     }
   };

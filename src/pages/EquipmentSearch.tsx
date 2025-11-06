@@ -58,17 +58,37 @@ const fetchEquipment = async (): Promise<EquipmentWithCategory[]> => {
 
   if (error) throw error;
 
-  // Fetch reviews for each equipment to calculate average rating
-  const equipmentWithReviews = await Promise.all(
-    (data || []).map(async (item) => {
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewee_id", item.owner_id);
-
-      return { ...item, reviews: reviews || [] };
-    })
+  // Collect unique owner IDs from equipment data
+  const ownerIds = Array.from(
+    new Set((data || []).map((item) => item.owner_id).filter(Boolean))
   );
+
+  // Batch fetch all reviews for all owners in a single query
+  let reviewsByOwnerId: Map<string, Array<{ rating: number }>> = new Map();
+  
+  if (ownerIds.length > 0) {
+    const { data: reviewsData, error: reviewsError } = await supabase
+      .from("reviews")
+      .select("reviewee_id, rating")
+      .in("reviewee_id", ownerIds);
+
+    if (reviewsError) throw reviewsError;
+
+    // Group reviews by owner_id (reviewee_id)
+    reviewsData?.forEach((review) => {
+      const ownerId = review.reviewee_id;
+      if (!reviewsByOwnerId.has(ownerId)) {
+        reviewsByOwnerId.set(ownerId, []);
+      }
+      reviewsByOwnerId.get(ownerId)?.push({ rating: review.rating });
+    });
+  }
+
+  // Merge reviews back into equipment items
+  const equipmentWithReviews = (data || []).map((item) => ({
+    ...item,
+    reviews: reviewsByOwnerId.get(item.owner_id) || [],
+  }));
 
   return equipmentWithReviews;
 };

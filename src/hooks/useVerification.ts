@@ -25,6 +25,7 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
+        setError("User not authenticated");
         setLoading(false);
         return;
       }
@@ -55,14 +56,14 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
 
       // Fetch completed bookings count for the target user
       // User can be either renter or owner, so we need to check both relationships
-      // Query from booking_requests and join to bookings to filter by return_status
+      // Query from booking_requests and filter by status = 'completed'
       const { count: bookingsCount } = await supabase
         .from("booking_requests")
         .select(
           "id, bookings!inner(return_status), equipment:equipment!inner(owner_id)",
           { count: "exact", head: true }
         )
-        .eq("bookings.return_status", "completed")
+        .eq("status", "completed")
         .or(`renter_id.eq.${targetUserId},equipment.owner_id.eq.${targetUserId}`);
 
       // Calculate trust score
