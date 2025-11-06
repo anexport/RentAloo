@@ -50,6 +50,7 @@ const equipmentCategoryOptions = [
 const OwnerRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -82,6 +83,7 @@ const OwnerRegistration = () => {
 
   const onSubmit = async (data: OwnerFormData) => {
     setIsLoading(true);
+    setError(null);
     try {
       const { error } = await signUp(data.email, data.password, {
         role: "owner",
@@ -95,13 +97,12 @@ const OwnerRegistration = () => {
       });
 
       if (error) {
-        console.error("Registration error:", error.message);
-        // Handle error (show toast notification)
+        setError(error.message);
       } else {
         void navigate("/owner/dashboard");
       }
     } catch (error) {
-      console.error("Registration error:", error);
+      setError(error instanceof Error ? error.message : "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +139,13 @@ const OwnerRegistration = () => {
               }}
               className="space-y-4"
             >
+              {/* Error Message */}
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
               {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>

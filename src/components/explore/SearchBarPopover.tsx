@@ -313,8 +313,20 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         description: "Using your current location.",
       });
     } catch (error) {
-      const geolocationError = error as GeolocationPositionError;
-      const errorCode = geolocationError?.code as GeolocationErrorCode;
+      const geolocationError = error as
+        | GeolocationPositionError
+        | { code?: number | GeolocationErrorCode; message?: string };
+      const rawCode = geolocationError?.code;
+      const errorCode: GeolocationErrorCode | undefined =
+        typeof rawCode === "string"
+          ? rawCode
+          : rawCode === 1
+            ? "denied"
+            : rawCode === 2
+              ? "timeout"
+              : rawCode === 3
+                ? "unavailable"
+                : undefined;
       const errorMessage = geolocationError?.message;
 
       switch (errorCode) {

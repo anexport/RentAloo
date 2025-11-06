@@ -49,7 +49,11 @@ const StatsOverview = () => {
           .eq("renter_id", user.id)
           .eq("payment_status", "succeeded");
 
-        const totalSpent = payments?.reduce((sum, p) => sum + (p.total_amount || 0), 0) || 0;
+        const totalSpent =
+          payments?.reduce(
+            (sum, p) => sum + Number(p.total_amount ?? 0),
+            0
+          ) ?? 0;
 
         setStats({
           activeBookings: activeCount || 0,

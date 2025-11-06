@@ -75,36 +75,57 @@ const RenterDashboard = () => {
     const checkEquipment = async () => {
       if (!user) return;
 
-      const { count } = await supabase
-        .from("equipment")
-        .select("*", { count: "exact", head: true })
-        .eq("owner_id", user.id);
-
-      setHasEquipment((count || 0) > 0);
-
-      // If they have equipment, check for pending requests
-      if (count && count > 0) {
-        const { data: equipment } = await supabase
+      try {
+        const { count, error: countError } = await supabase
           .from("equipment")
-          .select("id")
+          .select("*", { count: "exact", head: true })
           .eq("owner_id", user.id);
 
-        if (equipment && equipment.length > 0) {
-          const equipmentIds = equipment.map((eq) => eq.id);
+        if (countError) throw countError;
 
-          const { count: pendingCount } = await supabase
-            .from("booking_requests")
-            .select("*", { count: "exact", head: true })
-            .in("equipment_id", equipmentIds)
-            .eq("status", "pending");
+        setHasEquipment((count || 0) > 0);
 
-          setPendingOwnerRequests(pendingCount || 0);
+        // If they have equipment, check for pending requests
+        if (count && count > 0) {
+          const { data: equipment, error: equipmentError } = await supabase
+            .from("equipment")
+            .select("id")
+            .eq("owner_id", user.id);
+
+          if (equipmentError) throw equipmentError;
+
+          if (equipment && equipment.length > 0) {
+            const equipmentIds = equipment.map((eq) => eq.id);
+
+            const { count: pendingCount, error: pendingError } = await supabase
+              .from("booking_requests")
+              .select("*", { count: "exact", head: true })
+              .in("equipment_id", equipmentIds)
+              .eq("status", "pending");
+
+            if (pendingError) throw pendingError;
+
+            setPendingOwnerRequests(pendingCount || 0);
+          }
         }
+      } catch (err) {
+        console.error("Failed to check equipment:", err);
+        toast({
+          variant: "destructive",
+          title: "Failed to load equipment information",
+          description:
+            err instanceof Error
+              ? err.message
+              : "An error occurred while checking your equipment listings.",
+        });
+        // Reset to safe defaults on error
+        setHasEquipment(false);
+        setPendingOwnerRequests(0);
       }
     };
 
     void checkEquipment();
-  }, [user]);
+  }, [user, toast]);
 
   const progress = profile ? getVerificationProgress(profile) : 0;
   const hasAnyVerification =

@@ -18,7 +18,7 @@ interface AuthContextType {
   signIn: (
     email: string,
     password: string
-  ) => Promise<{ error: AuthError | null }>;
+  ) => Promise<{ error: AuthError | null; user: User | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   updateProfile: (
     updates: ProfileUpdate
@@ -112,13 +112,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      return { error };
+      return { error, user: data?.user ?? null };
     } catch (error) {
-      return { error: error as AuthError };
+      return { error: error as AuthError, user: null };
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Mountain,
   Search,
@@ -41,6 +41,51 @@ type EquipmentWithCategory =
     reviews?: Array<{ rating: number }>;
   };
 
+// Module-scoped fetch functions
+const fetchEquipment = async (): Promise<EquipmentWithCategory[]> => {
+  const { data, error } = await supabase
+    .from("equipment")
+    .select(
+      `
+      *,
+      category:categories(*),
+      photos:equipment_photos(*),
+      owner:profiles!equipment_owner_id_fkey(id, email)
+    `
+    )
+    .eq("is_available", true)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  // Fetch reviews for each equipment to calculate average rating
+  const equipmentWithReviews = await Promise.all(
+    (data || []).map(async (item) => {
+      const { data: reviews } = await supabase
+        .from("reviews")
+        .select("rating")
+        .eq("reviewee_id", item.owner_id);
+
+      return { ...item, reviews: reviews || [] };
+    })
+  );
+
+  return equipmentWithReviews;
+};
+
+const fetchCategories = async (): Promise<
+  Database["public"]["Tables"]["categories"]["Row"][]
+> => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .is("parent_id", null)
+    .order("name");
+
+  if (error) throw error;
+  return data || [];
+};
+
 const EquipmentSearch = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +95,7 @@ const EquipmentSearch = () => {
     Database["public"]["Tables"]["categories"]["Row"][]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] =
     useState<EquipmentWithCategory | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -62,62 +108,29 @@ const EquipmentSearch = () => {
   const [selectedCondition, setSelectedCondition] = useState<string>("all");
   const [locationSearch, setLocationSearch] = useState("");
 
-  useEffect(() => {
-    const fetchEquipment = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("equipment")
-          .select(
-            `
-            *,
-            category:categories(*),
-            photos:equipment_photos(*),
-            owner:profiles!equipment_owner_id_fkey(id, email)
-          `
-          )
-          .eq("is_available", true)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        // Fetch reviews for each equipment to calculate average rating
-        const equipmentWithReviews = await Promise.all(
-          (data || []).map(async (item) => {
-            const { data: reviews } = await supabase
-              .from("reviews")
-              .select("rating")
-              .eq("reviewee_id", item.owner_id);
-
-            return { ...item, reviews: reviews || [] };
-          })
-        );
-
-        setEquipment(equipmentWithReviews);
-      } catch (error) {
-        console.error("Error fetching equipment:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchCategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("categories")
-          .select("*")
-          .is("parent_id", null)
-          .order("name");
-
-        if (error) throw error;
-        setCategories(data || []);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-
-    void fetchEquipment();
-    void fetchCategories();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [equipmentData, categoriesData] = await Promise.all([
+        fetchEquipment(),
+        fetchCategories(),
+      ]);
+      setEquipment(equipmentData);
+      setCategories(categoriesData);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load equipment";
+      setError(errorMessage);
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const filteredEquipment = equipment.filter((item) => {
     // Search filter
@@ -448,6 +461,20 @@ const EquipmentSearch = () => {
           {loading ? (
             <div className="text-center py-8">
               <div className="text-muted-foreground">Loading equipment...</div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-10">
+              <div className="text-muted-foreground mb-4">
+                Failed to load equipment. Please try again.
+              </div>
+              <Button
+                onClick={() => {
+                  void loadData();
+                }}
+                aria-label="Retry"
+              >
+                Retry
+              </Button>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -871,6 +898,20 @@ const EquipmentSearch = () => {
       {loading ? (
         <div className="text-center py-8">
           <div className="text-muted-foreground">Loading equipment...</div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-10">
+          <div className="text-muted-foreground mb-4">
+            Failed to load equipment. Please try again.
+          </div>
+          <Button
+            onClick={() => {
+              void loadData();
+            }}
+            aria-label="Retry"
+          >
+            Retry
+          </Button>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

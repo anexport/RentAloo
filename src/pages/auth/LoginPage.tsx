@@ -27,7 +27,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn, user } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -43,15 +43,16 @@ const LoginPage = () => {
     setError(null);
 
     try {
-      const { error } = await signIn(data.email, data.password);
+      const { error, user: returnedUser } = await signIn(data.email, data.password);
 
       if (error) {
         setError(error.message);
       } else {
-        // Redirect based on user role
-        if (user?.user_metadata?.role === "renter") {
+        // Redirect based on user role from returned user
+        const role = returnedUser?.user_metadata?.role;
+        if (role === "renter") {
           void navigate("/renter/dashboard");
-        } else if (user?.user_metadata?.role === "owner") {
+        } else if (role === "owner") {
           void navigate("/owner/dashboard");
         } else {
           void navigate("/");

@@ -65,7 +65,7 @@ const PaymentFormInner = ({
       const { error: confirmError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          // Return URL is optional, we'll handle navigation manually
+          return_url: `${window.location.origin}/payment/confirmation?payment_intent_id=${paymentIntentId}`,
         },
         redirect: "if_required",
       });

@@ -5,10 +5,11 @@ CREATE OR REPLACE FUNCTION public.get_unread_messages_count()
 RETURNS integer
 LANGUAGE sql
 SECURITY DEFINER
+SET search_path TO pg_temp, public
 STABLE
 AS $$
   SELECT COALESCE(SUM(unread_count), 0)::integer
-  FROM messaging_conversation_summaries
+  FROM public.messaging_conversation_summaries
   WHERE participant_id = auth.uid()
     AND unread_count > 0;
 $$;

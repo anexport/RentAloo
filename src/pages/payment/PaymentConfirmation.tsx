@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 import {
   formatCurrency,
   formatTransactionDate,
@@ -9,6 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, Home, MessageSquare, Calendar } from "lucide-react";
 import type { Database } from "@/lib/database.types";
 
@@ -23,11 +25,14 @@ type PaymentWithRelations = Database["public"]["Tables"]["payments"]["Row"] & {
 const PaymentConfirmation = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [payment, setPayment] = useState<PaymentWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const paymentId = searchParams.get("payment_id");
-  const paymentIntentId = searchParams.get("payment_intent_id");
+  // Handle both Stripe's redirect param (payment_intent) and our custom param (payment_intent_id)
+  const paymentIntentId = searchParams.get("payment_intent_id") || searchParams.get("payment_intent");
 
   useEffect(() => {
     const fetchPaymentDetails = async () => {
@@ -37,47 +42,92 @@ const PaymentConfirmation = () => {
       }
 
       setLoading(true);
+      setError(null);
       try {
-        let query = supabase
-          .from("payments")
-          .select(
-            `
-            *,
-            booking_request:booking_requests (
-              *,
-              equipment:equipment (
-                title,
-                owner:profiles (
-                  full_name,
-                  email
+        // Poll for payment (up to 10 seconds with backoff) - similar to PaymentForm
+        const maxAttempts = 20;
+        const pollInterval = 500; // 500ms
+
+        const pollPayment = async (): Promise<PaymentWithRelations | null> => {
+          for (let i = 0; i < maxAttempts; i++) {
+            let query = supabase
+              .from("payments")
+              .select(
+                `
+                *,
+                booking_request:booking_requests (
+                  *,
+                  equipment:equipment (
+                    title,
+                    owner:profiles!equipment_owner_id_fkey (
+                      id,
+                      email
+                    )
+                  )
                 )
-              )
-            )
-          `
+              `
+              );
+
+            // Query by payment_id if available, otherwise use payment_intent_id
+            if (paymentId) {
+              query = query.eq("id", paymentId);
+            } else if (paymentIntentId) {
+              query = query.eq("stripe_payment_intent_id", paymentIntentId);
+            }
+
+            const { data, error: queryError } = await query.maybeSingle();
+
+            if (data) {
+              // Verify user is authorized to view this payment
+              if (!user || (data.renter_id !== user.id && data.owner_id !== user.id)) {
+                console.error("Unauthorized access attempt to payment:", data.id);
+                void navigate("/");
+                return null;
+              }
+              return data;
+            }
+
+            if (queryError && queryError.code !== "PGRST116") {
+              // PGRST116 is "not found" which is expected during polling
+              console.error("Error polling payment:", queryError);
+              // If it's a real error (not just "not found"), throw on first attempt
+              if (i === 0) {
+                throw queryError;
+              }
+            }
+
+            // Wait before next poll (except on last iteration)
+            if (i < maxAttempts - 1) {
+              await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            }
+          }
+          return null;
+        };
+
+        const paymentData = await pollPayment();
+
+        if (paymentData) {
+          setPayment(paymentData);
+        } else {
+          // Payment not found after polling - show error but don't redirect
+          setError(
+            "Payment confirmation is still processing. Please check back in a moment or contact support if this persists."
           );
-
-        // Query by payment_id if available, otherwise use payment_intent_id
-        if (paymentId) {
-          query = query.eq("id", paymentId);
-        } else if (paymentIntentId) {
-          query = query.eq("stripe_payment_intent_id", paymentIntentId);
         }
-
-        const { data, error } = await query.single();
-
-        if (error) throw error;
-
-        setPayment(data);
       } catch (error) {
         console.error("Error fetching payment:", error);
-        void navigate("/");
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load payment details. Please try again or contact support."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     void fetchPaymentDetails();
-  }, [paymentId, paymentIntentId, navigate]);
+  }, [paymentId, paymentIntentId, navigate, user]);
 
   if (loading) {
     return (
@@ -86,6 +136,40 @@ const PaymentConfirmation = () => {
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading payment details...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Payment Confirmation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full"
+                onClick={() => void navigate("/renter/dashboard")}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Go to My Bookings
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => void navigate("/")}
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Go Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

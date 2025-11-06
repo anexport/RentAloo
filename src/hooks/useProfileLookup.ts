@@ -44,11 +44,14 @@ export const useProfileLookup = (profileIds: string[]) => {
 
   useEffect(() => {
     // Only fetch profiles that we don't already have
+    // Bail out if loading is true to prevent duplicate fetches
+    if (loading) return;
+
     const missingIds = profileIds.filter((id) => !profiles.has(id));
     if (missingIds.length > 0) {
       void fetchProfiles(missingIds);
     }
-  }, [profileIds, profiles, fetchProfiles]);
+  }, [profileIds, profiles, fetchProfiles, loading]);
 
   const getProfile = useCallback(
     (id: string | null | undefined): ProfileRow | undefined => {

@@ -18,8 +18,9 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
   const [uploading, setUploading] = useState(false);
 
   const fetchVerificationProfile = useCallback(async () => {
-    const userId = options.userId;
-    if (!userId) {
+    // Step 1: Validate and get targetUserId (all validation happens first)
+    let targetUserId = options.userId;
+    if (!targetUserId) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -27,14 +28,14 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
         setLoading(false);
         return;
       }
+      targetUserId = user.id;
     }
 
+    // Step 2: Validation passed - set up state for the actual fetch
     setLoading(true);
     setError(null);
 
     try {
-      const targetUserId =
-        userId || (await supabase.auth.getUser()).data.user?.id;
       if (!targetUserId) throw new Error("No user ID available");
 
       // Fetch user profile

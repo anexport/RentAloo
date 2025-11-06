@@ -33,14 +33,15 @@ const EscrowStatus = ({
 
   const handleReleaseEscrow = async () => {
     setIsReleasing(true);
-    const success = await releaseEscrow({ paymentId });
-
-    if (success) {
-      setReleaseSuccess(true);
-      onEscrowReleased?.();
+    try {
+      const success = await releaseEscrow({ paymentId });
+      if (success) {
+        setReleaseSuccess(true);
+        onEscrowReleased?.();
+      }
+    } finally {
+      setIsReleasing(false);
     }
-
-    setIsReleasing(false);
   };
 
   const canRelease = () => {

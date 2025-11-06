@@ -56,9 +56,15 @@ export const usePresence = () => {
     if (!user?.id) {
       // Cleanup if user logs out
       if (channelRef.current) {
-        void channelRef.current.untrack();
-        void supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+        void (async () => {
+          try {
+            await channelRef.current!.untrack();
+          } catch (error) {
+            console.error("Error untracking presence:", error);
+          }
+          supabase.removeChannel(channelRef.current!);
+          channelRef.current = null;
+        })();
       }
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
@@ -196,9 +202,15 @@ export const usePresence = () => {
       }
 
       if (channelRef.current) {
-        void channelRef.current.untrack();
-        void supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+        void (async () => {
+          try {
+            await channelRef.current!.untrack();
+          } catch (error) {
+            console.error("Error untracking presence:", error);
+          }
+          supabase.removeChannel(channelRef.current!);
+          channelRef.current = null;
+        })();
       }
     };
   }, [user?.id, trackPresence]);

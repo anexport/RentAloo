@@ -28,11 +28,10 @@ const UserMenu = () => {
   const [userRole, setUserRole] = useState<"owner" | "renter" | null>(null);
 
   useEffect(() => {
-    if (user) {
-      const role = user.user_metadata?.role as "owner" | "renter" | undefined;
-      if (role) {
-        setUserRole(role);
-      }
+    if (user?.user_metadata?.role) {
+      setUserRole(user.user_metadata.role as "owner" | "renter");
+    } else {
+      setUserRole(null);
     }
   }, [user]);
 

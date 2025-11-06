@@ -160,7 +160,7 @@ const BookingRequestForm = ({
       setCalculation(null);
       onCalculationChange?.(null, "", "");
     }
-  }, [watchedStartDate, watchedEndDate, equipment.daily_rate, equipment.id]);
+  }, [watchedStartDate, watchedEndDate, equipment.daily_rate, equipment.id, onCalculationChange]);
 
   const onSubmit = async (data: BookingFormData) => {
     if (!user || conflicts.length > 0) return;
