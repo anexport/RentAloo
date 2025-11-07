@@ -145,50 +145,59 @@ The RentAloo platform uses a comprehensive booking request flow that ensures sec
 
 #### booking_requests
 ```sql
-- id: UUID (primary key)
-- equipment_id: UUID (foreign key → equipment)
-- renter_id: UUID (foreign key → profiles)
-- start_date: DATE
-- end_date: DATE
-- total_amount: DECIMAL(10,2)
-- status: booking_status (pending | approved | cancelled | completed)
-- message: TEXT (optional message to owner)
-- created_at: TIMESTAMP
-- updated_at: TIMESTAMP
+-- Note: This is simplified pseudo-SQL for documentation purposes
+CREATE TABLE booking_requests (
+    id UUID PRIMARY KEY,
+    equipment_id UUID REFERENCES equipment(id),
+    renter_id UUID REFERENCES profiles(id),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status booking_status DEFAULT 'pending',  -- pending | approved | cancelled | completed
+    message TEXT,  -- Optional message to owner
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
 #### payments
 ```sql
-- id: UUID (primary key)
-- booking_request_id: UUID (foreign key → booking_requests)
-- renter_id: UUID
-- owner_id: UUID
-- subtotal: DECIMAL(10,2)
-- service_fee: DECIMAL(10,2)
-- tax: DECIMAL(10,2)
-- total_amount: DECIMAL(10,2)
-- escrow_amount: DECIMAL(10,2)
-- owner_payout_amount: DECIMAL(10,2)
-- payment_status: payment_status (pending | succeeded | failed | refunded)
-- escrow_status: escrow_status (held | released | refunded)
-- stripe_payment_intent_id: TEXT
-- payment_method_id: TEXT
-- currency: TEXT
-- created_at: TIMESTAMP
-- updated_at: TIMESTAMP
+-- Note: This is simplified pseudo-SQL for documentation purposes
+CREATE TABLE payments (
+    id UUID PRIMARY KEY,
+    booking_request_id UUID REFERENCES booking_requests(id),
+    renter_id UUID REFERENCES profiles(id),
+    owner_id UUID REFERENCES profiles(id),
+    subtotal DECIMAL(10,2) NOT NULL,
+    service_fee DECIMAL(10,2) NOT NULL,
+    tax DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    escrow_amount DECIMAL(10,2) NOT NULL,
+    owner_payout_amount DECIMAL(10,2) NOT NULL,
+    payment_status payment_status DEFAULT 'pending',  -- pending | succeeded | failed | refunded
+    escrow_status escrow_status DEFAULT 'held',  -- held | released | refunded
+    stripe_payment_intent_id TEXT,
+    payment_method_id TEXT,
+    currency TEXT DEFAULT 'usd',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
 #### equipment
 ```sql
-- id: UUID
-- owner_id: UUID (foreign key → profiles)
-- title: TEXT
-- description: TEXT
-- daily_rate: DECIMAL(10,2)
-- location: TEXT
-- condition: TEXT
-- category_id: UUID (foreign key → categories)
-- ... (additional fields)
+-- Note: This is simplified pseudo-SQL for documentation purposes
+CREATE TABLE equipment (
+    id UUID PRIMARY KEY,
+    owner_id UUID REFERENCES profiles(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    daily_rate DECIMAL(10,2) NOT NULL,
+    location TEXT NOT NULL,
+    condition TEXT,
+    category_id UUID REFERENCES categories(id),
+    -- ... (additional fields)
+);
 ```
 
 ## Key Components
@@ -211,14 +220,24 @@ The RentAloo platform uses a comprehensive booking request flow that ensures sec
 **Key Functions:**
 ```typescript
 // Calculate total cost with service fees
-calculateBookingTotal(dailyRate, startDate, endDate)
+function calculateBookingTotal(
+  dailyRate: number,
+  startDate: string,
+  endDate: string,
+  customRates?: AvailabilitySlot[]
+): BookingCalculation
 
 // Check for booking conflicts using database function
-checkBookingConflicts(equipmentId, startDate, endDate)
+async function checkBookingConflicts(
+  equipmentId: string,
+  startDate: string,
+  endDate: string,
+  excludeBookingId?: string
+): Promise<BookingConflict[]>
 
 // Format dates for display
-formatBookingDate(date)
-formatBookingDuration(startDate, endDate)
+function formatBookingDate(date: string): string
+function formatBookingDuration(startDate: string, endDate: string): string
 ```
 
 #### 2. PaymentForm

@@ -6,8 +6,8 @@ This document contains visual diagrams of the booking request flow using Mermaid
 
 ```mermaid
 sequenceDiagram
-    actor Renter
-    actor Owner
+    participant Renter
+    participant Owner
     participant UI as Frontend
     participant API as Supabase
     participant Stripe

@@ -129,12 +129,16 @@ ORDER BY br.created_at DESC;
 
 ### Check Date Availability
 ```sql
+-- PostgreSQL RPC function call using named parameters (:= syntax)
 SELECT check_booking_conflicts(
   p_equipment_id := $equipment_id,
   p_start_date := $start_date,
   p_end_date := $end_date,
   p_exclude_booking_id := NULL
 );
+
+-- Alternative: Positional parameters
+SELECT check_booking_conflicts($equipment_id, $start_date, $end_date, NULL);
 ```
 
 ## User Flows
