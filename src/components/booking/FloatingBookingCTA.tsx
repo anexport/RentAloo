@@ -118,7 +118,7 @@ export const FloatingBookingCTA = ({
         className="w-full shadow-2xl text-base font-semibold"
       >
         <Calendar className="mr-2 h-5 w-5" />
-        Book Now · ${dailyRate}/day
+        {`Book Now · ${dailyRate}/day`}
       </Button>
     </div>
   );

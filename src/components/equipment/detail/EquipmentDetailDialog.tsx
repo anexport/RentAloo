@@ -3,16 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -465,14 +459,6 @@ const EquipmentDetailDialog = ({
 
   const photos = data?.photos || [];
 
-  const getHeaderProps = () => {
-    const title = data?.title ?? "Equipment details";
-    const description = data?.category?.name
-      ? `Category: ${data.category.name}`
-      : "Detailed information about this equipment.";
-    return { title, description };
-  };
-
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -499,6 +485,7 @@ const EquipmentDetailDialog = ({
           condition={data.condition}
           avgRating={avgRating}
           reviewCount={data.reviews?.length || 0}
+          category={data.category}
         />
 
         <Separator />
@@ -678,32 +665,22 @@ const EquipmentDetailDialog = ({
 
   // Mobile: Use Sheet component
   if (isMobile) {
-    const { title, description } = getHeaderProps();
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
           className="h-[90vh] max-h-[90vh] w-full overflow-y-auto px-0"
         >
-          <SheetHeader className="px-6">
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
-          </SheetHeader>
-          <div className="mt-6 px-6 pb-6">{renderContent()}</div>
+          <div className="px-6 pt-6 pb-6">{renderContent()}</div>
         </SheetContent>
       </Sheet>
     );
   }
 
   // Desktop: Use Dialog component
-  const { title, description } = getHeaderProps();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
         {renderContent()}
       </DialogContent>
     </Dialog>
