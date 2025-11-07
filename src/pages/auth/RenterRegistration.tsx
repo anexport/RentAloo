@@ -99,7 +99,7 @@ const RenterRegistration = () => {
         console.error("Registration error:", error.message);
         // Handle error (show toast notification)
       } else {
-        void navigate("/renter/dashboard");
+        void navigate("/verify", { state: { email: data.email } });
       }
     } catch (error) {
       console.error("Registration error:", error);

@@ -99,7 +99,7 @@ const OwnerRegistration = () => {
       if (error) {
         setError(error.message);
       } else {
-        void navigate("/owner/dashboard");
+        void navigate("/verify", { state: { email: data.email } });
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Registration failed. Please try again.");
