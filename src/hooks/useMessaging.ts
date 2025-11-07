@@ -1053,9 +1053,7 @@ export const useMessaging = () => {
               ),
             2, // Max 2 retries for this operation
             1000 // 1 second initial delay
-          )) as SupabaseResponse<
-            Database["public"]["Tables"]["conversations"]["Row"]
-          >;
+          ));
 
           if (existingConversation) {
             return existingConversation;
@@ -1079,7 +1077,7 @@ export const useMessaging = () => {
               ),
             2, // Max 2 retries for this operation
             1000 // 1 second initial delay
-          )) as SupabaseResponse<ConversationParticipantIdRow[]>;
+          ));
 
           if (userConvs && userConvs.length > 0) {
             const convIds = userConvs.map(
@@ -1102,7 +1100,7 @@ export const useMessaging = () => {
                   ),
                 2, // Max 2 retries for this operation
                 1000 // 1 second initial delay
-              )) as SupabaseResponse<ConversationParticipantProfileRow[]>;
+              ));
 
               const participantSet = new Set<string>(
                 (convParticipants ?? []).map(
@@ -1132,9 +1130,7 @@ export const useMessaging = () => {
                     ),
                   2, // Max 2 retries for this operation
                   1000 // 1 second initial delay
-                )) as SupabaseResponse<
-                  Database["public"]["Tables"]["conversations"]["Row"]
-                >;
+                ));
 
                 if (existingConv) return existingConv;
               }
@@ -1164,9 +1160,7 @@ export const useMessaging = () => {
               ),
             2, // Max 2 retries for this operation
             1000 // 1 second initial delay
-          )) as SupabaseResponse<
-            Database["public"]["Tables"]["conversations"]["Row"]
-          >;
+          ));
 
         if (convError) throw convError;
         if (!newConversation) {
@@ -1192,7 +1186,7 @@ export const useMessaging = () => {
             ),
           2, // Max 2 retries for this operation
           1000 // 1 second initial delay
-        )) as SupabaseResponse<undefined>;
+        ));
 
         if (participantError) throw participantError;
 
@@ -1288,7 +1282,7 @@ export const useMessaging = () => {
               ),
             2, // Max 2 retries for this operation
             1000 // 1 second initial delay
-          )) as SupabaseResponse<MessageRowWithSender>;
+          ));
 
         if (fetchError || !fullMessage || !hasSender(fullMessage)) {
           console.error("Error fetching new message:", fetchError);
@@ -1318,7 +1312,7 @@ export const useMessaging = () => {
     });
 
     channel.subscribe((status) => {
-      if (status === "CHANNEL_ERROR") {
+      if (status === ("CHANNEL_ERROR" as const)) {
         console.error("Realtime channel error for messages topic:", topic);
         setError("Failed to subscribe to message updates");
       }
@@ -1402,7 +1396,7 @@ export const useMessaging = () => {
     });
 
     channel.subscribe((status) => {
-      if (status === "CHANNEL_ERROR") {
+      if (status === ("CHANNEL_ERROR" as const)) {
         console.error("Realtime channel error for user topic:", topic);
       }
     });

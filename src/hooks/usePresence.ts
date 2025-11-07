@@ -64,7 +64,7 @@ export const usePresence = () => {
           } catch (error) {
             console.error("Error untracking presence:", error);
           } finally {
-            supabase.removeChannel(capturedChannel);
+            void supabase.removeChannel(capturedChannel);
           }
         })();
       }
@@ -146,7 +146,7 @@ export const usePresence = () => {
     // Subscribe to channel
     channel.subscribe((status) => {
       void (async () => {
-        if (status === "SUBSCRIBED") {
+        if (status === ("SUBSCRIBED" as const)) {
           // Track own presence after subscription succeeds
           try {
             await trackPresence();
@@ -167,33 +167,35 @@ export const usePresence = () => {
     });
 
     // Handle page visibility changes
-    const handleVisibilityChange = async () => {
-      if (document.hidden) {
-        // Page is hidden, stop tracking
-        if (heartbeatIntervalRef.current) {
-          clearInterval(heartbeatIntervalRef.current);
-          heartbeatIntervalRef.current = null;
-        }
-        if (channelRef.current) {
-          try {
-            await channelRef.current.untrack();
-          } catch (error) {
-            console.error("Error untracking presence on visibility change:", error);
-          }
-        }
-      } else {
-        // Page is visible again, resume tracking
-        if (channelRef.current) {
-          void trackPresence();
-          // Clear any existing interval before creating a new one
+    const handleVisibilityChange = () => {
+      void (async () => {
+        if (document.hidden) {
+          // Page is hidden, stop tracking
           if (heartbeatIntervalRef.current) {
             clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
           }
-          heartbeatIntervalRef.current = setInterval(() => {
+          if (channelRef.current) {
+            try {
+              await channelRef.current.untrack();
+            } catch (error) {
+              console.error("Error untracking presence on visibility change:", error);
+            }
+          }
+        } else {
+          // Page is visible again, resume tracking
+          if (channelRef.current) {
             void trackPresence();
-          }, PRESENCE_HEARTBEAT_INTERVAL);
+            // Clear any existing interval before creating a new one
+            if (heartbeatIntervalRef.current) {
+              clearInterval(heartbeatIntervalRef.current);
+            }
+            heartbeatIntervalRef.current = setInterval(() => {
+              void trackPresence();
+            }, PRESENCE_HEARTBEAT_INTERVAL);
+          }
         }
-      }
+      })();
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -216,7 +218,7 @@ export const usePresence = () => {
           } catch (error) {
             console.error("Error untracking presence:", error);
           } finally {
-            supabase.removeChannel(capturedChannel);
+            void supabase.removeChannel(capturedChannel);
           }
         })();
       }
