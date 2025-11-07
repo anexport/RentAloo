@@ -43,6 +43,7 @@ import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict } from "@/types/booking";
 import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
+import { formatDateForStorage } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
 type EquipmentDetailDialogProps = {
@@ -159,9 +160,9 @@ const EquipmentDetailDialog = ({
         return;
       }
 
-      const newStartDate = date.toISOString().split("T")[0];
+      const newStartDate = formatDateForStorage(date);
       const endDate = dateRange?.to
-        ? dateRange.to.toISOString().split("T")[0]
+        ? formatDateForStorage(dateRange.to)
         : null;
 
       // If end date exists and is before start date, clear end date
@@ -206,19 +207,19 @@ const EquipmentDetailDialog = ({
       }
 
       const startDate = dateRange?.from
-        ? dateRange.from.toISOString().split("T")[0]
+        ? formatDateForStorage(dateRange.from)
         : null;
 
       if (!startDate) {
         // If no start date, set this as start date
-        const newStartDate = date.toISOString().split("T")[0];
+        const newStartDate = formatDateForStorage(date);
         setDateRange({ from: date, to: undefined });
         setWatchedStartDate(newStartDate);
         setWatchedEndDate("");
         return;
       }
 
-      const newEndDate = date.toISOString().split("T")[0];
+      const newEndDate = formatDateForStorage(date);
 
       // Validate end date is after start date
       if (newEndDate < startDate) {
@@ -281,8 +282,8 @@ const EquipmentDetailDialog = ({
     setIsCreatingBooking(true);
 
     try {
-      const startDate = dateRange.from.toISOString().split("T")[0];
-      const endDate = dateRange.to.toISOString().split("T")[0];
+      const startDate = formatDateForStorage(dateRange.from);
+      const endDate = formatDateForStorage(dateRange.to);
 
       const bookingData = {
         equipment_id: data.id,

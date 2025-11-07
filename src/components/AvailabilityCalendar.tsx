@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Calendar, DollarSign, X, Check, Ban } from "lucide-react";
 import type { Database } from "../lib/database.types";
+import { formatDateForStorage } from "@/lib/utils";
 
 interface AvailabilityCalendarProps {
   equipmentId: string;
@@ -50,8 +51,8 @@ const AvailabilityCalendar = ({
       .from("availability_calendar")
       .select("*")
       .eq("equipment_id", equipmentId)
-      .gte("date", startOfMonth.toISOString().split("T")[0])
-      .lte("date", endOfMonth.toISOString().split("T")[0]);
+      .gte("date", formatDateForStorage(startOfMonth))
+      .lte("date", formatDateForStorage(endOfMonth));
 
     if (error) {
       console.error("Error fetching availability:", error);
@@ -77,7 +78,7 @@ const AvailabilityCalendar = ({
   };
 
   const getAvailabilityForDate = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = formatDateForStorage(date);
     return availability.find((a) => a.date === dateStr);
   };
 
@@ -98,7 +99,7 @@ const AvailabilityCalendar = ({
     if (!selectedDate) return;
 
     setLoading(true);
-    const dateStr = selectedDate.toISOString().split("T")[0];
+    const dateStr = formatDateForStorage(selectedDate);
     const existing = getAvailabilityForDate(selectedDate);
 
     try {

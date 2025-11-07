@@ -1,8 +1,4 @@
-import { EquipmentMetadataCard } from "./EquipmentMetadataCard";
-
-interface Category {
-  name: string;
-}
+import { EquipmentMetadataCard, type Category } from "./EquipmentMetadataCard";
 
 interface EquipmentOverviewTabProps {
   description: string;

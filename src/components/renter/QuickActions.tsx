@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/lib/supabase";
+import { formatDateForStorage } from "@/lib/utils";
 
 const QuickActions = () => {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ const QuickActions = () => {
       // Prepare both fetch promises
       const messagesPromise = supabase.rpc("get_unread_messages_count");
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = formatDateForStorage(new Date());
       const bookingsPromise = supabase
         .from("booking_requests")
         .select("*", { count: "exact", head: true })

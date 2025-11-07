@@ -16,6 +16,7 @@ import {
   formatBookingDate,
   formatBookingDuration,
 } from "../../lib/booking";
+import { formatDateForStorage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,12 +95,10 @@ const BookingRequestForm = ({
     defaultValues: {
       start_date:
         initialDates?.start_date ||
-        new Date().toISOString().split("T")[0],
+        formatDateForStorage(new Date()),
       end_date:
         initialDates?.end_date ||
-        new Date(Date.now() + 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
+        formatDateForStorage(new Date(Date.now() + 24 * 60 * 60 * 1000)),
     },
   });
 
@@ -334,7 +333,7 @@ export const BookingFormContent = ({
             id="start_date"
             type="date"
             {...register("start_date")}
-            min={new Date().toISOString().split("T")[0]}
+            min={formatDateForStorage(new Date())}
           />
           {errors.start_date && (
             <p className="text-sm text-red-600">{errors.start_date.message}</p>
