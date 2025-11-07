@@ -23,9 +23,6 @@ import {
   Package,
   CheckCircle2,
   CreditCard,
-  DollarSign,
-  AlertCircle,
-  ChevronDown,
 } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import StarRating from "@/components/reviews/StarRating";
@@ -33,14 +30,7 @@ import { fetchListingById } from "@/components/equipment/services/listings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import BookingSidebar from "@/components/booking/BookingSidebar";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar";
 import EquipmentLocationMap from "./EquipmentLocationMap";
 import ReviewList from "@/components/reviews/ReviewList";
@@ -50,15 +40,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import BookingRequestForm from "@/components/booking/BookingRequestForm";
 import PaymentForm from "@/components/payment/PaymentForm";
+import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict } from "@/types/booking";
-import {
-  formatBookingDuration,
-  calculateBookingTotal,
-  checkBookingConflicts,
-} from "@/lib/booking";
+import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
 import type { DateRange } from "react-day-picker";
-import { startOfDay } from "date-fns";
 
 type EquipmentDetailDialogProps = {
   open: boolean;
@@ -91,16 +77,11 @@ const EquipmentDetailDialog = ({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [conflicts, setConflicts] = useState<BookingConflict[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
-  const [startDateOpen, setStartDateOpen] = useState(false);
-  const [endDateOpen, setEndDateOpen] = useState(false);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const requestIdRef = useRef(0);
 
   const handleCalculationChange = useCallback(
-    (
-      calc: BookingCalculation | null,
-      startDate: string,
-      endDate: string
-    ) => {
+    (calc: BookingCalculation | null, startDate: string, endDate: string) => {
       setCalculation(calc);
       setWatchedStartDate(startDate);
       setWatchedEndDate(endDate);
@@ -134,7 +115,11 @@ const EquipmentDetailDialog = ({
       const checkConflicts = async () => {
         setLoadingConflicts(true);
         try {
-          const result = await checkBookingConflicts(data.id, startDate, endDate);
+          const result = await checkBookingConflicts(
+            data.id,
+            startDate,
+            endDate
+          );
 
           if (currentRequestId === requestIdRef.current) {
             setConflicts(result);
@@ -170,7 +155,6 @@ const EquipmentDetailDialog = ({
         setWatchedStartDate("");
         setWatchedEndDate("");
         setConflicts([]);
-        setStartDateOpen(false);
         return;
       }
 
@@ -186,7 +170,6 @@ const EquipmentDetailDialog = ({
         setWatchedEndDate("");
         setCalculation(null);
         setConflicts([]);
-        setStartDateOpen(false);
         return;
       }
 
@@ -196,14 +179,13 @@ const EquipmentDetailDialog = ({
       };
       setDateRange(newRange);
       setWatchedStartDate(newStartDate);
-      setStartDateOpen(false);
 
       // If both dates are selected, calculate
       if (endDate && endDate >= newStartDate) {
         calculateBooking(newStartDate, endDate);
       }
     },
-    [data, dateRange, calculateBooking]
+    [dateRange, calculateBooking]
   );
 
   // Handle end date selection
@@ -218,7 +200,6 @@ const EquipmentDetailDialog = ({
         setCalculation(null);
         setWatchedEndDate("");
         setConflicts([]);
-        setEndDateOpen(false);
         return;
       }
 
@@ -232,7 +213,6 @@ const EquipmentDetailDialog = ({
         setDateRange({ from: date, to: undefined });
         setWatchedStartDate(newStartDate);
         setWatchedEndDate("");
-        setEndDateOpen(false);
         return;
       }
 
@@ -240,7 +220,10 @@ const EquipmentDetailDialog = ({
 
       // Validate end date is after start date
       if (newEndDate < startDate) {
-        setEndDateOpen(false);
+        return;
+      }
+
+      if (!dateRange?.from) {
         return;
       }
 
@@ -250,13 +233,97 @@ const EquipmentDetailDialog = ({
       };
       setDateRange(newRange);
       setWatchedEndDate(newEndDate);
-      setEndDateOpen(false);
 
       // Calculate booking
       calculateBooking(startDate, newEndDate);
     },
-    [data, dateRange, calculateBooking]
+    [dateRange, calculateBooking]
   );
+
+  // Handle creating booking request and initializing payment
+  const handleBookAndPay = useCallback(async () => {
+    if (
+      !user ||
+      !data ||
+      !dateRange?.from ||
+      !dateRange?.to ||
+      conflicts.length > 0
+    ) {
+      return;
+    }
+
+    // Check if user is trying to book their own equipment
+    if (data.owner?.id === user.id) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Book Own Equipment",
+        description: "You cannot book your own equipment.",
+      });
+      return;
+    }
+
+    if (!data.category) {
+      toast({
+        variant: "destructive",
+        title: "Missing Category Information",
+        description: "Equipment category information is missing.",
+      });
+      return;
+    }
+
+    setIsCreatingBooking(true);
+
+    try {
+      const startDate = dateRange.from.toISOString().split("T")[0];
+      const endDate = dateRange.to.toISOString().split("T")[0];
+
+      const bookingData = {
+        equipment_id: data.id,
+        renter_id: user.id,
+        start_date: startDate,
+        end_date: endDate,
+        total_amount: calculation?.total || 0,
+        status: "pending" as const,
+        message: null,
+      };
+
+      const { data: newBooking, error } = await supabase
+        .from("booking_requests")
+        .insert(bookingData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Set booking request ID to trigger payment form
+      if (newBooking) {
+        setBookingRequestId(newBooking.id);
+        setActiveTab("book");
+      }
+    } catch (error) {
+      console.error("Error creating booking request:", error);
+      toast({
+        variant: "destructive",
+        title: "Booking Failed",
+        description: "Failed to create booking request. Please try again.",
+      });
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  }, [user, data, dateRange, conflicts, calculation, toast]);
+
+  // Handle booking button click
+  const handleBooking = useCallback(() => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please log in to book this equipment.",
+      });
+      return;
+    }
+    void handleBookAndPay();
+  }, [user, toast, handleBookAndPay]);
 
   // Reset calendar and dates when dialog closes
   useEffect(() => {
@@ -267,8 +334,7 @@ const EquipmentDetailDialog = ({
       setWatchedEndDate("");
       setConflicts([]);
       setBookingRequestId(null);
-      setStartDateOpen(false);
-      setEndDateOpen(false);
+      setIsCreatingBooking(false);
     }
   }, [open]);
 
@@ -555,7 +621,7 @@ const EquipmentDetailDialog = ({
                     bookingRequestId={bookingRequestId}
                     ownerId={data.owner?.id || ""}
                     totalAmount={calculation.total}
-                    onSuccess={(paymentId) => {
+                    onSuccess={() => {
                       setActiveTab("overview");
                       toast({
                         title: "Payment Successful",
@@ -594,251 +660,23 @@ const EquipmentDetailDialog = ({
           </div>
 
           {/* Sticky booking sidebar */}
-          <aside className="lg:sticky lg:top-6 h-fit">
-            <Card className="p-6 space-y-6">
-              <div>
-                <div className="text-3xl font-bold text-foreground">
-                  ${data.daily_rate}
-                  <span className="text-base font-normal text-muted-foreground">
-                    {" "}
-                    / day
-                  </span>
-                </div>
-                {avgRating > 0 && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <StarRating rating={avgRating} size="sm" />
-                    <span className="text-sm text-muted-foreground">
-                      {avgRating.toFixed(1)} ({data.reviews?.length || 0}{" "}
-                      reviews)
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Pickup Location</h3>
-                  <p className="text-sm text-muted-foreground flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                    {data.location}
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Contact</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Contact the owner to arrange pickup after booking.
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Date Selection */}
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Select Dates
-                </h3>
-                <div className="flex gap-3">
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between font-normal"
-                          aria-label="Select start date"
-                        >
-                          {dateRange?.from
-                            ? dateRange.from.toLocaleDateString()
-                            : "Select start date"}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateRange?.from}
-                          onSelect={handleStartDateSelect}
-                          disabled={(date) =>
-                            startOfDay(date) < startOfDay(new Date())
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between font-normal"
-                          aria-label="Select end date"
-                        >
-                          {dateRange?.to
-                            ? dateRange.to.toLocaleDateString()
-                            : "Select end date"}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dateRange?.to}
-                          onSelect={handleEndDateSelect}
-                          disabled={(date) => {
-                            const today = startOfDay(new Date());
-                            const startDate = dateRange?.from
-                              ? startOfDay(dateRange.from)
-                              : null;
-                            return (
-                              startOfDay(date) < today ||
-                              (startDate && startOfDay(date) < startDate)
-                            );
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                {conflicts.length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <div className="space-y-1">
-                        {conflicts.map((conflict, index) => (
-                          <div key={index}>{conflict.message}</div>
-                        ))}
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Pricing Breakdown */}
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Pricing Breakdown
-                </h3>
-                {calculation && watchedStartDate && watchedEndDate ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-medium">
-                        {formatBookingDuration(watchedStartDate, watchedEndDate)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Daily Rate:</span>
-                      <span className="font-medium">
-                        ${calculation.daily_rate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Subtotal ({calculation.days} days):
-                      </span>
-                      <span className="font-medium">
-                        ${calculation.subtotal.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">
-                        Service Fee (5%):
-                      </span>
-                      <span className="font-medium">
-                        ${calculation.fees.toFixed(2)}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-semibold text-base">
-                      <span>Total:</span>
-                      <span>${calculation.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Select dates to see pricing breakdown.
-                  </p>
-                )}
-              </div>
-
-              <Button
-                className="w-full"
-                size="lg"
-                aria-label="Book & Pay for this equipment"
-                disabled={
-                  !dateRange?.from ||
-                  !dateRange?.to ||
-                  conflicts.length > 0 ||
-                  loadingConflicts
-                }
-                onClick={() => {
-                  if (!user) {
-                    toast({
-                      variant: "destructive",
-                      title: "Login Required",
-                      description: "Please log in to book this equipment.",
-                    });
-                    return;
-                  }
-                  if (data?.owner?.id === user.id) {
-                    toast({
-                      variant: "destructive",
-                      title: "Cannot Book Own Equipment",
-                      description: "You cannot book your own equipment.",
-                    });
-                    return;
-                  }
-                  if (!data?.category) {
-                    toast({
-                      variant: "destructive",
-                      title: "Missing Category Information",
-                      description: "Equipment category information is missing.",
-                    });
-                    return;
-                  }
-                  if (!dateRange?.from || !dateRange?.to) {
-                    toast({
-                      variant: "destructive",
-                      title: "Dates Required",
-                      description: "Please select start and end dates for your booking.",
-                    });
-                    return;
-                  }
-                  if (conflicts.length > 0) {
-                    toast({
-                      variant: "destructive",
-                      title: "Booking Conflict",
-                      description: conflicts[0].message,
-                    });
-                    return;
-                  }
-                  // If dates are selected in the calendar, proceed to booking
-                  setActiveTab("book");
-                }}
-              >
-                {!user
-                  ? "Login to Book"
-                  : data?.owner?.id === user.id
-                  ? "Your Equipment"
-                  : !dateRange?.from || !dateRange?.to
-                  ? "Select Dates to Book"
-                  : conflicts.length > 0
-                  ? "Dates Unavailable"
-                  : "Book & Pay Now"}
-              </Button>
-            </Card>
-          </aside>
+          <BookingSidebar
+            listing={data}
+            avgRating={avgRating}
+            reviewCount={data.reviews?.length || 0}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            onStartDateSelect={handleStartDateSelect}
+            onEndDateSelect={handleEndDateSelect}
+            conflicts={conflicts}
+            loadingConflicts={loadingConflicts}
+            calculation={calculation}
+            watchedStartDate={watchedStartDate}
+            watchedEndDate={watchedEndDate}
+            onBooking={handleBooking}
+            isCreatingBooking={isCreatingBooking}
+            user={user}
+          />
         </div>
       </div>
     );
