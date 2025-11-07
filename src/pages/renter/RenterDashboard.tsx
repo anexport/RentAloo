@@ -281,7 +281,7 @@ const RenterDashboard = () => {
               <BookingRequestCard
                 key={booking.id}
                 bookingRequest={booking}
-                onStatusChange={handleBookingStatusChange}
+                onStatusChange={() => void handleBookingStatusChange()}
                 showActions={true}
               />
             ))}

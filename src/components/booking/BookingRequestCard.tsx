@@ -28,7 +28,6 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  CreditCard,
   Shield,
 } from "lucide-react";
 import MessagingInterface from "../messaging/MessagingInterface";
@@ -138,7 +137,7 @@ const BookingRequestCard = ({
     };
   }, [bookingRequest.id, onStatusChange]);
 
-  const handleStatusUpdate = async (newStatus: "cancelled") => {
+  const handleStatusUpdate = async () => {
     if (!user) return;
 
     const confirmed = window.confirm(

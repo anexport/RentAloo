@@ -31,7 +31,6 @@ import { createMaxWidthQuery } from "@/config/breakpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/lib/supabase";
-import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict } from "@/types/booking";
 import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
 import { formatDateForStorage } from "@/lib/utils";
@@ -62,7 +61,6 @@ const EquipmentDetailDialog = ({
   const [conflicts, setConflicts] = useState<BookingConflict[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
-  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const requestIdRef = useRef(0);
   const sheetContentRef = useRef<HTMLElement | null>(null);
@@ -432,9 +430,9 @@ const EquipmentDetailDialog = ({
         // Find the SheetContent element by its data attribute
         const sheetContent = document.querySelector(
           '[data-slot="sheet-content"]'
-        ) as HTMLElement | null;
+        );
         if (sheetContent) {
-          sheetContentRef.current = sheetContent;
+          sheetContentRef.current = sheetContent as HTMLElement;
         }
       }, 100);
       return () => clearTimeout(timeoutId);

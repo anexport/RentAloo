@@ -30,7 +30,7 @@ const PhoneVerification = ({
     }
   }, [countdown]);
 
-  const handleSendCode = async () => {
+  const handleSendCode = () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number");
       return;

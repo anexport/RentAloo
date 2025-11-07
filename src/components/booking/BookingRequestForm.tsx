@@ -14,7 +14,6 @@ import {
   calculateBookingTotal,
   checkBookingConflicts,
   formatBookingDate,
-  formatBookingDuration,
 } from "../../lib/booking";
 import { formatDateForStorage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

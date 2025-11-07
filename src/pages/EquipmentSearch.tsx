@@ -66,7 +66,7 @@ const fetchEquipment = async (): Promise<EquipmentWithCategory[]> => {
   );
 
   // Batch fetch all reviews for all owners in a single query
-  let reviewsByOwnerId: Map<string, Array<{ rating: number }>> = new Map();
+  const reviewsByOwnerId: Map<string, Array<{ rating: number }>> = new Map();
 
   if (ownerIds.length > 0) {
     const { data: reviewsData, error: reviewsError } = await supabase

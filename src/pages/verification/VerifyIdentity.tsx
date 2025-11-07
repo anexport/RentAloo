@@ -107,7 +107,7 @@ const VerifyIdentity = () => {
                   "Phone verified but profile refresh failed. Please reload the page.",
                 variant: "destructive",
               });
-              reject(error);
+              reject(error instanceof Error ? error : new Error(String(error)));
             });
         } else {
           reject(new Error("Invalid verification code. Try 123456 for demo."));

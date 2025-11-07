@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
         
         try {
-          supabase.realtime.setAuth(session?.access_token ?? null);
+          void supabase.realtime.setAuth(session?.access_token ?? null);
         } catch (realtimeError) {
           console.error("Failed to set realtime auth:", realtimeError);
         }
@@ -76,12 +76,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       try {
-        supabase.realtime.setAuth(session?.access_token ?? null);
+        void supabase.realtime.setAuth(session?.access_token ?? null);
       } catch (error) {
         console.error("Failed to set realtime auth:", error);
       }

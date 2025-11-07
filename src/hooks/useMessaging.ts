@@ -7,7 +7,7 @@ import type {
   MessageWithSender,
   NewMessage,
 } from "../types/messaging";
-import type { Database, ProfileSummary } from "../lib/database.types";
+import type { Database } from "../lib/database.types";
 
 // Types for better type safety
 interface ConversationSummary {
@@ -547,7 +547,7 @@ export const useMessaging = () => {
       await deduplicateRequest(cacheKey, async () => {
         // First, get all conversation IDs where the user is a participant
         const { data: userConversations, error: convError } =
-          (await retryWithBackoff(
+          await retryWithBackoff(
             async () => {
               const result = await withTimeout(
                 supabase
@@ -563,7 +563,7 @@ export const useMessaging = () => {
             },
             2, // Max 2 retries for this operation
             1000 // 1 second initial delay
-          )) as SupabaseResponse<ConversationParticipantIdRow[]>;
+          );
 
         if (convError) throw convError;
         if (abortController.signal.aborted) throw new Error("Request aborted");
@@ -581,7 +581,7 @@ export const useMessaging = () => {
         );
 
         // Fetch all rows from the view for these conversations (includes all participants)
-        const { data: summaries, error } = (await retryWithBackoff(
+        const { data: summaries, error } = await retryWithBackoff(
           () =>
             withTimeout(
               supabase
@@ -598,7 +598,7 @@ export const useMessaging = () => {
             ),
           2, // Max 2 retries for this operation
           1000 // 1 second initial delay
-        )) as SupabaseResponse<ConversationSummaryRow[]>;
+        );
 
         if (error) throw error;
         if (abortController.signal.aborted) throw new Error("Request aborted");
@@ -844,7 +844,7 @@ export const useMessaging = () => {
         currentConversationIdRef.current = conversationId;
         setActiveConversationId(conversationId);
 
-        const { data, error } = (await retryWithBackoff(
+        const { data, error } = await retryWithBackoff(
           () =>
             withTimeout(
               supabase
@@ -866,7 +866,7 @@ export const useMessaging = () => {
             ),
           2, // Max 2 retries for this operation
           1000 // 1 second initial delay
-        )) as SupabaseResponse<MessageRowWithSender[]>;
+        );
 
         // Check if request was aborted
         if (abortController.signal.aborted) return;
@@ -939,7 +939,7 @@ export const useMessaging = () => {
       const abortController = new AbortController();
 
       try {
-        const { data, error } = (await retryWithBackoff(
+        const { data, error } = await retryWithBackoff(
           () =>
             withTimeout(
               supabase
@@ -962,7 +962,7 @@ export const useMessaging = () => {
             ),
           2, // Max 2 retries for this operation
           1000 // 1 second initial delay
-        )) as SupabaseResponse<MessageRowWithSender>;
+        );
 
         // Check if request was aborted
         if (abortController.signal.aborted) return;

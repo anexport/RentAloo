@@ -35,8 +35,6 @@ interface PaymentFormInnerProps extends PaymentFormProps {
 }
 
 const PaymentFormInner = ({
-  bookingRequestId,
-  ownerId,
   totalAmount,
   onSuccess,
   onCancel,
@@ -51,8 +49,12 @@ const PaymentFormInner = ({
 
   const paymentSummary = calculatePaymentSummary(totalAmount);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    void handleSubmitAsync();
+  };
+
+  const handleSubmitAsync = async () => {
 
     if (!stripe || !elements) {
       setError("Stripe is not initialized. Please refresh the page.");
@@ -185,7 +187,7 @@ const PaymentFormInner = ({
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={onCancel}
+                onClick={() => void onCancel()}
                 disabled={isProcessing || isCancelling}
               >
                 {isCancelling ? (
