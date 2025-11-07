@@ -55,7 +55,6 @@ export const useDateRangePicker = ({
         }
 
         if (!dateRange?.from) {
-          const newStartDate = date.toISOString().split("T")[0];
           onDateRangeChange({ from: date, to: undefined });
           setEndDateOpen(false);
           return;

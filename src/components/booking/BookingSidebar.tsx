@@ -78,6 +78,9 @@ const BookingSidebar = ({
         <Separator />
 
         <section aria-labelledby="dates-section">
+          <h3 id="dates-section" className="sr-only">
+            Dates
+          </h3>
           <DateSelector
             dateRange={dateRange}
             onDateRangeChange={onDateRangeChange}

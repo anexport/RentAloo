@@ -151,6 +151,7 @@ const EquipmentDetailDialog = ({
   const handleStartDateSelect = useCallback(
     (date: Date | undefined) => {
       if (!date) {
+        requestIdRef.current += 1;
         setDateRange(undefined);
         setCalculation(null);
         setWatchedStartDate("");
@@ -193,6 +194,7 @@ const EquipmentDetailDialog = ({
   const handleEndDateSelect = useCallback(
     (date: Date | undefined) => {
       if (!date) {
+        requestIdRef.current += 1;
         if (dateRange?.from) {
           setDateRange({ from: dateRange.from, to: undefined });
         } else {
@@ -243,6 +245,11 @@ const EquipmentDetailDialog = ({
 
   // Handle creating booking request and initializing payment
   const handleBookAndPay = useCallback(async () => {
+    // Early return if loading conflicts or already creating
+    if (loadingConflicts || isCreatingBooking) {
+      return;
+    }
+
     if (
       !user ||
       !data ||
@@ -311,7 +318,16 @@ const EquipmentDetailDialog = ({
     } finally {
       setIsCreatingBooking(false);
     }
-  }, [user, data, dateRange, conflicts, calculation, toast]);
+  }, [
+    user,
+    data,
+    dateRange,
+    conflicts,
+    calculation,
+    toast,
+    loadingConflicts,
+    isCreatingBooking,
+  ]);
 
   // Handle booking button click
   const handleBooking = useCallback(() => {
