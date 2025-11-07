@@ -40,6 +40,7 @@ import { createMaxWidthQuery } from "@/config/breakpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import BookingRequestForm from "@/components/booking/BookingRequestForm";
+import PaymentForm from "@/components/payment/PaymentForm";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation } from "@/types/booking";
 import { formatBookingDuration } from "@/lib/booking";
@@ -71,6 +72,7 @@ const EquipmentDetailDialog = ({
   );
   const [watchedStartDate, setWatchedStartDate] = useState<string>("");
   const [watchedEndDate, setWatchedEndDate] = useState<string>("");
+  const [bookingRequestId, setBookingRequestId] = useState<string | null>(null);
 
   const handleCalculationChange = useCallback(
     (
@@ -369,19 +371,32 @@ const EquipmentDetailDialog = ({
                       </div>
                     </CardContent>
                   </Card>
+                ) : bookingRequestId && calculation ? (
+                  <PaymentForm
+                    bookingRequestId={bookingRequestId}
+                    ownerId={data.owner?.id || ""}
+                    totalAmount={calculation.total}
+                    onSuccess={(paymentId) => {
+                      setActiveTab("overview");
+                      toast({
+                        title: "Payment Successful",
+                        description:
+                          "Your booking has been confirmed! The owner has been notified.",
+                      });
+                      setBookingRequestId(null);
+                    }}
+                    onCancel={() => {
+                      setBookingRequestId(null);
+                    }}
+                  />
                 ) : (
                   <BookingRequestForm
                     equipment={{
                       ...data,
                       category: data.category,
                     }}
-                    onSuccess={() => {
-                      setActiveTab("overview");
-                      toast({
-                        title: "Booking Request Submitted",
-                        description:
-                          "Your booking request has been submitted successfully!",
-                      });
+                    onSuccess={(id) => {
+                      setBookingRequestId(id);
                     }}
                     isEmbedded={true}
                     onCalculationChange={handleCalculationChange}
@@ -488,13 +503,13 @@ const EquipmentDetailDialog = ({
               <Button
                 className="w-full"
                 size="lg"
-                aria-label="Request to book this equipment"
+                aria-label="Book & Pay for this equipment"
                 onClick={() => {
                   if (!user) {
                     toast({
                       variant: "destructive",
                       title: "Login Required",
-                      description: "Please log in to request a booking.",
+                      description: "Please log in to book this equipment.",
                     });
                     return;
                   }
@@ -521,7 +536,7 @@ const EquipmentDetailDialog = ({
                   ? "Login to Book"
                   : data?.owner?.id === user.id
                   ? "Your Equipment"
-                  : "Request to Book"}
+                  : "Book & Pay Now"}
               </Button>
             </Card>
           </aside>

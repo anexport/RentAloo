@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/hooks/useAuth";
-import { useMessaging } from "@/hooks/useMessaging";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "../../lib/database.types";
 import type {
@@ -53,7 +52,7 @@ interface BookingRequestFormProps {
   equipment: Database["public"]["Tables"]["equipment"]["Row"] & {
     category: Database["public"]["Tables"]["categories"]["Row"];
   };
-  onSuccess?: () => void;
+  onSuccess?: (bookingRequestId: string) => void;
   onCancel?: () => void;
   isEmbedded?: boolean;
   onCalculationChange?: (
@@ -71,7 +70,6 @@ const BookingRequestForm = ({
   onCalculationChange,
 }: BookingRequestFormProps) => {
   const { user } = useAuth();
-  const { getOrCreateConversation, sendMessage } = useMessaging();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculation, setCalculation] = useState<BookingCalculation | null>(
     null
@@ -192,51 +190,10 @@ const BookingRequestForm = ({
 
       if (error) throw error;
 
-      // Automatically create a conversation for this booking
+      // Pass booking_request_id to parent to trigger payment flow
       if (newBooking) {
-        try {
-          const conversation = await getOrCreateConversation(
-            [equipment.owner_id],
-            newBooking.id
-          );
-
-          // Send initial message to the owner
-          if (conversation && calculation) {
-            const duration = formatBookingDuration(
-              data.start_date,
-              data.end_date
-            );
-            const startDateFormatted = formatBookingDate(data.start_date);
-            const endDateFormatted = formatBookingDate(data.end_date);
-
-            let messageContent = `Hi! I've requested to book your "${
-              equipment.title
-            }" from ${startDateFormatted} to ${endDateFormatted} (${duration}, $${calculation.total.toFixed(
-              2
-            )} total).`;
-
-            if (data.message && data.message.trim()) {
-              messageContent += `\n\n${data.message.trim()}`;
-            }
-
-            try {
-              await sendMessage({
-                conversation_id: conversation.id,
-                content: messageContent,
-                message_type: "text",
-              });
-            } catch (messageError) {
-              console.error("Error sending initial message:", messageError);
-              // Don't fail the booking if message sending fails
-            }
-          }
-        } catch (convError) {
-          console.error("Error creating conversation:", convError);
-          // Don't fail the booking if conversation creation fails
-        }
+        onSuccess?.(newBooking.id);
       }
-
-      onSuccess?.();
     } catch (error) {
       console.error("Error creating booking request:", error);
       alert("Failed to submit booking request. Please try again.");
@@ -279,7 +236,7 @@ const BookingRequestForm = ({
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Calendar className="h-5 w-5 text-primary" />
-          <span>Request Equipment Rental</span>
+          <span>Book & Pay</span>
         </CardTitle>
         <CardDescription>
           Book "{equipment.title}" from {equipment.category.name}
@@ -439,7 +396,7 @@ export const BookingFormContent = ({
           disabled={!canSubmit || isSubmitting}
           className="min-w-[120px]"
         >
-          {isSubmitting ? "Submitting..." : "Submit Request"}
+          {isSubmitting ? "Processing..." : "Continue to Payment"}
         </Button>
       </div>
     </form>
