@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { supabase } from "@/lib/supabase";
+import { formatDateForStorage } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -71,7 +72,7 @@ const NotificationsPanel = () => {
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
             .eq("status", "approved")
-            .gte("start_date", new Date().toISOString().split("T")[0]),
+            .gte("start_date", formatDateForStorage(new Date())),
         ]);
 
         // Process pending booking requests

@@ -3,7 +3,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-interface Category {
+export interface Category {
   name: string;
 }
 

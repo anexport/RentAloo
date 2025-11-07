@@ -3,6 +3,7 @@ import type {
   AvailabilitySlot,
   BookingConflict,
 } from "../types/booking";
+import { formatDateForStorage } from "./utils";
 
 export const calculateBookingTotal = (
   dailyRate: number,
@@ -23,7 +24,7 @@ export const calculateBookingTotal = (
     for (let i = 0; i < days; i++) {
       const currentDate = new Date(start);
       currentDate.setDate(start.getDate() + i);
-      const dateStr = currentDate.toISOString().split("T")[0];
+      const dateStr = formatDateForStorage(currentDate);
 
       const customSlot = customRates.find((slot) => slot.date === dateStr);
       const rate = customSlot?.custom_rate || dailyRate;
