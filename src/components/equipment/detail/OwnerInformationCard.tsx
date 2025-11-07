@@ -28,10 +28,21 @@ export const OwnerInformationCard = ({ owner }: OwnerInformationCardProps) => {
   // Generate initials from email if no name
   const getInitials = (email: string, name?: string) => {
     if (name) {
-      const parts = name.split(" ");
-      return parts.length > 1
-        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
-        : name.slice(0, 2).toUpperCase();
+      const trimmed = name.trim();
+      if (!trimmed) {
+        // If trimming yields no valid parts, fall back to email
+        return email.slice(0, 2).toUpperCase();
+      }
+      
+      const parts = trimmed.split(/\s+/).filter(Boolean);
+      
+      if (parts.length > 1) {
+        // Use first two non-empty parts
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      } else {
+        // Use first two characters of the single non-empty part
+        return trimmed.slice(0, 2).toUpperCase();
+      }
     }
     return email.slice(0, 2).toUpperCase();
   };

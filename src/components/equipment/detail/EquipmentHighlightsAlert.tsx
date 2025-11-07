@@ -60,7 +60,7 @@ export const EquipmentHighlightsAlert = ({
     if (customMessage) return customMessage;
     
     const parts = [];
-    if (isPopular) parts.push(`Rented ${rentalCount} times`);
+    if (isPopular) parts.push(`Rented ${rentalCount} ${rentalCount === 1 ? 'time' : 'times'}`);
     if (isHighlyRated) parts.push(`${averageRating.toFixed(1)} average rating`);
     if (isVerified) parts.push("Verified by owner");
     

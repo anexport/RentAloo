@@ -564,7 +564,7 @@ const EquipmentDetailDialog = ({
                   isVerified={false} // Could be fetched from verification table
                   lastInspectionDate={
                     data.created_at 
-                      ? new Date(data.created_at).toLocaleDateString()
+                      ? data.created_at
                       : undefined
                   }
                 />

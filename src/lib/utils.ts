@@ -17,3 +17,17 @@ export const formatDateForStorage = (date: Date): string => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+/**
+ * Format a date string for user-friendly display.
+ * Converts date strings (YYYY-MM-DD or ISO format) to a readable format.
+ * Example: "2024-01-15" -> "Jan 15, 2024"
+ */
+export const formatDateForDisplay = (dateString: string): string => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+};
