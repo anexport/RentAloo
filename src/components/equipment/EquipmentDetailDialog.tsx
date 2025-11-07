@@ -78,6 +78,7 @@ const EquipmentDetailDialog = ({
   const [conflicts, setConflicts] = useState<BookingConflict[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const requestIdRef = useRef(0);
 
   const handleCalculationChange = useCallback(
@@ -328,6 +329,46 @@ const EquipmentDetailDialog = ({
   // Reset calendar and dates when dialog closes
   useEffect(() => {
     if (!open) {
+      // If there's a pending booking request, clean it up
+      const cleanupBookingRequest = async () => {
+        // Capture the current bookingRequestId before clearing state
+        const currentBookingRequestId = bookingRequestId;
+
+        if (currentBookingRequestId) {
+          try {
+            // Check if booking request still exists and is pending
+            const { data: existingRequest, error: checkError } = await supabase
+              .from("booking_requests")
+              .select("id, status")
+              .eq("id", currentBookingRequestId)
+              .maybeSingle();
+
+            if (checkError && checkError.code !== "PGRST116") {
+              console.error("Error checking booking request:", checkError);
+              return;
+            }
+
+            // If booking request exists and is still pending, delete it
+            if (existingRequest && existingRequest.status === "pending") {
+              const { error: deleteError } = await supabase
+                .from("booking_requests")
+                .delete()
+                .eq("id", currentBookingRequestId)
+                .eq("status", "pending");
+
+              if (deleteError) {
+                console.error("Error deleting booking request:", deleteError);
+              }
+            }
+          } catch (error) {
+            console.error("Error cleaning up booking request:", error);
+          }
+        }
+      };
+
+      void cleanupBookingRequest();
+
+      // Clear local state
       setDateRange(undefined);
       setCalculation(null);
       setWatchedStartDate("");
@@ -335,8 +376,9 @@ const EquipmentDetailDialog = ({
       setConflicts([]);
       setBookingRequestId(null);
       setIsCreatingBooking(false);
+      setIsCancellingBooking(false);
     }
-  }, [open]);
+  }, [open, bookingRequestId]);
 
   const avgRating = (() => {
     if (!data?.reviews || data.reviews.length === 0) return 0;
@@ -621,6 +663,7 @@ const EquipmentDetailDialog = ({
                     bookingRequestId={bookingRequestId}
                     ownerId={data.owner?.id || ""}
                     totalAmount={calculation.total}
+                    isCancelling={isCancellingBooking}
                     onSuccess={() => {
                       setActiveTab("overview");
                       toast({
@@ -630,8 +673,61 @@ const EquipmentDetailDialog = ({
                       });
                       setBookingRequestId(null);
                     }}
-                    onCancel={() => {
-                      setBookingRequestId(null);
+                    onCancel={async () => {
+                      if (!bookingRequestId || isCancellingBooking) return;
+
+                      setIsCancellingBooking(true);
+
+                      try {
+                        // Check if booking request still exists (idempotency)
+                        const { data: existingRequest, error: checkError } =
+                          await supabase
+                            .from("booking_requests")
+                            .select("id, status")
+                            .eq("id", bookingRequestId)
+                            .maybeSingle();
+
+                        if (checkError && checkError.code !== "PGRST116") {
+                          throw checkError;
+                        }
+
+                        // If booking request exists and is still pending, delete it
+                        if (
+                          existingRequest &&
+                          existingRequest.status === "pending"
+                        ) {
+                          const { error: deleteError } = await supabase
+                            .from("booking_requests")
+                            .delete()
+                            .eq("id", bookingRequestId)
+                            .eq("status", "pending"); // Only delete if still pending (safety check)
+
+                          if (deleteError) throw deleteError;
+                        }
+
+                        // Clear local state and update UI
+                        setBookingRequestId(null);
+                        setActiveTab("overview");
+
+                        toast({
+                          title: "Booking Cancelled",
+                          description:
+                            "Your booking request has been cancelled.",
+                        });
+                      } catch (error) {
+                        console.error(
+                          "Error cancelling booking request:",
+                          error
+                        );
+                        toast({
+                          variant: "destructive",
+                          title: "Cancellation Failed",
+                          description:
+                            "Failed to cancel booking request. Please try again.",
+                        });
+                      } finally {
+                        setIsCancellingBooking(false);
+                      }
                     }}
                   />
                 ) : (

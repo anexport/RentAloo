@@ -26,7 +26,8 @@ interface PaymentFormProps {
   ownerId: string;
   totalAmount: number;
   onSuccess?: (paymentId: string) => void;
-  onCancel?: () => void;
+  onCancel?: () => void | Promise<void>;
+  isCancelling?: boolean;
 }
 
 interface PaymentFormInnerProps extends PaymentFormProps {
@@ -40,6 +41,7 @@ const PaymentFormInner = ({
   onSuccess,
   onCancel,
   paymentIntentId,
+  isCancelling = false,
 }: PaymentFormInnerProps) => {
   const navigate = useNavigate();
   const stripe = useStripe();
@@ -184,9 +186,16 @@ const PaymentFormInner = ({
                 variant="outline"
                 className="flex-1"
                 onClick={onCancel}
-                disabled={isProcessing}
+                disabled={isProcessing || isCancelling}
               >
-                Cancel
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  "Cancel"
+                )}
               </Button>
               <Button
                 type="submit"
@@ -236,6 +245,7 @@ const PaymentForm = ({
   totalAmount,
   onSuccess,
   onCancel,
+  isCancelling = false,
 }: PaymentFormProps) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
@@ -322,6 +332,7 @@ const PaymentForm = ({
         onSuccess={onSuccess}
         onCancel={onCancel}
         paymentIntentId={paymentIntentId}
+        isCancelling={isCancelling}
       />
     </Elements>
   );
