@@ -53,6 +53,7 @@ export const CheckboxGroup = ({
               id={option.value}
               checked={value.includes(option.value)}
               onCheckedChange={() => handleToggle(option.value)}
+              onClick={(e) => e.stopPropagation()}
               aria-label={`Select ${option.label}`}
             />
             <div className="flex-1 space-y-1">
