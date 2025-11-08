@@ -5,15 +5,15 @@ export type Suggestion = { id: string; label: string; lat: number; lon: number }
 const cache = new Map<string, { ts: number; items: Suggestion[] }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function key(query: string, lang?: string, cc?: string) {
-  return `${query.trim().toLowerCase()}|${lang || 'en'}|${cc || ''}`;
+function key(query: string, lang?: string, locationBias?: string) {
+  return `${query.trim().toLowerCase()}|${lang || 'en'}|${locationBias || ''}`;
 }
 
 export function getCachedSuggestions(
   query: string,
-  opts: { language?: string; countrycodes?: string } = {}
+  opts: { language?: string; locationBias?: string } = {}
 ): Suggestion[] | null {
-  const k = key(query, opts.language, opts.countrycodes);
+  const k = key(query, opts.language, opts.locationBias);
   const hit = cache.get(k);
   if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.items;
   return null;
@@ -25,7 +25,7 @@ export async function suggestLocations(
 ): Promise<Suggestion[]> {
   const cached = getCachedSuggestions(query, {
     language: opts.language,
-    countrycodes: opts.locationBias,
+    locationBias: opts.locationBias,
   });
   if (cached) return cached;
 

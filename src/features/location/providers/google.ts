@@ -341,9 +341,17 @@ export async function searchGooglePlaces(
           return null;
         }
 
-        const place = new Place({ id: placeId });
-        // Fetch place details - request location field
-        await place.fetchFields({ fields: ['location'] });
+        // Convert prediction to Place object which retains the session context
+        // This ensures place detail requests are tied to the autocomplete session
+        // and correctly billed as outcomes rather than separate requests
+        const place = placePrediction.toPlace();
+        
+        // Fetch place details - request location field with session token
+        // Pass sessionToken to maintain the session context for billing
+        await place.fetchFields({ 
+          fields: ['location'],
+          sessionToken 
+        });
 
         if (place.location) {
           // Place API has location directly on the Place object, not under geometry

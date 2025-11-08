@@ -50,7 +50,7 @@ export function useAddressAutocomplete(params?: {
     // Check cache immediately for instant results (no debounce for cached)
     const cached = getCachedSuggestions(q, {
       language: opts.language,
-      countrycodes: opts.locationBias,
+      locationBias: opts.locationBias,
     });
     if (cached) {
       setSuggestions(cached);
