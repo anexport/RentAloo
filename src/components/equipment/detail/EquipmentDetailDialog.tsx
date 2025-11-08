@@ -350,6 +350,10 @@ const EquipmentDetailDialog = ({
       if (newBooking) {
         setBookingRequestId(newBooking.id);
         setActiveTab("book");
+        // Close mobile drawer on mobile so payment form is visible
+        if (isMobile) {
+          setMobileSidebarOpen(false);
+        }
       }
     } catch (error) {
       console.error("Error creating booking request:", error);
@@ -370,6 +374,7 @@ const EquipmentDetailDialog = ({
     toast,
     loadingConflicts,
     isCreatingBooking,
+    isMobile,
   ]);
 
   // Handle booking button click
