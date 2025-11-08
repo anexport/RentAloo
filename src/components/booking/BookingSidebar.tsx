@@ -26,6 +26,7 @@ interface BookingSidebarProps {
   onBooking: () => void;
   isCreatingBooking: boolean;
   user: User | null;
+  equipmentId?: string;
 }
 
 const BookingSidebar = ({
@@ -44,6 +45,7 @@ const BookingSidebar = ({
   onBooking,
   isCreatingBooking,
   user,
+  equipmentId,
 }: BookingSidebarProps) => {
   const isOwner = listing.owner?.id === user?.id;
   const hasValidDates = !!dateRange?.from && !!dateRange?.to;
@@ -55,64 +57,67 @@ const BookingSidebar = ({
       aria-label="Booking information"
     >
       <Card className="p-6 space-y-6">
-        <section aria-labelledby="pricing-section">
-          <h3 id="pricing-section" className="sr-only">
-            Pricing
-          </h3>
-          <PricingHeader
-            dailyRate={listing.daily_rate}
-            avgRating={avgRating}
-            reviewCount={reviewCount}
-          />
-        </section>
+        <>
+            <section aria-labelledby="pricing-section">
+              <h3 id="pricing-section" className="sr-only">
+                Pricing
+              </h3>
+              <PricingHeader
+                dailyRate={listing.daily_rate}
+                avgRating={avgRating}
+                reviewCount={reviewCount}
+              />
+            </section>
 
-        <Separator />
+            <Separator />
 
-        <section aria-labelledby="location-section">
-          <h3 id="location-section" className="sr-only">
-            Location and Contact
-          </h3>
-          <LocationContact location={listing.location} />
-        </section>
+            <section aria-labelledby="location-section">
+              <h3 id="location-section" className="sr-only">
+                Location and Contact
+              </h3>
+              <LocationContact location={listing.location} />
+            </section>
 
-        <Separator />
+            <Separator />
 
-        <section aria-labelledby="dates-section">
-          <h3 id="dates-section" className="sr-only">
-            Dates
-          </h3>
-          <DateSelector
-            dateRange={dateRange}
-            onDateRangeChange={onDateRangeChange}
-            onStartDateSelect={onStartDateSelect}
-            onEndDateSelect={onEndDateSelect}
-            conflicts={conflicts}
-            loadingConflicts={loadingConflicts}
-          />
-        </section>
+            <section aria-labelledby="dates-section">
+              <h3 id="dates-section" className="sr-only">
+                Dates
+              </h3>
+              <DateSelector
+                dateRange={dateRange}
+                onDateRangeChange={onDateRangeChange}
+                onStartDateSelect={onStartDateSelect}
+                onEndDateSelect={onEndDateSelect}
+                conflicts={conflicts}
+                loadingConflicts={loadingConflicts}
+                equipmentId={equipmentId}
+              />
+            </section>
 
-        <Separator />
+            <Separator />
 
-        <section aria-labelledby="pricing-breakdown-section">
-          <h3 id="pricing-breakdown-section" className="sr-only">
-            Pricing Breakdown
-          </h3>
-          <PricingBreakdown
-            calculation={calculation}
-            startDate={watchedStartDate}
-            endDate={watchedEndDate}
-          />
-        </section>
+            <section aria-labelledby="pricing-breakdown-section">
+              <h3 id="pricing-breakdown-section" className="sr-only">
+                Pricing Breakdown
+              </h3>
+              <PricingBreakdown
+                calculation={calculation}
+                startDate={watchedStartDate}
+                endDate={watchedEndDate}
+              />
+            </section>
 
-        <BookingButton
-          user={user}
-          isOwner={isOwner}
-          hasValidDates={hasValidDates}
-          hasConflicts={hasConflicts}
-          isLoading={isCreatingBooking || loadingConflicts}
-          hasCalculation={!!calculation}
-          onBook={onBooking}
-        />
+            <BookingButton
+              user={user}
+              isOwner={isOwner}
+              hasValidDates={hasValidDates}
+              hasConflicts={hasConflicts}
+              isLoading={isCreatingBooking || loadingConflicts}
+              hasCalculation={!!calculation}
+              onBook={onBooking}
+            />
+        </>
       </Card>
     </aside>
   );

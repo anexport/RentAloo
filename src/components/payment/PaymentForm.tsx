@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Elements,
@@ -254,9 +254,29 @@ const PaymentForm = ({
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isInitializingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
+  const currentBookingRequestIdRef = useRef<string | null>(null);
+
+  // Reset refs when bookingRequestId changes
+  useEffect(() => {
+    if (currentBookingRequestIdRef.current !== bookingRequestId) {
+      currentBookingRequestIdRef.current = bookingRequestId;
+      isInitializingRef.current = false;
+      hasInitializedRef.current = false;
+    }
+  }, [bookingRequestId]);
 
   useEffect(() => {
+    // Prevent duplicate payment intent creation
+    if (isInitializingRef.current || hasInitializedRef.current) {
+      return;
+    }
+
     const initializePayment = async () => {
+      // Mark as initializing to prevent concurrent calls
+      isInitializingRef.current = true;
+
       try {
         setLoading(true);
         setError(null);
@@ -271,6 +291,9 @@ const PaymentForm = ({
 
         setClientSecret(secret);
         setPaymentIntentId(intentId);
+        
+        // Mark as initialized to prevent re-initialization
+        hasInitializedRef.current = true;
       } catch (err) {
         console.error("Error initializing payment:", err);
         setError(
@@ -278,8 +301,11 @@ const PaymentForm = ({
             ? err.message
             : "Failed to initialize payment. Please try again."
         );
+        // Reset on error so user can retry
+        isInitializingRef.current = false;
       } finally {
         setLoading(false);
+        isInitializingRef.current = false;
       }
     };
 
