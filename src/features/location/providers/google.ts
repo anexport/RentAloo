@@ -32,15 +32,6 @@ export interface GooglePlacePrediction {
   description: string;
 }
 
-export interface GooglePlaceDetails {
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-}
-
 // ============================================================================
 // REVERSE GEOCODING (Coordinates → Address)
 // ============================================================================
@@ -163,84 +154,6 @@ export async function reverseGeocodeGoogle(
 // ============================================================================
 // FORWARD GEOCODING (Address Search → Coordinates)
 // ============================================================================
-
-/**
- * Fetches place details including coordinates for a given place_id using new Place API
- * 
- * @param placeId - Google Place ID from autocomplete
- * @param apiKey - Google Maps API key
- * @param signal - Optional abort signal
- * @returns Place details with coordinates or null on error
- */
-async function getPlaceDetails(
-  placeId: string,
-  apiKey: string,
-  signal?: AbortSignal
-): Promise<GooglePlaceDetails | null> {
-  try {
-    // Load Google Maps if not loaded
-    if (!isGoogleMapsLoaded()) {
-      await loadGoogleMaps({
-        apiKey,
-        libraries: ['places'],
-      });
-    }
-
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
-
-    // Import Places library using new API - destructure classes directly
-    const { Place } = await importPlacesLibrary();
-
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
-
-    // Use new Place API instead of PlacesService
-    const place = new Place({ id: placeId });
-    
-    // Fetch place details - request location field
-    // Note: The new Place API may use different field names than the legacy API
-    await place.fetchFields({ fields: ['location'] });
-
-    if (signal?.aborted) {
-      throw new DOMException('Aborted', 'AbortError');
-    }
-
-    if (place.location) {
-      // Place API has location directly on the Place object, not under geometry
-      // location can be either LatLng object or LatLngLiteral { lat, lng }
-      const lat = place.location instanceof google.maps.LatLng 
-        ? place.location.lat() 
-        : place.location.lat;
-      const lng = place.location instanceof google.maps.LatLng 
-        ? place.location.lng() 
-        : place.location.lng;
-      
-      return {
-        geometry: {
-          location: {
-            lat,
-            lng,
-          },
-        },
-      };
-    }
-
-    return null;
-  } catch (error) {
-    if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
-      throw error;
-    }
-
-    console.error('Google Place Details request failed', {
-      place_id: placeId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
 
 /**
  * Searches for places matching a query using new AutocompleteSuggestion API

@@ -48,6 +48,7 @@ export function useAddressAutocomplete(params?: {
     const cached = getCachedSuggestions(q, {
       language: opts.language,
       locationBias: opts.locationBias,
+      limit: opts.limit,
     });
     if (cached) {
       setSuggestions(cached);
