@@ -46,7 +46,6 @@ export const loadGoogleMaps = (options: GoogleMapsLoaderOptions): Promise<void> 
     // Add loading=async parameter for best practice loading
     script.src = `https://maps.googleapis.com/maps/api/js?key=${options.apiKey}${libraries}${language}&loading=async&callback=initGoogleMaps`;
     script.async = true;
-    script.defer = true;
     script.onerror = () => {
       loadPromise = null;
       reject(new Error('Failed to load Google Maps JavaScript API'));
