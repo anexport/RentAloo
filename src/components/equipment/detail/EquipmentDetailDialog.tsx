@@ -15,6 +15,7 @@ import {
   Info,
   Package,
   Star,
+  CreditCard,
 } from "lucide-react";
 import { fetchListingById } from "@/components/equipment/services/listings";
 import { EquipmentHeader } from "./EquipmentHeader";
@@ -27,6 +28,8 @@ import { Badge } from "@/components/ui/badge";
 import BookingSidebar from "@/components/booking/BookingSidebar";
 import { FloatingBookingCTA } from "@/components/booking/FloatingBookingCTA";
 import { MobileSidebarDrawer } from "@/components/booking/MobileSidebarDrawer";
+import BookingRequestForm from "@/components/booking/BookingRequestForm";
+import PaymentForm from "@/components/payment/PaymentForm";
 import ReviewList from "@/components/reviews/ReviewList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
@@ -43,6 +46,13 @@ type EquipmentDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   listingId?: string;
+};
+
+// Type guard to check if listing has category
+const hasCategory = (
+  listing: Listing | undefined
+): listing is Listing & { category: NonNullable<Listing["category"]> } => {
+  return !!listing?.category;
 };
 
 const EquipmentDetailDialog = ({
@@ -336,10 +346,10 @@ const EquipmentDetailDialog = ({
 
       if (error) throw error;
 
-      // Set booking request ID for tracking
+      // Set booking request ID and switch to book tab for payment
       if (newBooking) {
         setBookingRequestId(newBooking.id);
-        // Payment happens in sidebar, no need to switch tabs
+        setActiveTab("book");
       }
     } catch (error) {
       console.error("Error creating booking request:", error);
@@ -374,6 +384,7 @@ const EquipmentDetailDialog = ({
     }
     void handleBookAndPay();
   }, [user, toast, handleBookAndPay]);
+
 
   // Reset calendar and dates when dialog closes
   useEffect(() => {
@@ -495,7 +506,7 @@ const EquipmentDetailDialog = ({
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger
                   value="overview"
                   className="flex items-center gap-2"
@@ -524,6 +535,14 @@ const EquipmentDetailDialog = ({
                       {data.reviews.length}
                     </Badge>
                   )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="book"
+                  className="flex items-center gap-2"
+                  aria-label="Book"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>Book</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -589,6 +608,79 @@ const EquipmentDetailDialog = ({
                       </div>
                     </CardContent>
                   </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="book" className="mt-6">
+                {!hasCategory(data) ? (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">
+                          Category Information Missing
+                        </h3>
+                        <p className="text-muted-foreground max-w-md">
+                          This equipment is missing category information. Please
+                          contact the owner or try again later.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : bookingRequestId && calculation ? (
+                  <PaymentForm
+                    bookingRequestId={bookingRequestId}
+                    ownerId={data.owner?.id || ""}
+                    totalAmount={calculation.total}
+                    onSuccess={(paymentId) => {
+                      setActiveTab("overview");
+                      toast({
+                        title: "Payment Successful",
+                        description:
+                          "Your booking has been confirmed! The owner has been notified.",
+                      });
+                      setBookingRequestId(null);
+                    }}
+                    onCancel={async () => {
+                      // Delete pending booking request immediately when user cancels
+                      if (bookingRequestId) {
+                        try {
+                          const { error: deleteError } = await supabase
+                            .from("booking_requests")
+                            .delete()
+                            .eq("id", bookingRequestId)
+                            .eq("status", "pending");
+
+                          if (deleteError) {
+                            console.error("Error deleting booking request:", deleteError);
+                          }
+                        } catch (error) {
+                          console.error("Error cleaning up booking request:", error);
+                        }
+                      }
+                      setBookingRequestId(null);
+                    }}
+                  />
+                ) : (
+                  <BookingRequestForm
+                    equipment={{
+                      ...data,
+                      category: data.category,
+                    }}
+                    onSuccess={(id) => {
+                      setBookingRequestId(id);
+                    }}
+                    isEmbedded={true}
+                    initialDates={
+                      watchedStartDate && watchedEndDate
+                        ? {
+                            start_date: watchedStartDate,
+                            end_date: watchedEndDate,
+                          }
+                        : undefined
+                    }
+                    onCalculationChange={handleCalculationChange}
+                  />
                 )}
               </TabsContent>
             </Tabs>
