@@ -3,7 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mountain, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { 
+  Mountain, 
+  ArrowLeft, 
+  Eye, 
+  EyeOff, 
+  User,
+  Mail,
+  MapPin,
+  ArrowRight,
+  Check
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,45 +24,89 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/hooks/useAuth";
+import { StepProgress } from "@/components/ui/step-progress";
+import { PasswordStrength } from "@/components/ui/password-strength";
+import { CheckboxGroup } from "@/components/ui/checkbox-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const renterSchema = z
+// Step 1 Schema
+const step1Schema = z
   .object({
     fullName: z.string().min(2, "Full name must be at least 2 characters"),
     email: z.string().email("Please enter a valid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
-    location: z.string().min(2, "Please enter your location"),
-    interests: z
-      .array(z.string())
-      .min(1, "Please select at least one interest"),
-    experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
 
+// Step 2 Schema
+const step2Schema = z.object({
+  location: z.string().min(2, "Please enter your location"),
+  experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
+});
+
+// Step 3 Schema
+const step3Schema = z.object({
+  interests: z
+    .array(z.string())
+    .min(1, "Please select at least one interest"),
+});
+
+// Combined Schema
+const renterSchema = z.intersection(
+  z.intersection(step1Schema, step2Schema),
+  step3Schema
+);
+
 type RenterFormData = z.infer<typeof renterSchema>;
 
-const interestOptions = [
-  "Hiking",
-  "Climbing",
-  "Skiing",
-  "Snowboarding",
-  "Cycling",
-  "Camping",
-  "Kayaking",
-  "Paddleboarding",
-  "Surfing",
-  "Mountain Biking",
-  "Running",
+const STEPS = [
+  { id: 1, title: "Account", description: "Basic information" },
+  { id: 2, title: "Details", description: "Location & experience" },
+  { id: 3, title: "Interests", description: "Your activities" },
 ];
 
-const experienceLevels = ["beginner", "intermediate", "advanced"] as const;
+const INTEREST_OPTIONS = [
+  { value: "hiking", label: "Hiking", description: "Trails and backpacking" },
+  { value: "climbing", label: "Climbing", description: "Rock and ice climbing" },
+  { value: "skiing", label: "Skiing", description: "Alpine and backcountry" },
+  { value: "snowboarding", label: "Snowboarding", description: "Resort and powder" },
+  { value: "cycling", label: "Cycling", description: "Road and gravel" },
+  { value: "camping", label: "Camping", description: "Car and backcountry" },
+  { value: "kayaking", label: "Kayaking", description: "Rivers and lakes" },
+  { value: "paddleboarding", label: "Paddleboarding", description: "SUP adventures" },
+  { value: "surfing", label: "Surfing", description: "Ocean waves" },
+  { value: "mountain-biking", label: "Mountain Biking", description: "Trails and jumps" },
+  { value: "running", label: "Running", description: "Trail running" },
+];
+
+const EXPERIENCE_LEVELS = [
+  {
+    value: "beginner",
+    label: "Beginner",
+    description: "Just starting out",
+  },
+  {
+    value: "intermediate",
+    label: "Intermediate",
+    description: "Some experience",
+  },
+  {
+    value: "advanced",
+    label: "Advanced",
+    description: "Experienced enthusiast",
+  },
+];
 
 const RenterRegistration = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth();
@@ -64,30 +118,44 @@ const RenterRegistration = () => {
     formState: { errors },
     watch,
     setValue,
+    trigger,
   } = useForm<RenterFormData>({
     resolver: zodResolver(renterSchema),
+    mode: "onBlur",
     defaultValues: {
       interests: [],
+      experienceLevel: undefined,
     },
   });
 
+  const password = watch("password");
   const selectedInterests = watch("interests");
+  const experienceLevel = watch("experienceLevel");
 
-  const handleInterestToggle = (interest: string) => {
-    const currentInterests = selectedInterests || [];
-    if (currentInterests.includes(interest)) {
-      setValue(
-        "interests",
-        currentInterests.filter((i) => i !== interest)
-      );
-    } else {
-      setValue("interests", [...currentInterests, interest]);
+  const handleNextStep = async () => {
+    let isValid = false;
+
+    if (currentStep === 1) {
+      isValid = await trigger(["fullName", "email", "password", "confirmPassword"]);
+    } else if (currentStep === 2) {
+      isValid = await trigger(["location", "experienceLevel"]);
     }
+
+    if (isValid) {
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
+      setError(null);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    setError(null);
   };
 
   const onSubmit = async (data: RenterFormData) => {
     setIsLoading(true);
     setError(null);
+
     try {
       const { error } = await signUp(data.email, data.password, {
         role: "renter",
@@ -103,7 +171,11 @@ const RenterRegistration = () => {
         void navigate("/verify", { state: { email: data.email } });
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Registration failed. Please try again.");
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -111,200 +183,343 @@ const RenterRegistration = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
           <Link
             to="/"
-            className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors"
+            className="inline-flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back to home</span>
           </Link>
         </div>
 
-        <Card>
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Mountain className="h-12 w-12 text-primary" />
+        <Card className="border-none shadow-2xl">
+          <CardHeader className="text-center space-y-2 pb-4">
+            <div className="flex justify-center mb-2">
+              <Mountain className="h-10 w-10 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Join as a Renter</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-3xl font-bold">Join as a Renter</CardTitle>
+            <CardDescription className="text-base">
               Create your account to start renting outdoor equipment
             </CardDescription>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="px-6 sm:px-10 pb-8">
+            {/* Step Progress */}
+            <StepProgress steps={STEPS} currentStep={currentStep} />
+
+            {/* Error Message */}
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <form
               onSubmit={(e) => {
                 void handleSubmit(onSubmit)(e);
               }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              {/* Error Message */}
-              {error && (
-                <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
-                  {error}
+              {/* Step 1: Account Setup */}
+              {currentStep === 1 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  {/* Full Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Full Name
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="fullName"
+                      {...register("fullName")}
+                      placeholder="John Doe"
+                      className={errors.fullName ? "border-destructive" : ""}
+                      aria-invalid={!!errors.fullName}
+                      aria-describedby={errors.fullName ? "fullName-error" : undefined}
+                    />
+                    {errors.fullName && (
+                      <p id="fullName-error" className="text-sm text-destructive">
+                        {errors.fullName.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      Email
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      {...register("email")}
+                      placeholder="john@example.com"
+                      className={errors.email ? "border-destructive" : ""}
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? "email-error" : undefined}
+                    />
+                    {errors.email && (
+                      <p id="email-error" className="text-sm text-destructive">
+                        {errors.email.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="password">
+                      Password
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        {...register("password")}
+                        placeholder="Create a strong password"
+                        className={errors.password ? "border-destructive" : ""}
+                        aria-invalid={!!errors.password}
+                        aria-describedby={errors.password ? "password-error" : undefined}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <PasswordStrength password={password || ""} />
+                    {errors.password && (
+                      <p id="password-error" className="text-sm text-destructive">
+                        {errors.password.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">
+                      Confirm Password
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        {...register("confirmPassword")}
+                        placeholder="Confirm your password"
+                        className={errors.confirmPassword ? "border-destructive" : ""}
+                        aria-invalid={!!errors.confirmPassword}
+                        aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={
+                          showConfirmPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p id="confirmPassword-error" className="text-sm text-destructive">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Full Name */}
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  {...register("fullName")}
-                  placeholder="Enter your full name"
-                />
-                {errors.fullName && (
-                  <p className="text-sm text-destructive">
-                    {errors.fullName.message}
-                  </p>
-                )}
-              </div>
+              {/* Step 2: Location & Experience */}
+              {currentStep === 2 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-semibold mb-1">
+                      Help us personalize your experience
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      We'll show you the most relevant equipment near you
+                    </p>
+                  </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  {...register("email")}
-                  placeholder="Enter your email"
-                />
-                {errors.email && (
-                  <p className="text-sm text-destructive">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      Location
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="location"
+                      {...register("location")}
+                      placeholder="San Francisco, CA"
+                      className={errors.location ? "border-destructive" : ""}
+                      aria-invalid={!!errors.location}
+                      aria-describedby={errors.location ? "location-error" : "location-description"}
+                    />
+                    <p id="location-description" className="text-xs text-muted-foreground">
+                      We'll use this to show you nearby equipment
+                    </p>
+                    {errors.location && (
+                      <p id="location-error" className="text-sm text-destructive">
+                        {errors.location.message}
+                      </p>
+                    )}
+                  </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    {...register("password")}
-                    placeholder="Create a password"
+                  {/* Experience Level */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-medium">
+                      Experience Level
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <RadioGroup
+                      value={experienceLevel}
+                      onValueChange={(value) =>
+                        setValue("experienceLevel", value as "beginner" | "intermediate" | "advanced")
+                      }
+                      role="group"
+                      aria-label="Experience level selection"
+                    >
+                      <div className="space-y-3">
+                        {EXPERIENCE_LEVELS.map((level) => (
+                          <div
+                            key={level.value}
+                            className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent ${
+                              experienceLevel === level.value
+                                ? "border-primary bg-accent"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              setValue("experienceLevel", level.value as "beginner" | "intermediate" | "advanced")
+                            }
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setValue("experienceLevel", level.value as "beginner" | "intermediate" | "advanced");
+                              }
+                            }}
+                            aria-label={`Select ${level.label} experience level`}
+                          >
+                            <RadioGroupItem value={level.value} id={level.value} />
+                            <div className="flex-1">
+                              <Label
+                                htmlFor={level.value}
+                                className="text-sm font-medium cursor-pointer"
+                              >
+                                {level.label}
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {level.description}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                    {errors.experienceLevel && (
+                      <p className="text-sm text-destructive">
+                        {errors.experienceLevel.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Interests */}
+              {currentStep === 3 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-semibold mb-1">
+                      What are you interested in?
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Select all activities that interest you
+                    </p>
+                  </div>
+
+                  <CheckboxGroup
+                    options={INTEREST_OPTIONS}
+                    value={selectedInterests || []}
+                    onChange={(value) => setValue("interests", value)}
+                    error={errors.interests?.message}
+                    columns={2}
                   />
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-3 pt-6">
+                {currentStep > 1 && (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
+                    variant="outline"
+                    onClick={handlePrevStep}
+                    className="flex-1"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                )}
+
+                {currentStep < STEPS.length ? (
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="flex-1"
+                  >
+                    Continue
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <span className="mr-2">Creating Account...</span>
+                      </>
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <>
+                        Create Account
+                        <Check className="h-4 w-4 ml-2" />
+                      </>
                     )}
                   </Button>
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">
-                    {errors.password.message}
-                  </p>
                 )}
               </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  {...register("confirmPassword")}
-                  placeholder="Confirm your password"
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Location */}
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  {...register("location")}
-                  placeholder="City, State"
-                />
-                {errors.location && (
-                  <p className="text-sm text-destructive">
-                    {errors.location.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Experience Level */}
-              <div className="space-y-2">
-                <Label>Experience Level</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {experienceLevels.map((level) => (
-                    <Button
-                      key={level}
-                      type="button"
-                      variant={
-                        watch("experienceLevel") === level
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => setValue("experienceLevel", level)}
-                      className="capitalize"
-                    >
-                      {level}
-                    </Button>
-                  ))}
-                </div>
-                {errors.experienceLevel && (
-                  <p className="text-sm text-destructive">
-                    {errors.experienceLevel.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Interests */}
-              <div className="space-y-2">
-                <Label>Interests (select all that apply)</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {interestOptions.map((interest) => (
-                    <Button
-                      key={interest}
-                      type="button"
-                      variant={
-                        selectedInterests?.includes(interest)
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleInterestToggle(interest)}
-                    >
-                      {interest}
-                    </Button>
-                  ))}
-                </div>
-                {errors.interests && (
-                  <p className="text-sm text-destructive">
-                    {errors.interests.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating Account..." : "Create Account"}
-              </Button>
 
               {/* Login Link */}
-              <div className="text-center">
+              <div className="text-center pt-4">
                 <p className="text-sm text-muted-foreground">
                   Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline">
+                  <Link to="/login" className="text-primary hover:underline font-medium">
                     Sign in
                   </Link>
                 </p>
