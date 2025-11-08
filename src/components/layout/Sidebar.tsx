@@ -9,6 +9,8 @@ import {
   Mountain,
   ChevronLeft,
   ChevronRight,
+  Package,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,9 @@ import { Separator } from "@/components/ui/separator";
 import VerificationBadge from "@/components/verification/VerificationBadge";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
+import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -33,6 +38,58 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const location = useLocation();
   const { profile } = useVerification();
   const verificationProgress = profile ? getVerificationProgress(profile) : 0;
+  const { user } = useAuth();
+  const [hasEquipment, setHasEquipment] = useState(false);
+  const [pendingOwnerRequests, setPendingOwnerRequests] = useState(0);
+
+  // Check if user has equipment listings and pending requests
+  useEffect(() => {
+    const checkEquipment = async () => {
+      if (!user) return;
+
+      try {
+        const { count, error: countError } = await supabase
+          .from("equipment")
+          .select("*", { count: "exact", head: true })
+          .eq("owner_id", user.id);
+
+        if (countError) throw countError;
+
+        setHasEquipment((count || 0) > 0);
+
+        // If they have equipment, check for pending requests
+        if (count && count > 0) {
+          const { data: equipment, error: equipmentError } = await supabase
+            .from("equipment")
+            .select("id")
+            .eq("owner_id", user.id);
+
+          if (equipmentError) throw equipmentError;
+
+          if (equipment && equipment.length > 0) {
+            const equipmentIds = equipment.map((eq) => eq.id);
+
+            const { count: pendingCount, error: pendingError } = await supabase
+              .from("booking_requests")
+              .select("*", { count: "exact", head: true })
+              .in("equipment_id", equipmentIds)
+              .eq("status", "pending");
+
+            if (pendingError) throw pendingError;
+
+            setPendingOwnerRequests(pendingCount || 0);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check equipment:", err);
+        // Reset to safe defaults on error
+        setHasEquipment(false);
+        setPendingOwnerRequests(0);
+      }
+    };
+
+    void checkEquipment();
+  }, [user]);
 
   const navItems: NavItem[] = [
     { label: "Overview", icon: Home, href: "/renter/dashboard" },
@@ -128,7 +185,42 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               </Link>
             );
           })}
+
         </nav>
+
+        <Separator className="my-4" />
+
+        {/* My Equipment Listings - Above Trust Score */}
+        {hasEquipment && (
+          <div className="px-2 py-4 flex items-center justify-center">
+            <Link
+              to="/owner/dashboard"
+              className={cn(
+                "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                isActive("/owner/dashboard")
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+              )}
+              title={collapsed ? "My Equipment Listings" : undefined}
+            >
+              <Package className={cn(
+                "h-5 w-5 flex-shrink-0 transition-transform duration-200",
+                !isActive("/owner/dashboard") && "group-hover:scale-110"
+              )} />
+              {!collapsed && <span>My Equipment Listings</span>}
+              {!collapsed && (
+                <div className="ml-auto flex items-center gap-2">
+                  {pendingOwnerRequests > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
+                      {pendingOwnerRequests}
+                    </span>
+                  )}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </Link>
+          </div>
+        )}
 
         <Separator className="my-4" />
 
