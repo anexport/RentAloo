@@ -8,22 +8,22 @@ interface FloatingBookingCTAProps {
    * Daily rental rate to display
    */
   dailyRate: number;
-  
+
   /**
    * Callback when user clicks the CTA button
    */
   onOpenBooking: () => void;
-  
+
   /**
    * Whether the button should be shown (typically mobile only)
    */
   isVisible: boolean;
-  
+
   /**
    * Optional className for additional styling
    */
   className?: string;
-  
+
   /**
    * Optional ref to the scrollable container element.
    * If provided, listens to this element's scroll events.
@@ -58,7 +58,7 @@ export const FloatingBookingCTA = ({
       // Always check the ref dynamically in case it's set after mount
       const container = scrollContainerRef?.current || window;
       const isWindowContainer = container === window;
-      
+
       if (isWindowContainer) {
         // For window scroll, use the original 400px threshold
         const scrolled = window.scrollY > 400;
@@ -70,16 +70,17 @@ export const FloatingBookingCTA = ({
         const scrollHeight = element.scrollHeight;
         const clientHeight = element.clientHeight;
         const maxScroll = scrollHeight - clientHeight;
-        
+
         // Show if:
         // 1. User has scrolled more than 200px (lower threshold for shorter content)
         // 2. OR content is scrollable and user has scrolled at least 50px
         //    (handles cases where content is shorter than 400px)
+        //    For short containers, allow equality with maxScroll so CTA shows at bottom
         const hasScrolledEnough = scrollTop > 200;
         const isScrollable = maxScroll > 0;
-        const hasScrolledSome = scrollTop > 50;
+        const hasScrolledSome = scrollTop >= Math.min(50, maxScroll);
         const scrolled = hasScrolledEnough || (isScrollable && hasScrolledSome);
-        
+
         setShouldShow(scrolled);
       }
     };
@@ -90,7 +91,7 @@ export const FloatingBookingCTA = ({
     // Determine which element to listen to
     const container = scrollContainerRef?.current;
     const scrollTarget: HTMLElement | Window = container || window;
-    
+
     // Add listener to the appropriate target
     scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
     currentListenerRef.current = scrollTarget;
@@ -104,7 +105,9 @@ export const FloatingBookingCTA = ({
         if (oldListener) {
           oldListener.removeEventListener("scroll", handleScroll);
         }
-        currentContainer.addEventListener("scroll", handleScroll, { passive: true });
+        currentContainer.addEventListener("scroll", handleScroll, {
+          passive: true,
+        });
         currentListenerRef.current = currentContainer;
         handleScroll(); // Check scroll position immediately
       }
@@ -142,4 +145,3 @@ export const FloatingBookingCTA = ({
     </div>
   );
 };
-
