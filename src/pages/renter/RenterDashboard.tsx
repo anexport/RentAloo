@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Star, Package, AlertTriangle } from "lucide-react";
+import { Calendar, Star, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useCallback } from "react";
 import TransactionHistory from "@/components/payment/TransactionHistory";
 import ReviewList from "@/components/reviews/ReviewList";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
@@ -30,8 +29,6 @@ const RenterDashboard = () => {
   const { profile, loading: verificationLoading } = useVerification();
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "overview";
-  const [hasEquipment, setHasEquipment] = useState(false);
-  const [pendingOwnerRequests, setPendingOwnerRequests] = useState(0);
 
   // Fetch renter bookings
   const {
@@ -69,63 +66,6 @@ const RenterDashboard = () => {
       });
     }
   }, [renterError, toast]);
-
-  // Check if user has equipment listings and pending requests
-  useEffect(() => {
-    const checkEquipment = async () => {
-      if (!user) return;
-
-      try {
-        const { count, error: countError } = await supabase
-        .from("equipment")
-        .select("*", { count: "exact", head: true })
-        .eq("owner_id", user.id);
-
-        if (countError) throw countError;
-
-      setHasEquipment((count || 0) > 0);
-
-      // If they have equipment, check for pending requests
-      if (count && count > 0) {
-          const { data: equipment, error: equipmentError } = await supabase
-          .from("equipment")
-          .select("id")
-          .eq("owner_id", user.id);
-
-          if (equipmentError) throw equipmentError;
-
-        if (equipment && equipment.length > 0) {
-          const equipmentIds = equipment.map((eq) => eq.id);
-
-            const { count: pendingCount, error: pendingError } = await supabase
-            .from("booking_requests")
-            .select("*", { count: "exact", head: true })
-            .in("equipment_id", equipmentIds)
-            .eq("status", "pending");
-
-            if (pendingError) throw pendingError;
-
-          setPendingOwnerRequests(pendingCount || 0);
-        }
-        }
-      } catch (err) {
-        console.error("Failed to check equipment:", err);
-        toast({
-          variant: "destructive",
-          title: "Failed to load equipment information",
-          description:
-            err instanceof Error
-              ? err.message
-              : "An error occurred while checking your equipment listings.",
-        });
-        // Reset to safe defaults on error
-        setHasEquipment(false);
-        setPendingOwnerRequests(0);
-      }
-    };
-
-    void checkEquipment();
-  }, [user, toast]);
 
   const progress = profile ? getVerificationProgress(profile) : 0;
   const hasAnyVerification =
@@ -202,48 +142,6 @@ const RenterDashboard = () => {
 
           <Separator className="my-8" />
         </>
-      )}
-
-      {/* Owner Equipment Card (if applicable) */}
-      {hasEquipment && (
-        <div className="mb-8">
-          <Card
-            className={
-              pendingOwnerRequests > 0 ? "border-primary/50 bg-primary/5" : ""
-            }
-          >
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Package className="h-5 w-5 text-primary" />
-                <span>My Equipment Listings</span>
-                {pendingOwnerRequests > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {pendingOwnerRequests}
-                  </span>
-                )}
-              </CardTitle>
-              <CardDescription>
-                {pendingOwnerRequests > 0
-                  ? `You have ${pendingOwnerRequests} pending booking ${
-                      pendingOwnerRequests === 1 ? "request" : "requests"
-                    } for your equipment`
-                  : "Manage your equipment listings"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to="/owner/dashboard">
-                <Button
-                  className="w-full"
-                  variant={pendingOwnerRequests > 0 ? "default" : "outline"}
-                >
-                  {pendingOwnerRequests > 0
-                    ? "Review Requests"
-                    : "Go to Owner Dashboard"}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
       )}
 
       {/* My Rental Bookings Section */}
