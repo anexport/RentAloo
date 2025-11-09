@@ -11,9 +11,10 @@ import { toast } from "@/hooks/useToast";
 
 type Props = {
   scrolled?: boolean;
+  onLoginClick?: () => void;
 };
 
-const ExploreHeader = ({ scrolled: controlledScrolled }: Props) => {
+const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick }: Props) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -135,8 +136,8 @@ const ExploreHeader = ({ scrolled: controlledScrolled }: Props) => {
                   <Link to="/register/owner">List your equipment</Link>
                 </Button>
                 <ThemeToggle variant="icon" />
-                <Button variant="ghost" asChild>
-                  <Link to="/login">Sign In</Link>
+                <Button variant="ghost" onClick={() => onLoginClick?.()}>
+                  Sign In
                 </Button>
                 <Button asChild>
                   <Link to="/register/renter">Get Started</Link>
@@ -213,8 +214,12 @@ const ExploreHeader = ({ scrolled: controlledScrolled }: Props) => {
                       <Button variant="default" className="justify-start" asChild>
                         <Link to="/register/owner">List your equipment</Link>
                       </Button>
-                      <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/login">Sign In</Link>
+                      <Button
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => onLoginClick?.()}
+                      >
+                        Sign In
                       </Button>
                       <Button className="justify-start" asChild>
                         <Link to="/register/renter">Get Started</Link>

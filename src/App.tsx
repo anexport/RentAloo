@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 import RenterRegistration from "@/pages/auth/RenterRegistration";
 import OwnerRegistration from "@/pages/auth/OwnerRegistration";
-import LoginPage from "@/pages/auth/LoginPage";
 import EmailVerification from "@/pages/auth/EmailVerification";
 import RenterDashboard from "@/pages/renter/RenterDashboard";
 import OwnerDashboard from "@/pages/owner/OwnerDashboard";
@@ -39,7 +38,10 @@ function App() {
           <Route path="/" element={<ExplorePage />} />
           <Route path="/register/renter" element={<RenterRegistration />} />
           <Route path="/register/owner" element={<OwnerRegistration />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/login"
+            element={<Navigate to="/?login=true" replace />}
+          />
           <Route path="/verify" element={<EmailVerification />} />
           <Route path="/equipment" element={<Navigate to="/" replace />} />
           <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
