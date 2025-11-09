@@ -20,13 +20,14 @@ export const useBreadcrumbs = (): BreadcrumbItem[] => {
   // Route mapping
   const routeMap: Record<string, BreadcrumbItem[]> = {
     "/renter/dashboard": [],
+    "/renter/payments": [{ label: "Payments", href: "/renter/payments", icon: DollarSign }],
     "/owner/dashboard": [{ label: "Owner Dashboard", href: "/owner/dashboard", icon: Package }],
     "/equipment": [{ label: "Browse Equipment", href: "/equipment", icon: Search }],
     "/messages": [{ label: "Messages", href: "/messages", icon: MessageSquare }],
     "/settings": [{ label: "Settings", href: "/settings", icon: Settings }],
     "/verification": [{ label: "Verification", href: "/verification", icon: Shield }],
     "/payment/confirmation": [
-      { label: "Payments", href: "/renter/dashboard" },
+      { label: "Payments", href: "/renter/payments" },
       { label: "Confirmation", href: "/payment/confirmation", icon: DollarSign },
     ],
   };
@@ -38,8 +39,6 @@ export const useBreadcrumbs = (): BreadcrumbItem[] => {
   const tab = searchParams.get("tab");
   if (path === "/renter/dashboard" && tab === "bookings") {
     breadcrumbs.push({ label: "My Bookings", href: "/renter/dashboard?tab=bookings", icon: Calendar });
-  } else if (path === "/renter/dashboard" && tab === "payments") {
-    breadcrumbs.push({ label: "Payments", href: "/renter/dashboard?tab=payments", icon: DollarSign });
   } else {
     // Add path-specific breadcrumbs
     breadcrumbs.push(...pathBreadcrumbs);

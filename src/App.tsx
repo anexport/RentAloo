@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 import RenterRegistration from "@/pages/auth/RenterRegistration";
@@ -11,6 +16,7 @@ import ExplorePage from "@/pages/ExplorePage";
 import EquipmentDetailPage from "@/pages/equipment/EquipmentDetailPage";
 import MessagingPage from "@/pages/MessagingPage";
 import PaymentConfirmation from "@/pages/payment/PaymentConfirmation";
+import PaymentsPage from "@/pages/renter/PaymentsPage";
 import VerifyIdentity from "@/pages/verification/VerifyIdentity";
 import ProfileSettings from "@/pages/ProfileSettings";
 
@@ -43,6 +49,7 @@ function App() {
             <>
               <Route path="/renter" element={<RenterDashboard />} />
               <Route path="/renter/dashboard" element={<RenterDashboard />} />
+              <Route path="/renter/payments" element={<PaymentsPage />} />
               <Route path="/owner" element={<OwnerDashboard />} />
               <Route path="/owner/dashboard" element={<OwnerDashboard />} />
               <Route path="/messages" element={<MessagingPage />} />

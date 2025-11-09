@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Package,
   ArrowRight,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const { user } = useAuth();
   const [hasEquipment, setHasEquipment] = useState(false);
   const [pendingOwnerRequests, setPendingOwnerRequests] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Check if user has equipment listings and pending requests
   useEffect(() => {
@@ -91,11 +93,95 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     void checkEquipment();
   }, [user]);
 
-  const navItems: NavItem[] = [
-    { label: "Overview", icon: Home, href: "/renter/dashboard" },
+  // Check for unread messages
+  useEffect(() => {
+    const checkUnreadMessages = async () => {
+      if (!user) return;
+
+      try {
+        // Get all conversations for the user
+        const { data: participants, error: participantsError } = await supabase
+          .from("conversation_participants")
+          .select("conversation_id, last_read_at")
+          .eq("profile_id", user.id);
+
+        if (participantsError) throw participantsError;
+
+        if (!participants || participants.length === 0) {
+          setUnreadMessages(0);
+          return;
+        }
+
+        // For each conversation, check for unread messages
+        let totalUnread = 0;
+        for (const participant of participants) {
+          const { count, error: countError } = await supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .eq("conversation_id", participant.conversation_id)
+            .neq("sender_id", user.id)
+            .gt("created_at", participant.last_read_at || "1970-01-01");
+
+          if (countError) {
+            console.error("Failed to count unread messages:", countError);
+            continue;
+          }
+
+          totalUnread += count || 0;
+        }
+
+        setUnreadMessages(totalUnread);
+      } catch (err) {
+        console.error("Failed to check unread messages:", err);
+        setUnreadMessages(0);
+      }
+    };
+
+    void checkUnreadMessages();
+
+    // Set up realtime subscription for new messages
+    const channel = supabase
+      .channel("sidebar-messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          void checkUnreadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Navigation items grouped by section
+  const mainNavItems: NavItem[] = [
+    { label: "Dashboard", icon: Home, href: "/renter/dashboard" },
     { label: "Browse Equipment", icon: Search, href: "/equipment" },
-    { label: "My Bookings", icon: Calendar, href: "/renter/dashboard?tab=bookings" },
-    { label: "Messages", icon: MessageSquare, href: "/messages" },
+  ];
+
+  const activityNavItems: NavItem[] = [
+    {
+      label: "My Bookings",
+      icon: Calendar,
+      href: "/renter/dashboard?tab=bookings",
+    },
+    {
+      label: "Messages",
+      icon: MessageSquare,
+      href: "/messages",
+      ...(unreadMessages > 0 && { badge: unreadMessages }),
+    },
+    { label: "Payments", icon: CreditCard, href: "/renter/payments" },
+  ];
+
+  const accountNavItems: NavItem[] = [
     { label: "Settings", icon: User, href: "/settings" },
   ];
 
@@ -103,7 +189,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     if (href === "/renter/dashboard") {
       return location.pathname === href && !location.search;
     }
-    return location.pathname === href || location.pathname + location.search === href;
+    return (
+      location.pathname === href || location.pathname + location.search === href
+    );
   };
 
   return (
@@ -122,7 +210,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               className="flex items-center space-x-2 rounded-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Mountain className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-foreground">RentAloo</span>
+              <span className="text-lg font-bold text-foreground">
+                RentAloo
+              </span>
             </Link>
           )}
           {collapsed && (
@@ -155,37 +245,126 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         <Separator className="mb-4" />
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
+        <nav className="flex-1 px-2">
+          {/* Main Section */}
+          {!collapsed && (
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Main
+            </div>
+          )}
+          <div className="space-y-1 mb-6">
+            {mainNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
 
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <Icon className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-transform duration-200",
-                  !active && "group-hover:scale-110"
-                )} />
-                {!collapsed && <span>{item.label}</span>}
-                {!collapsed && item.badge && item.badge > 0 && (
-                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                  )}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-transform duration-200",
+                      !active && "group-hover:scale-110"
+                    )}
+                  />
+                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && item.badge && item.badge > 0 && (
+                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
 
+          {/* Activity Section */}
+          {!collapsed && (
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Activity
+            </div>
+          )}
+          <div className="space-y-1 mb-6">
+            {activityNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                  )}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-transform duration-200",
+                      !active && "group-hover:scale-110"
+                    )}
+                  />
+                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && item.badge && item.badge > 0 && (
+                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Account Section */}
+          {!collapsed && (
+            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Account
+            </div>
+          )}
+          <div className="space-y-1">
+            {accountNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                  )}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-transform duration-200",
+                      !active && "group-hover:scale-110"
+                    )}
+                  />
+                  {!collapsed && <span>{item.label}</span>}
+                  {!collapsed && item.badge && item.badge > 0 && (
+                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         <Separator className="my-4" />
@@ -203,10 +382,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               )}
               title={collapsed ? "My Equipment Listings" : undefined}
             >
-              <Package className={cn(
-                "h-5 w-5 flex-shrink-0 transition-transform duration-200",
-                !isActive("/owner/dashboard") && "group-hover:scale-110"
-              )} />
+              <Package
+                className={cn(
+                  "h-5 w-5 shrink-0 transition-transform duration-200",
+                  !isActive("/owner/dashboard") && "group-hover:scale-110"
+                )}
+              />
               {!collapsed && <span>My Equipment Listings</span>}
               {!collapsed && (
                 <div className="ml-auto flex items-center gap-2">
@@ -235,7 +416,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               )}
               title={collapsed ? "Verification" : undefined}
             >
-              <Shield className="h-5 w-5 flex-shrink-0 text-primary" />
+              <Shield className="h-5 w-5 shrink-0 text-primary" />
               {!collapsed && (
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">

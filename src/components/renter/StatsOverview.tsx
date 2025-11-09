@@ -50,10 +50,8 @@ const StatsOverview = () => {
           .eq("payment_status", "succeeded");
 
         const totalSpent =
-          payments?.reduce(
-            (sum, p) => sum + Number(p.total_amount ?? 0),
-            0
-          ) ?? 0;
+          payments?.reduce((sum, p) => sum + Number(p.total_amount ?? 0), 0) ??
+          0;
 
         setStats({
           activeBookings: activeCount || 0,
@@ -121,17 +119,26 @@ const StatsOverview = () => {
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.title}>
+          <Card
+            key={stat.title}
+            className="hover:shadow-md transition-all duration-200 border-muted"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
+              <div className="rounded-full bg-primary/10 p-2">
+                <Icon className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+              <div className="text-3xl font-bold tracking-tight">
+                {stat.value}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-muted-foreground">
+                  {stat.description}
+                </p>
                 {stat.badge && (
                   <Badge variant={stat.badgeVariant} className="text-xs">
                     {stat.badge}
@@ -147,4 +154,3 @@ const StatsOverview = () => {
 };
 
 export default StatsOverview;
-
