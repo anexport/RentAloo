@@ -20,6 +20,10 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<{ error: AuthError | null; user: User | null }>;
+  signInWithOAuth: (
+    provider: "google" | "github" | "facebook" | "twitter",
+    redirectTo?: string
+  ) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   updateProfile: (
     updates: ProfileUpdate
@@ -123,6 +127,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithOAuth = async (
+    provider: "google" | "github" | "facebook" | "twitter",
+    redirectTo?: string
+  ) => {
+    try {
+      const redirectUrl = redirectTo || `${window.location.origin}/`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+      return { error };
+    } catch (error) {
+      return { error: error as AuthError };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -164,6 +186,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signUp,
     signIn,
+    signInWithOAuth,
     signOut,
     updateProfile,
   };

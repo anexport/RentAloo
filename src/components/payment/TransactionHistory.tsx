@@ -77,7 +77,7 @@ const TransactionHistory = ({ userType }: TransactionHistoryProps) => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
+        <CardContent className="py-8 text-center text-muted-foreground">
           Loading transactions...
         </CardContent>
       </Card>
@@ -121,8 +121,8 @@ const TransactionHistory = ({ userType }: TransactionHistoryProps) => {
       </CardHeader>
       <CardContent>
         {filteredTransactions.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Receipt className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <div className="text-center py-8 text-muted-foreground">
+            <Receipt className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
             <p>No transactions found</p>
           </div>
         ) : (
@@ -130,12 +130,12 @@ const TransactionHistory = ({ userType }: TransactionHistoryProps) => {
             {filteredTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-foreground">
                         {transaction.equipment_title || "Unknown Equipment"}
                       </h3>
                       <Badge
@@ -147,7 +147,7 @@ const TransactionHistory = ({ userType }: TransactionHistoryProps) => {
                       </Badge>
                     </div>
 
-                    <div className="text-sm text-gray-600 space-y-1">
+                    <div className="text-sm text-muted-foreground space-y-1">
                       <div>
                         Transaction ID: {transaction.id.substring(0, 8)}...
                       </div>
@@ -163,7 +163,7 @@ const TransactionHistory = ({ userType }: TransactionHistoryProps) => {
                   </div>
 
                   <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-foreground">
                       {formatCurrency(transaction.total_amount)}
                     </div>
                     <Button

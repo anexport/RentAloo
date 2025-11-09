@@ -241,24 +241,31 @@ const NotificationsPanel = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {visibleNotifications.map((notification) => (
         <Alert
           key={notification.id}
           variant={getAlertVariant(notification.type)}
+          className="border-l-4 shadow-sm"
         >
           <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-2 flex-1">
-              {getIcon(notification.type)}
-              <div className="flex-1">
-                <AlertTitle>{notification.title}</AlertTitle>
-                <AlertDescription className="mt-1">
+            <div className="flex items-start space-x-3 flex-1">
+              <div className="mt-0.5">{getIcon(notification.type)}</div>
+              <div className="flex-1 min-w-0">
+                <AlertTitle className="text-base font-semibold">
+                  {notification.title}
+                </AlertTitle>
+                <AlertDescription className="mt-1.5 text-sm">
                   {notification.description}
                 </AlertDescription>
                 {notification.action && (
                   <div className="mt-3">
                     <Link to={notification.action.href}>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:bg-primary/10 hover:text-primary hover:border-primary/50"
+                      >
                         {notification.action.label}
                       </Button>
                     </Link>
@@ -270,7 +277,7 @@ const NotificationsPanel = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 shrink-0"
+                className="h-6 w-6 shrink-0 hover:bg-muted/50"
                 onClick={() => handleDismiss(notification.id)}
                 aria-label="Dismiss notification"
               >

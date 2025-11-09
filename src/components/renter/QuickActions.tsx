@@ -45,12 +45,14 @@ const QuickActions = () => {
       // Handle messages result independently
       const messagesResult = results[0];
       if (messagesResult.status === "fulfilled") {
-        const { data: messagesCount, error: messagesError } = messagesResult.value;
+        const { data: messagesCount, error: messagesError } =
+          messagesResult.value;
         if (messagesError) {
           console.error("Failed to fetch messages count:", messagesError);
           toast({
             title: "Failed to load messages count",
-            description: "Unable to fetch unread messages. Please try again later.",
+            description:
+              "Unable to fetch unread messages. Please try again later.",
             variant: "destructive",
           });
         } else {
@@ -60,7 +62,8 @@ const QuickActions = () => {
         console.error("Messages fetch rejected:", messagesResult.reason);
         toast({
           title: "Failed to load messages count",
-          description: "Unable to fetch unread messages. Please try again later.",
+          description:
+            "Unable to fetch unread messages. Please try again later.",
           variant: "destructive",
         });
       }
@@ -68,12 +71,14 @@ const QuickActions = () => {
       // Handle bookings result independently
       const bookingsResult = results[1];
       if (bookingsResult.status === "fulfilled") {
-        const { count: bookingsCount, error: bookingsError } = bookingsResult.value;
+        const { count: bookingsCount, error: bookingsError } =
+          bookingsResult.value;
         if (bookingsError) {
           console.error("Failed to fetch bookings count:", bookingsError);
           toast({
             title: "Failed to load bookings count",
-            description: "Unable to fetch upcoming bookings. Please try again later.",
+            description:
+              "Unable to fetch upcoming bookings. Please try again later.",
             variant: "destructive",
           });
         } else {
@@ -83,7 +88,8 @@ const QuickActions = () => {
         console.error("Bookings fetch rejected:", bookingsResult.reason);
         toast({
           title: "Failed to load bookings count",
-          description: "Unable to fetch upcoming bookings. Please try again later.",
+          description:
+            "Unable to fetch upcoming bookings. Please try again later.",
           variant: "destructive",
         });
       }
@@ -120,34 +126,57 @@ const QuickActions = () => {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {actions.map((action) => {
         const Icon = action.icon;
+        const isPrimary = action.variant === "default";
         return (
           <Card
             key={action.title}
-            className="hover:shadow-md transition-shadow"
+            className={`h-full hover:shadow-lg transition-all duration-200 ${
+              isPrimary
+                ? "border-primary/40 bg-primary/5"
+                : "hover:border-primary/30"
+            }`}
           >
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <Icon className="h-6 w-6 text-primary" />
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between mb-3">
+                <div
+                  className={`rounded-lg p-2.5 ${
+                    isPrimary ? "bg-primary/15" : "bg-muted"
+                  }`}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${
+                      isPrimary ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  />
+                </div>
                 {action.badge && (
                   <Badge variant="secondary" className="text-xs">
                     {action.badge}
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-base">{action.title}</CardTitle>
-              <CardDescription className="text-xs">
+              <CardTitle className="text-lg font-semibold">
+                {action.title}
+              </CardTitle>
+              <CardDescription className="text-sm">
                 {action.description}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Link to={action.href}>
-                <Button variant={action.variant} className="w-full">
+            <CardContent className="pt-0">
+              <Button
+                asChild
+                variant={action.variant}
+                className={`w-full group-hover:translate-x-0.5 transition-transform ${
+                  isPrimary ? "shadow-sm" : ""
+                }`}
+              >
+                <Link to={action.href} className="group">
                   {action.variant === "default" ? "Browse Now" : "View"}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         );

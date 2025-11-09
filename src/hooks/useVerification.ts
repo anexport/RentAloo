@@ -56,15 +56,35 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
 
       // Fetch completed bookings count for the target user
       // User can be either renter or owner, so we need to check both relationships
-      // Query from booking_requests and filter by status = 'completed'
-      const { count: bookingsCount } = await supabase
+      // Split into two queries since Supabase doesn't support or() with nested relationship filters
+      
+      // Count as renter
+      const { count: renterCount } = await supabase
         .from("booking_requests")
-        .select(
-          "id, bookings!inner(return_status), equipment:equipment!inner(owner_id)",
-          { count: "exact", head: true }
-        )
+        .select("*", { count: "exact", head: true })
         .eq("status", "completed")
-        .or(`renter_id.eq.${targetUserId},equipment.owner_id.eq.${targetUserId}`);
+        .eq("renter_id", targetUserId);
+
+      // Count as owner - first get equipment IDs, then filter booking_requests
+      const { data: equipmentData } = await supabase
+        .from("equipment")
+        .select("id")
+        .eq("owner_id", targetUserId);
+
+      const equipmentIds = (equipmentData || []).map((eq) => eq.id);
+      let ownerCount = 0;
+
+      if (equipmentIds.length > 0) {
+        const { count } = await supabase
+          .from("booking_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "completed")
+          .in("equipment_id", equipmentIds);
+        
+        ownerCount = count || 0;
+      }
+
+      const bookingsCount = (renterCount || 0) + ownerCount;
 
       // Calculate trust score
       const accountAgeDays = calculateAccountAge(profileData.created_at);

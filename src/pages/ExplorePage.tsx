@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
 import CategoryBar from "@/components/explore/CategoryBar";
@@ -11,6 +13,7 @@ import FiltersSheet, {
   type FilterValues,
 } from "@/components/explore/FiltersSheet";
 import ExploreHeader from "@/components/layout/ExploreHeader";
+import LoginModal from "@/components/auth/LoginModal";
 import {
   fetchListings,
   type ListingsFilters,
@@ -19,6 +22,9 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 const ExplorePage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [categoryId, setCategoryId] = useState<string>("all");
   const [searchFilters, setSearchFilters] = useState<SearchBarFilters>({
     search: "",
@@ -41,6 +47,38 @@ const ExplorePage = () => {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(
     null
   );
+
+  // Login modal state from URL query param
+  const loginOpen = searchParams.get("login") === "true";
+
+  const handleLoginOpenChange = (open: boolean) => {
+    if (open) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("login", "true");
+      setSearchParams(newParams, { replace: true });
+    } else {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("login");
+      setSearchParams(newParams, { replace: true });
+    }
+  };
+
+  // Close modal and redirect authenticated users after OAuth
+  useEffect(() => {
+    if (user && loginOpen) {
+      // Close modal by removing login param
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("login");
+      setSearchParams(newParams, { replace: true });
+      // Redirect based on user role
+      const role = user.user_metadata?.role;
+      if (role === "renter") {
+        void navigate("/renter/dashboard");
+      } else if (role === "owner") {
+        void navigate("/owner/dashboard");
+      }
+    }
+  }, [user, loginOpen, navigate, searchParams, setSearchParams]);
 
   // Debounce filters for querying
   const [debouncedFilters, setDebouncedFilters] = useState(searchFilters);
@@ -91,7 +129,7 @@ const ExplorePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <ExploreHeader />
+      <ExploreHeader onLoginClick={() => handleLoginOpenChange(true)} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Hero Search */}
         <div className="mb-6">
@@ -181,6 +219,7 @@ const ExplorePage = () => {
           }}
           listingId={selectedListingId ?? undefined}
         />
+        <LoginModal open={loginOpen} onOpenChange={handleLoginOpenChange} />
       </main>
     </div>
   );

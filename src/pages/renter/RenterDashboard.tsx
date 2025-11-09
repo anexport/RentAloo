@@ -10,16 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useCallback } from "react";
-import TransactionHistory from "@/components/payment/TransactionHistory";
 import ReviewList from "@/components/reviews/ReviewList";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/layout/PageHeader";
 import StatsOverview from "@/components/renter/StatsOverview";
-import QuickActions from "@/components/renter/QuickActions";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
-import { Separator } from "@/components/ui/separator";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useToast } from "@/hooks/useToast";
@@ -77,17 +74,20 @@ const RenterDashboard = () => {
 
   return (
     <DashboardLayout>
-      <PageHeader
-        title="Dashboard Overview"
-        description="Welcome back! Here's what's happening with your rentals."
-      />
+      <div className="space-y-6">
+        {/* Header Section */}
+        <div>
+          <PageHeader
+            title="Dashboard Overview"
+            description="Welcome back! Here's what's happening with your rentals."
+          />
+        </div>
 
-      {/* High-Emphasis Banner for 0% progress and no uploads */}
-      {!verificationLoading &&
-        profile &&
-        progress === 0 &&
-        !hasAnyVerification && (
-          <div className="mb-8">
+        {/* High-Emphasis Banner for 0% progress and no uploads */}
+        {!verificationLoading &&
+          profile &&
+          progress === 0 &&
+          !hasAnyVerification && (
             <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20">
               <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
                 <div className="flex items-start gap-3">
@@ -117,98 +117,104 @@ const RenterDashboard = () => {
                 </Link>
               </CardContent>
             </Card>
-          </div>
-        )}
-
-      {/* Notifications Panel */}
-      <div className="mb-6">
-        <NotificationsPanel />
-      </div>
-
-      {/* Stats Overview */}
-      <div className="mb-8">
-        <StatsOverview />
-      </div>
-
-      {/* Quick Actions */}
-      {activeTab !== "bookings" && (
-        <>
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-foreground mb-4">
-              Quick Actions
-            </h2>
-            <QuickActions />
-          </div>
-
-          <Separator className="my-8" />
-        </>
-      )}
-
-      {/* My Rental Bookings Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">My Bookings</h2>
-          {renterBookings.length > 3 && (
-            <Link to="/renter/dashboard?tab=bookings">
-              <Button variant="ghost" size="sm">
-                View All
-              </Button>
-            </Link>
           )}
+
+        {/* Notifications Panel */}
+        <NotificationsPanel />
+
+        {/* Stats Overview Section */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Overview
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Your rental activity at a glance
+            </p>
+          </div>
+          <StatsOverview />
         </div>
-        {renterLoading ? (
-          <div className="text-center py-8">
-            <div className="text-muted-foreground">Loading bookings...</div>
+
+        {/* Main Content Grid - Two Column Layout on Large Screens */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column - Bookings (takes 2 columns on large screens) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* My Rental Bookings Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                    My Bookings
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage your rental reservations
+                  </p>
+                </div>
+                {renterBookings.length > 3 && activeTab !== "bookings" && (
+                  <Link to="/renter/dashboard?tab=bookings">
+                    <Button variant="outline" size="sm">
+                      View All
+                    </Button>
+                  </Link>
+                )}
+              </div>
+              {renterLoading ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-muted-foreground">
+                      Loading bookings...
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : renterBookings.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="text-center py-12">
+                    <div className="flex flex-col items-center">
+                      <div className="rounded-full bg-muted p-4 mb-4">
+                        <Calendar className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-1">
+                        No bookings yet
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-6 max-w-sm">
+                        Start by browsing available equipment and make your
+                        first rental
+                      </p>
+                      <Link to="/equipment">
+                        <Button size="lg">Browse Equipment</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {(activeTab === "bookings"
+                    ? renterBookings
+                    : renterBookings.slice(0, 3)
+                  ).map((booking) => (
+                    <BookingRequestCard
+                      key={booking.id}
+                      bookingRequest={booking}
+                      onStatusChange={handleBookingStatusChange}
+                      showActions={true}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        ) : renterBookings.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted" />
-              <p className="text-muted-foreground mb-2">No bookings yet</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Start by browsing available equipment
-              </p>
-              <Link to="/equipment">
-                <Button>Browse Equipment</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {renterBookings.slice(0, 3).map((booking) => (
-              <BookingRequestCard
-                key={booking.id}
-                bookingRequest={booking}
-                onStatusChange={handleBookingStatusChange}
-                showActions={true}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {activeTab !== "bookings" && (
-        <>
-          <Separator className="my-8" />
-
-          {/* Transaction History */}
-          <div className="mb-8">
-            <TransactionHistory userType="renter" />
-          </div>
-
-          <Separator className="my-8" />
-
-          {/* My Reviews Given */}
-          {user && (
-            <div className="mb-8">
-              <Card>
+          {/* Right Column - Reviews Sidebar */}
+          {activeTab !== "bookings" && user && (
+            <div className="lg:col-span-1 space-y-6">
+              <Card className="h-fit">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center gap-2 text-xl">
                     <Star className="h-5 w-5 text-primary" />
                     <span>My Reviews</span>
                   </CardTitle>
                   <CardDescription>
-                    Reviews you have written for equipment owners
+                    Reviews you've written for equipment owners
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -221,8 +227,8 @@ const RenterDashboard = () => {
               </Card>
             </div>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </DashboardLayout>
   );
 };
