@@ -116,23 +116,33 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           return;
         }
 
-        // For each conversation, check for unread messages
-        let totalUnread = 0;
-        for (const participant of participants) {
-          const { count, error: countError } = await supabase
+        // For each conversation, check for unread messages (parallelized)
+        const queryPromises = participants.map((participant) =>
+          supabase
             .from("messages")
             .select("*", { count: "exact", head: true })
             .eq("conversation_id", participant.conversation_id)
             .neq("sender_id", user.id)
-            .gt("created_at", participant.last_read_at || "1970-01-01");
+            .gt("created_at", participant.last_read_at || "1970-01-01")
+        );
 
+        const results = await Promise.allSettled(queryPromises);
+        let totalUnread = 0;
+
+        results.forEach((result) => {
+          if (result.status === "rejected") {
+            console.error("Failed to count unread messages:", result.reason);
+            return;
+          }
+
+          const { count, error: countError } = result.value;
           if (countError) {
             console.error("Failed to count unread messages:", countError);
-            continue;
+            return;
           }
 
           totalUnread += count || 0;
-        }
+        });
 
         setUnreadMessages(totalUnread);
       } catch (err) {
