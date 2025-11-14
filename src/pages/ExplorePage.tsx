@@ -14,6 +14,7 @@ import FiltersSheet, {
 } from "@/components/explore/FiltersSheet";
 import ExploreHeader from "@/components/layout/ExploreHeader";
 import LoginModal from "@/components/auth/LoginModal";
+import SignupModal from "@/components/auth/SignupModal";
 import {
   fetchListings,
   type ListingsFilters,
@@ -63,12 +64,36 @@ const ExplorePage = () => {
     }
   };
 
+  // Signup modal state from URL query params
+  const signupOpen = searchParams.get("signup") === "true";
+  const roleParam = searchParams.get("role");
+  const signupRole =
+    roleParam === "renter" || roleParam === "owner" ? roleParam : undefined;
+
+  const handleSignupOpenChange = (open: boolean) => {
+    if (open) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("signup", "true");
+      if (signupRole) {
+        newParams.set("role", signupRole);
+      }
+      setSearchParams(newParams, { replace: true });
+    } else {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("signup");
+      newParams.delete("role");
+      setSearchParams(newParams, { replace: true });
+    }
+  };
+
   // Close modal and redirect authenticated users after OAuth
   useEffect(() => {
-    if (user && loginOpen) {
-      // Close modal by removing login param
+    if (user && (loginOpen || signupOpen)) {
+      // Close modal by removing login/signup params
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("login");
+      newParams.delete("signup");
+      newParams.delete("role");
       setSearchParams(newParams, { replace: true });
       // Redirect based on user role
       const role = user.user_metadata?.role;
@@ -78,7 +103,7 @@ const ExplorePage = () => {
         void navigate("/owner/dashboard");
       }
     }
-  }, [user, loginOpen, navigate, searchParams, setSearchParams]);
+  }, [user, loginOpen, signupOpen, navigate, searchParams, setSearchParams]);
 
   // Debounce filters for querying
   const [debouncedFilters, setDebouncedFilters] = useState(searchFilters);
@@ -220,6 +245,11 @@ const ExplorePage = () => {
           listingId={selectedListingId ?? undefined}
         />
         <LoginModal open={loginOpen} onOpenChange={handleLoginOpenChange} />
+        <SignupModal
+          open={signupOpen}
+          onOpenChange={handleSignupOpenChange}
+          initialRole={signupRole}
+        />
       </main>
     </div>
   );

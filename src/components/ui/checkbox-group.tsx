@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -19,18 +20,40 @@ export const CheckboxGroup = ({
   error,
   columns = 2,
 }: CheckboxGroupProps) => {
-  const handleToggle = (optionValue: string) => {
-    const newValue = value.includes(optionValue)
-      ? value.filter((v) => v !== optionValue)
-      : [...value, optionValue];
-    onChange(newValue);
-  };
+  const isTogglingRef = useRef<string | null>(null);
+  const latestValueRef = useRef<string[]>(value);
+
+  // Keep the ref updated with the latest value
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
+
+  const handleToggle = useCallback(
+    (optionValue: string) => {
+      if (isTogglingRef.current === optionValue) {
+        return;
+      }
+
+      isTogglingRef.current = optionValue;
+
+      const currentValue = latestValueRef.current;
+      const newValue = currentValue.includes(optionValue)
+        ? currentValue.filter((v) => v !== optionValue)
+        : [...currentValue, optionValue];
+
+      onChange(newValue);
+
+      // Clear the guard asynchronously to prevent sequential event handlers
+      setTimeout(() => {
+        isTogglingRef.current = null;
+      }, 0);
+    },
+    [onChange]
+  );
 
   return (
     <div className="space-y-3">
-      {label && (
-        <Label className="text-base font-medium">{label}</Label>
-      )}
+      {label && <Label className="text-base font-medium">{label}</Label>}
       <div
         className={cn(
           "grid gap-4",
@@ -45,15 +68,17 @@ export const CheckboxGroup = ({
               "flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
               value.includes(option.value) && "border-primary bg-accent"
             )}
-            onClick={() => handleToggle(option.value)}
+            // Remove the onClick handler entirely
+            // Let the checkbox's onCheckedChange handle the toggle
             role="group"
             aria-label={option.label}
           >
             <Checkbox
               id={option.value}
               checked={value.includes(option.value)}
-              onCheckedChange={() => handleToggle(option.value)}
-              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={() => {
+                handleToggle(option.value);
+              }}
               aria-label={`Select ${option.label}`}
             />
             <div className="flex-1 space-y-1">
@@ -76,4 +101,3 @@ export const CheckboxGroup = ({
     </div>
   );
 };
-

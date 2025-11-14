@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -60,13 +60,18 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     setError(null);
 
     try {
-      const { error, user: returnedUser } = await signIn(data.email, data.password);
+      const { error, user: returnedUser } = await signIn(
+        data.email,
+        data.password
+      );
 
       if (error) {
         setError(error.message);
       } else if (!returnedUser) {
         // Explicit defensive check: authentication succeeded but user data is missing
-        setError("Authentication succeeded but user data is missing. Please try again.");
+        setError(
+          "Authentication succeeded but user data is missing. Please try again."
+        );
       } else {
         // Close modal
         onOpenChange(false);
@@ -85,6 +90,13 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleShowSignup = (role: "renter" | "owner") => {
+    // Close login modal and open signup modal
+    onOpenChange(false);
+    // Navigate to signup modal with role
+    void navigate(`/?signup=true&role=${role}`, { replace: true });
   };
 
   const handleTogglePassword = () => {
@@ -120,7 +132,9 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
             <Mountain className="h-12 w-12 text-primary" />
           </div>
           <DialogTitle className="text-2xl">Welcome Back</DialogTitle>
-          <DialogDescription>Sign in to your RentAloo account</DialogDescription>
+          <DialogDescription>
+            Sign in to your RentAloo account
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <form
@@ -146,7 +160,9 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
                 placeholder="Enter your email"
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -176,7 +192,9 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
                 </Button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
+                <p className="text-sm text-destructive">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -242,23 +260,23 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link
-                to="/register/renter"
-                className="text-primary hover:underline"
-                onClick={() => onOpenChange(false)}
+              <button
+                type="button"
+                className="text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                onClick={() => handleShowSignup("renter")}
               >
                 Sign up as a renter
-              </Link>
+              </button>
             </p>
             <p className="text-sm text-muted-foreground">
               Want to list equipment?{" "}
-              <Link
-                to="/register/owner"
-                className="text-primary hover:underline"
-                onClick={() => onOpenChange(false)}
+              <button
+                type="button"
+                className="text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                onClick={() => handleShowSignup("owner")}
               >
                 Sign up as an owner
-              </Link>
+              </button>
             </p>
           </div>
         </div>
@@ -268,4 +286,3 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
 };
 
 export default LoginModal;
-
