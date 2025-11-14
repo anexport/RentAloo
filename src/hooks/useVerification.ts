@@ -39,48 +39,42 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
     try {
       if (!targetUserId) throw new Error("No user ID available");
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", targetUserId)
-        .single();
+      // Fetch profile, reviews, renter bookings, and equipment IDs in parallel
+      const [
+        { data: profileData, error: profileError },
+        { data: reviews, error: reviewsError },
+        { count: renterCount, error: renterCountError },
+        { data: equipmentData, error: equipmentError },
+      ] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", targetUserId).single(),
+        supabase.from("reviews").select("rating").eq("reviewee_id", targetUserId),
+        supabase
+          .from("booking_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "completed")
+          .eq("renter_id", targetUserId),
+        supabase
+          .from("equipment")
+          .select("id")
+          .eq("owner_id", targetUserId),
+      ]);
 
       if (profileError) throw profileError;
-
-      // Fetch reviews
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewee_id", targetUserId);
-
-      // Fetch completed bookings count for the target user
-      // User can be either renter or owner, so we need to check both relationships
-      // Split into two queries since Supabase doesn't support or() with nested relationship filters
-      
-      // Count as renter
-      const { count: renterCount } = await supabase
-        .from("booking_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "completed")
-        .eq("renter_id", targetUserId);
-
-      // Count as owner - first get equipment IDs, then filter booking_requests
-      const { data: equipmentData } = await supabase
-        .from("equipment")
-        .select("id")
-        .eq("owner_id", targetUserId);
+      if (reviewsError) throw reviewsError;
+      if (renterCountError) throw renterCountError;
+      if (equipmentError) throw equipmentError;
 
       const equipmentIds = (equipmentData || []).map((eq) => eq.id);
       let ownerCount = 0;
 
       if (equipmentIds.length > 0) {
-        const { count } = await supabase
+        const { count, error: ownerCountError } = await supabase
           .from("booking_requests")
           .select("*", { count: "exact", head: true })
           .eq("status", "completed")
           .in("equipment_id", equipmentIds);
-        
+
+        if (ownerCountError) throw ownerCountError;
         ownerCount = count || 0;
       }
 
