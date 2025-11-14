@@ -168,6 +168,8 @@ const RenterSignupForm = ({
   };
 
   const handlePrevStep = () => {
+    if (isLoading) return;
+    
     if (currentStep === 1) {
       onBack();
     } else {
@@ -424,7 +426,8 @@ const RenterSignupForm = ({
                 onValueChange={(value) =>
                   setValue(
                     "experienceLevel",
-                    value as "beginner" | "intermediate" | "advanced"
+                    value as "beginner" | "intermediate" | "advanced",
+                    { shouldValidate: true }
                   )
                 }
                 role="group"
@@ -480,7 +483,9 @@ const RenterSignupForm = ({
             <CheckboxGroup
               options={INTEREST_OPTIONS}
               value={selectedInterests || []}
-              onChange={(value) => setValue("interests", value)}
+              onChange={(value) =>
+                setValue("interests", value, { shouldValidate: true })
+              }
               error={errors.interests?.message}
               columns={2}
             />
@@ -494,6 +499,7 @@ const RenterSignupForm = ({
             variant="outline"
             onClick={handlePrevStep}
             className="flex-1"
+            disabled={isLoading}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -526,7 +532,8 @@ const RenterSignupForm = ({
             Already have an account?{" "}
             <button
               type="button"
-              onClick={onShowLogin}
+              onClick={isLoading ? undefined : onShowLogin}
+              disabled={isLoading}
               className="text-primary hover:underline font-medium"
             >
               Sign in

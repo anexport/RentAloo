@@ -199,6 +199,8 @@ const OwnerSignupForm = ({
   };
 
   const handlePrevStep = () => {
+    if (isLoading) return;
+    
     if (currentStep === 1) {
       onBack();
     } else {
@@ -240,6 +242,8 @@ const OwnerSignupForm = ({
   };
 
   const handleSkipPayment = () => {
+    if (isLoading) return;
+    
     setValue("bankAccount", "");
     void handleSubmit(onSubmit)();
   };
@@ -546,7 +550,9 @@ const OwnerSignupForm = ({
             <CheckboxGroup
               options={EQUIPMENT_CATEGORY_OPTIONS}
               value={selectedCategories || []}
-              onChange={(value) => setValue("equipmentCategories", value)}
+              onChange={(value) =>
+                setValue("equipmentCategories", value, { shouldValidate: true })
+              }
               error={errors.equipmentCategories?.message}
               columns={2}
             />
@@ -615,6 +621,7 @@ const OwnerSignupForm = ({
                 variant="link"
                 onClick={handleSkipPayment}
                 className="text-sm text-muted-foreground"
+                disabled={isLoading}
               >
                 Skip for now, I'll add this later
               </Button>
@@ -629,6 +636,7 @@ const OwnerSignupForm = ({
             variant="outline"
             onClick={handlePrevStep}
             className="flex-1"
+            disabled={isLoading}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -661,7 +669,8 @@ const OwnerSignupForm = ({
             Already have an account?{" "}
             <button
               type="button"
-              onClick={onShowLogin}
+              onClick={isLoading ? undefined : onShowLogin}
+              disabled={isLoading}
               className="text-primary hover:underline font-medium"
             >
               Sign in

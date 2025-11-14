@@ -113,13 +113,13 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
 
       if (error) {
         setError(error.message);
-        setIsOAuthLoading(false);
       }
       // Note: If successful, user will be redirected to Google OAuth page
       // and then back to the redirectTo URL. The modal will be closed
       // when the user returns and is authenticated.
     } catch {
       setError("An unexpected error occurred. Please try again.");
+    } finally {
       setIsOAuthLoading(false);
     }
   };

@@ -4,7 +4,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface CheckboxGroupProps {
-  options: Array<{ value: string; label: string; description?: string }>;
+  options: Array<{
+    value: string;
+    label: string;
+    description?: string;
+    id?: string;
+  }>;
   value: string[];
   onChange: (value: string[]) => void;
   label?: string;
@@ -40,34 +45,42 @@ export const CheckboxGroup = ({
           columns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         )}
       >
-        {options.map((option) => (
-          <label
-            key={option.value}
-            className={cn(
-              "flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
-              value.includes(option.value) && "border-primary bg-accent"
-            )}
-            htmlFor={option.value}
-          >
-            <Checkbox
-              id={option.value}
-              checked={value.includes(option.value)}
-              onCheckedChange={() => {
-                handleToggle(option.value);
-              }}
-            />
-            <div className="flex-1 space-y-1">
-              <span className="text-sm font-medium leading-none">
-                {option.label}
-              </span>
-              {option.description && (
-                <p className="text-xs text-muted-foreground">
-                  {option.description}
-                </p>
+        {options.map((option, index) => {
+          const optionId =
+            option.id ??
+            `checkbox-${String(option.value)
+              .toLowerCase()
+              .replace(/[^a-z0-9_-]+/g, "-")}-${index}`;
+
+          return (
+            <label
+              key={option.value}
+              className={cn(
+                "flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
+                value.includes(option.value) && "border-primary bg-accent"
               )}
-            </div>
-          </label>
-        ))}
+              htmlFor={optionId}
+            >
+              <Checkbox
+                id={optionId}
+                checked={value.includes(option.value)}
+                onCheckedChange={() => {
+                  handleToggle(option.value);
+                }}
+              />
+              <div className="flex-1 space-y-1">
+                <span className="text-sm font-medium leading-none">
+                  {option.label}
+                </span>
+                {option.description && (
+                  <p className="text-xs text-muted-foreground">
+                    {option.description}
+                  </p>
+                )}
+              </div>
+            </label>
+          );
+        })}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

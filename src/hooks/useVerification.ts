@@ -59,12 +59,26 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
           .eq("owner_id", targetUserId),
       ]);
 
+      // Profile error is fatal - we cannot proceed without profile data
       if (profileError) throw profileError;
-      if (reviewsError) throw reviewsError;
-      if (renterCountError) throw renterCountError;
-      if (equipmentError) throw equipmentError;
 
-      const equipmentIds = (equipmentData || []).map((eq) => eq.id);
+      // Non-critical errors: log warnings and default to safe values
+      if (reviewsError) {
+        console.warn("Failed to load reviews for trust score:", reviewsError);
+      }
+      if (renterCountError) {
+        console.warn("Failed to load renter bookings count:", renterCountError);
+      }
+      if (equipmentError) {
+        console.warn("Failed to load equipment list:", equipmentError);
+      }
+
+      // Default to safe values for non-critical data
+      const safeReviews = reviewsError ? [] : reviews || [];
+      const safeRenterCount = renterCountError ? 0 : renterCount || 0;
+      const safeEquipmentData = equipmentError ? [] : equipmentData || [];
+
+      const equipmentIds = safeEquipmentData.map((eq) => eq.id);
       let ownerCount = 0;
 
       if (equipmentIds.length > 0) {
@@ -74,26 +88,29 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
           .eq("status", "completed")
           .in("equipment_id", equipmentIds);
 
-        if (ownerCountError) throw ownerCountError;
-        ownerCount = count || 0;
+        if (ownerCountError) {
+          console.warn("Failed to load owner bookings count:", ownerCountError);
+        } else {
+          ownerCount = count || 0;
+        }
       }
 
-      const bookingsCount = (renterCount || 0) + ownerCount;
+      const bookingsCount = safeRenterCount + ownerCount;
 
       // Calculate trust score
       const accountAgeDays = calculateAccountAge(profileData.created_at);
       const averageRating =
-        reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        safeReviews.length > 0
+          ? safeReviews.reduce((sum, r) => sum + r.rating, 0) / safeReviews.length
           : 0;
 
       const trustScore: TrustScore = calculateTrustScore({
         identityVerified: profileData.identity_verified || false,
         phoneVerified: profileData.phone_verified || false,
         emailVerified: profileData.email_verified || false,
-        completedBookings: bookingsCount || 0,
+        completedBookings: bookingsCount,
         averageRating,
-        totalReviews: reviews?.length || 0,
+        totalReviews: safeReviews.length,
         averageResponseTimeHours: 12, // This would come from messaging data
         accountAgeDays,
       });
