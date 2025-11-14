@@ -6,8 +6,6 @@ import {
 } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
-import RenterRegistration from "@/pages/auth/RenterRegistration";
-import OwnerRegistration from "@/pages/auth/OwnerRegistration";
 import EmailVerification from "@/pages/auth/EmailVerification";
 import RenterDashboard from "@/pages/renter/RenterDashboard";
 import OwnerDashboard from "@/pages/owner/OwnerDashboard";
@@ -36,8 +34,14 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<ExplorePage />} />
-          <Route path="/register/renter" element={<RenterRegistration />} />
-          <Route path="/register/owner" element={<OwnerRegistration />} />
+          <Route
+            path="/register/renter"
+            element={<Navigate to="/?signup=true&role=renter" replace />}
+          />
+          <Route
+            path="/register/owner"
+            element={<Navigate to="/?signup=true&role=owner" replace />}
+          />
           <Route
             path="/login"
             element={<Navigate to="/?login=true" replace />}

@@ -37,69 +37,78 @@ export const useVerification = (options: UseVerificationOptions = {}) => {
     setError(null);
 
     try {
-      if (!targetUserId) throw new Error("No user ID available");
+      // Fetch profile, reviews, renter bookings, and equipment IDs in parallel
+      const [
+        { data: profileData, error: profileError },
+        { data: reviews, error: reviewsError },
+        { count: renterCount, error: renterCountError },
+        { data: equipmentData, error: equipmentError },
+      ] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", targetUserId).single(),
+        supabase.from("reviews").select("rating").eq("reviewee_id", targetUserId),
+        supabase
+          .from("booking_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "completed")
+          .eq("renter_id", targetUserId),
+        supabase
+          .from("equipment")
+          .select("id")
+          .eq("owner_id", targetUserId),
+      ]);
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", targetUserId)
-        .single();
-
+      // Profile error is fatal - we cannot proceed without profile data
       if (profileError) throw profileError;
 
-      // Fetch reviews
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("reviewee_id", targetUserId);
+      // Non-critical errors: log warnings and default to safe values
+      if (reviewsError) {
+        console.warn("Failed to load reviews for trust score:", reviewsError);
+      }
+      if (renterCountError) {
+        console.warn("Failed to load renter bookings count:", renterCountError);
+      }
+      if (equipmentError) {
+        console.warn("Failed to load equipment list:", equipmentError);
+      }
 
-      // Fetch completed bookings count for the target user
-      // User can be either renter or owner, so we need to check both relationships
-      // Split into two queries since Supabase doesn't support or() with nested relationship filters
-      
-      // Count as renter
-      const { count: renterCount } = await supabase
-        .from("booking_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "completed")
-        .eq("renter_id", targetUserId);
+      // Default to safe values for non-critical data
+      const safeReviews = reviewsError ? [] : reviews || [];
+      const safeRenterCount = renterCountError ? 0 : renterCount || 0;
+      const safeEquipmentData = equipmentError ? [] : equipmentData || [];
 
-      // Count as owner - first get equipment IDs, then filter booking_requests
-      const { data: equipmentData } = await supabase
-        .from("equipment")
-        .select("id")
-        .eq("owner_id", targetUserId);
-
-      const equipmentIds = (equipmentData || []).map((eq) => eq.id);
+      const equipmentIds = safeEquipmentData.map((eq) => eq.id);
       let ownerCount = 0;
 
       if (equipmentIds.length > 0) {
-        const { count } = await supabase
+        const { count, error: ownerCountError } = await supabase
           .from("booking_requests")
           .select("*", { count: "exact", head: true })
           .eq("status", "completed")
           .in("equipment_id", equipmentIds);
-        
-        ownerCount = count || 0;
+
+        if (ownerCountError) {
+          console.warn("Failed to load owner bookings count:", ownerCountError);
+        } else {
+          ownerCount = count || 0;
+        }
       }
 
-      const bookingsCount = (renterCount || 0) + ownerCount;
+      const bookingsCount = safeRenterCount + ownerCount;
 
       // Calculate trust score
       const accountAgeDays = calculateAccountAge(profileData.created_at);
       const averageRating =
-        reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        safeReviews.length > 0
+          ? safeReviews.reduce((sum, r) => sum + r.rating, 0) / safeReviews.length
           : 0;
 
       const trustScore: TrustScore = calculateTrustScore({
         identityVerified: profileData.identity_verified || false,
         phoneVerified: profileData.phone_verified || false,
         emailVerified: profileData.email_verified || false,
-        completedBookings: bookingsCount || 0,
+        completedBookings: bookingsCount,
         averageRating,
-        totalReviews: reviews?.length || 0,
+        totalReviews: safeReviews.length,
         averageResponseTimeHours: 12, // This would come from messaging data
         accountAgeDays,
       });
