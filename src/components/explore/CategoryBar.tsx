@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Package } from "lucide-react";
@@ -154,7 +154,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
             );
           })}
         </div>
-        <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
     </div>
   );
