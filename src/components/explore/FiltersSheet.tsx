@@ -296,6 +296,9 @@ const FiltersSheet = ({
       <TriggerButton />
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side="bottom" className="h-[85vh]">
+          {/* Drag handle */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-muted-foreground/20 rounded-full" />
+
           <SheetHeader>
             <SheetTitle>Filters</SheetTitle>
             <SheetDescription>
