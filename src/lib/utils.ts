@@ -68,8 +68,9 @@ export const safeLocalStorage = {
         const parsed: unknown = JSON.parse(item);
         return validator(parsed) ? parsed : null;
       } catch {
-        // If not JSON, treat as string
-        return validator(item as unknown) ? (item as unknown as T) : null;
+        // If not JSON, treat as string and validate
+        const stringValue: unknown = item;
+        return validator(stringValue) ? stringValue : null;
       }
     } catch (error) {
       console.error(`Error reading from localStorage key "${key}":`, error);
