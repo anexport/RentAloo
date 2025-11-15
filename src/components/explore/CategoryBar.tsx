@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Package } from "lucide-react";
@@ -126,35 +125,33 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
   );
 
   return (
-    <div className="w-full">
-      <ScrollArea className="w-full">
-        <div className="flex items-center gap-2 py-1">
-          {/* All Categories */}
-          <CategoryPill
-            id="all"
-            name="All"
-            icon={Package}
-            isActive={activeCategoryId === "all"}
-            onClick={() => onCategoryChange("all")}
-          />
+    <div className="w-full overflow-x-auto scrollbar-hide">
+      <div className="flex items-center gap-2 py-1">
+        {/* All Categories */}
+        <CategoryPill
+          id="all"
+          name="All"
+          icon={Package}
+          isActive={activeCategoryId === "all"}
+          onClick={() => onCategoryChange("all")}
+        />
 
-          {/* Individual Categories */}
-          {categories.map((cat) => {
-            const Icon = getCategoryIcon(cat.name);
-            return (
-              <CategoryPill
-                key={cat.id}
-                id={cat.id}
-                name={cat.name}
-                icon={Icon}
-                count={cat.item_count}
-                isActive={activeCategoryId === cat.id}
-                onClick={() => onCategoryChange(cat.id)}
-              />
-            );
-          })}
-        </div>
-      </ScrollArea>
+        {/* Individual Categories */}
+        {categories.map((cat) => {
+          const Icon = getCategoryIcon(cat.name);
+          return (
+            <CategoryPill
+              key={cat.id}
+              id={cat.id}
+              name={cat.name}
+              icon={Icon}
+              count={cat.item_count}
+              isActive={activeCategoryId === cat.id}
+              onClick={() => onCategoryChange(cat.id)}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };
