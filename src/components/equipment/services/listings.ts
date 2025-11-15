@@ -24,10 +24,23 @@ function isListingQueryResult(item: unknown): item is Omit<Listing, "reviews"> {
   const hasValidBasicFields =
     typeof candidate.id === "string" &&
     typeof candidate.title === "string" &&
+    typeof candidate.description === "string" &&
     typeof candidate.owner_id === "string" &&
+    typeof candidate.category_id === "string" &&
+    typeof candidate.daily_rate === "number" &&
+    typeof candidate.condition === "string" &&
+    typeof candidate.location === "string" &&
+    typeof candidate.is_available === "boolean" &&
     Array.isArray(candidate.photos);
 
   if (!hasValidBasicFields) return false;
+
+  // Validate optional numeric fields (should be number or null)
+  const hasValidOptionalFields =
+    (candidate.latitude === null || typeof candidate.latitude === "number") &&
+    (candidate.longitude === null || typeof candidate.longitude === "number");
+
+  if (!hasValidOptionalFields) return false;
 
   // Validate category (should be object or null)
   const hasValidCategory =

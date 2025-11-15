@@ -168,7 +168,7 @@ const EquipmentListingForm = ({
       reader.onloadend = () => {
         // Validate that result is a string (readAsDataURL returns string or null)
         if (typeof reader.result === "string") {
-          setPhotoPreviews((prev) => [...prev, reader.result as string]);
+          setPhotoPreviews((prev) => [...prev, reader.result]);
         }
       };
       reader.readAsDataURL(file);
