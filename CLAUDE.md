@@ -866,169 +866,738 @@ npx eslint . --fix
 
 ## Database Schema
 
+**Current Statistics:**
+- **21 profiles** (15 renters, 4 owners)
+- **23 categories** across various sports
+- **15 equipment listings** with 18 photos
+- **2 booking requests** and 2 confirmed bookings
+- **2 active conversations** with 5 messages
+- **28 migrations** applied
+
 ### Core Tables
 
 #### profiles
-Base user information for all users.
+**Purpose:** Base user information for all users (both renters and owners).
+**Row Count:** 21
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE profiles (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   role user_role NOT NULL,  -- ENUM: 'renter' | 'owner'
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  last_seen_at TIMESTAMP WITH TIME ZONE
 );
 ```
 
+**Key Relationships:**
+- One-to-one with `renter_profiles` or `owner_profiles` (based on role)
+- One-to-many with `equipment` (as owner)
+- One-to-many with `booking_requests` (as renter)
+- One-to-many with `messages` (as sender)
+- One-to-many with `reviews` (as reviewer/reviewee)
+
+---
+
 #### renter_profiles
-Additional renter-specific data.
+**Purpose:** Additional renter-specific data and preferences.
+**Row Count:** 17
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE renter_profiles (
-  id UUID PRIMARY KEY,
-  profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   preferences JSONB,
   experience_level TEXT,
   verification_status verification_status DEFAULT 'unverified',
-  -- ENUM: 'unverified' | 'pending' | 'verified'
+    -- ENUM: 'unverified' | 'pending' | 'verified'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
+
+**Notes:**
+- `preferences` stores user-specific rental preferences (JSON)
+- `experience_level` tracks user's experience with equipment
+
+---
 
 #### owner_profiles
-Additional owner-specific data.
+**Purpose:** Additional owner-specific data including business info and earnings.
+**Row Count:** 4
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE owner_profiles (
-  id UUID PRIMARY KEY,
-  profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   business_info JSONB,
-  earnings_total DECIMAL(10,2) DEFAULT 0,
+  earnings_total NUMERIC(10,2) DEFAULT 0,
   verification_level verification_status DEFAULT 'unverified',
+    -- ENUM: 'unverified' | 'pending' | 'verified'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
 
+**Notes:**
+- `business_info` stores business details, tax info, etc. (JSON)
+- `earnings_total` tracks cumulative earnings from rentals
+
+---
+
 #### categories
-Equipment categories with hierarchical support.
+**Purpose:** Equipment categories with hierarchical support for subcategories.
+**Row Count:** 23
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE categories (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   parent_id UUID REFERENCES categories(id) ON DELETE SET NULL,
   sport_type TEXT NOT NULL,
   attributes JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
+
+**Notes:**
+- Supports hierarchical categories via `parent_id` self-reference
+- `attributes` stores category-specific metadata (JSON)
+- Examples: Skiing, Photography, Camping, Construction equipment
+
+---
 
 #### equipment
-Equipment listings.
+**Purpose:** Equipment listings available for rent.
+**Row Count:** 15
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE equipment (
-  id UUID PRIMARY KEY,
-  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  category_id UUID REFERENCES categories(id) ON DELETE RESTRICT,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  owner_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
-  daily_rate DECIMAL(8,2) NOT NULL,
-  condition equipment_condition NOT NULL,  -- ENUM: 'new' | 'excellent' | 'good' | 'fair'
+  daily_rate NUMERIC(8,2) NOT NULL,
+  condition equipment_condition NOT NULL,
+    -- ENUM: 'new' | 'excellent' | 'good' | 'fair'
   location TEXT NOT NULL,
-  latitude DECIMAL(10, 8),
-  longitude DECIMAL(11, 8),
+  latitude NUMERIC(10,8),
+  longitude NUMERIC(11,8),
   is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
 
+**Key Relationships:**
+- Many-to-one with `profiles` (owner)
+- Many-to-one with `categories`
+- One-to-many with `equipment_photos`
+- One-to-many with `booking_requests`
+- One-to-many with `availability_calendar`
+
+**Indexes & Constraints:**
+- Foreign key to `owner_id` with CASCADE delete
+- Foreign key to `category_id` with RESTRICT delete (prevent deleting categories in use)
+
+---
+
 #### equipment_photos
-Equipment images.
+**Purpose:** Photos/images for equipment listings.
+**Row Count:** 18
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE equipment_photos (
-  id UUID PRIMARY KEY,
-  equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   photo_url TEXT NOT NULL,
   is_primary BOOLEAN DEFAULT false,
   order_index INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  alt TEXT,  -- Accessibility text for img alt attribute
+  description TEXT  -- Optional description of photo content
 );
 ```
 
+**Notes:**
+- `is_primary` marks the main photo shown in listings
+- `order_index` controls display order in photo galleries
+- `alt` and `description` added for accessibility
+
+---
+
 #### availability_calendar
-Equipment availability by date.
+**Purpose:** Tracks equipment availability and custom pricing by date.
+**Row Count:** 4
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE availability_calendar (
-  id UUID PRIMARY KEY,
-  equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   is_available BOOLEAN DEFAULT true,
-  custom_rate DECIMAL(8,2),
+  custom_rate NUMERIC(8,2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE(equipment_id, date)
 );
 ```
 
+**Notes:**
+- Unique constraint ensures one entry per equipment per date
+- `custom_rate` overrides the equipment's default `daily_rate` for special pricing
+- Used for blocking dates and setting seasonal pricing
+
+---
+
 #### booking_requests
-Booking requests from renters.
+**Purpose:** Rental booking requests from renters (pending owner approval).
+**Row Count:** 2
+**RLS Enabled:** ✅ Yes
+
 ```sql
 CREATE TABLE booking_requests (
-  id UUID PRIMARY KEY,
-  equipment_id UUID REFERENCES equipment(id) ON DELETE CASCADE,
-  renter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  equipment_id UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+  renter_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
-  total_amount DECIMAL(10,2) NOT NULL,
-  status booking_status DEFAULT 'pending',  -- ENUM: 'pending' | 'approved' | 'declined' | 'cancelled'
+  total_amount NUMERIC(10,2) NOT NULL,
+  status booking_status DEFAULT 'pending',
+    -- ENUM: 'pending' | 'approved' | 'declined' | 'cancelled' | 'completed'
   message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT check_valid_date_range CHECK (end_date >= start_date)
 );
 ```
 
-### Custom Types (PostgreSQL Enums)
+**Key Relationships:**
+- Many-to-one with `equipment`
+- Many-to-one with `profiles` (renter)
+- One-to-one with `bookings` (after approval)
+- One-to-many with `booking_history` (status changes)
+- One-to-one with `conversations` (optional)
+- One-to-one with `payments`
+
+**Status Flow:**
+`pending` → `approved` → `completed` (or `declined`/`cancelled`)
+
+---
+
+#### bookings
+**Purpose:** Confirmed bookings (created after booking request approval).
+**Row Count:** 2
+**RLS Enabled:** ✅ Yes
+
 ```sql
+CREATE TABLE bookings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  booking_request_id UUID UNIQUE NOT NULL REFERENCES booking_requests(id),
+  payment_status TEXT DEFAULT 'pending',
+  pickup_method TEXT,
+  return_status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Notes:**
+- One-to-one relationship with `booking_requests` (unique constraint)
+- Created automatically when booking request is approved
+- Tracks fulfillment details beyond the initial request
+
+---
+
+#### reviews
+**Purpose:** User reviews for completed bookings.
+**Row Count:** 0
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  booking_id UUID NOT NULL REFERENCES bookings(id),
+  reviewer_id UUID NOT NULL REFERENCES profiles(id),
+  reviewee_id UUID NOT NULL REFERENCES profiles(id),
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT,
+  photos JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Notes:**
+- Can only be created after booking completion
+- `rating` must be between 1-5 stars
+- Supports both renter→owner and owner→renter reviews
+
+---
+
+#### conversations
+**Purpose:** Message conversation threads between users.
+**Row Count:** 2
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  booking_request_id UUID REFERENCES booking_requests(id),
+  participants UUID[] NOT NULL,  -- Array of profile IDs
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Notes:**
+- `participants` is an array of user IDs in the conversation
+- Optionally linked to a `booking_request_id` for booking-related chats
+- Supports realtime messaging via Supabase Realtime
+
+---
+
+#### conversation_participants
+**Purpose:** Junction table linking conversations to participants with read tracking.
+**Row Count:** 4
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE conversation_participants (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  last_read_at TIMESTAMP WITH TIME ZONE,
+    -- Timestamp when participant last read messages (NULL = unread)
+  UNIQUE(conversation_id, profile_id)
+);
+```
+
+**Notes:**
+- Many-to-many relationship between conversations and profiles
+- `last_read_at` used to calculate unread message counts
+- Unique constraint prevents duplicate participants
+
+---
+
+#### messages
+**Purpose:** Individual messages within conversations.
+**Row Count:** 5
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES profiles(id),
+  content TEXT NOT NULL,
+  message_type TEXT DEFAULT 'text',  -- 'text' | 'system' | etc.
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Notes:**
+- Real-time subscriptions enabled for instant message delivery
+- `message_type` supports system messages (booking updates, etc.)
+- Cascade delete when conversation is deleted
+
+---
+
+#### payments
+**Purpose:** Payment transactions with Stripe integration and escrow management.
+**Row Count:** 2
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_request_id UUID REFERENCES booking_requests(id),
+  renter_id UUID NOT NULL REFERENCES profiles(id),
+  owner_id UUID NOT NULL REFERENCES profiles(id),
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_charge_id TEXT,
+  subtotal NUMERIC(10,2) NOT NULL,
+  service_fee NUMERIC(10,2) NOT NULL DEFAULT 0,
+  tax NUMERIC(10,2) NOT NULL DEFAULT 0,
+  total_amount NUMERIC(10,2) NOT NULL,
+  escrow_amount NUMERIC(10,2) NOT NULL,
+  escrow_status TEXT NOT NULL DEFAULT 'held',
+    -- CHECK: 'held' | 'released' | 'refunded' | 'disputed'
+  escrow_released_at TIMESTAMP WITH TIME ZONE,
+  owner_payout_amount NUMERIC(10,2) NOT NULL,
+  payout_status TEXT NOT NULL DEFAULT 'pending',
+    -- CHECK: 'pending' | 'processing' | 'completed' | 'failed'
+  payout_processed_at TIMESTAMP WITH TIME ZONE,
+  stripe_transfer_id TEXT,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+    -- CHECK: 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded' | 'cancelled'
+  payment_method_id TEXT,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  refund_amount NUMERIC DEFAULT 0,
+  refund_reason TEXT,
+  failure_reason TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  CONSTRAINT valid_amounts CHECK (subtotal >= 0 AND service_fee >= 0 AND tax >= 0 AND total_amount >= 0),
+  CONSTRAINT valid_escrow CHECK (escrow_amount >= 0 AND escrow_amount <= total_amount),
+  CONSTRAINT valid_payout CHECK (owner_payout_amount >= 0 AND owner_payout_amount <= escrow_amount)
+);
+```
+
+**Notes:**
+- Integrates with Stripe for payment processing
+- Implements escrow system: funds held until rental completion
+- Tracks full payment lifecycle: charge → escrow → payout
+- Multiple check constraints ensure data integrity
+
+---
+
+#### booking_history
+**Purpose:** Audit trail of booking status changes.
+**Row Count:** 2
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE booking_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  booking_request_id UUID NOT NULL REFERENCES booking_requests(id),
+  old_status booking_status,
+  new_status booking_status NOT NULL,
+  changed_by UUID REFERENCES profiles(id),
+  changed_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  reason TEXT,
+  metadata JSONB
+);
+```
+
+**Notes:**
+- Automatically populated by database triggers on status changes
+- Provides full audit trail for compliance and dispute resolution
+- `metadata` stores additional context (JSONB)
+
+---
+
+#### user_verifications
+**Purpose:** Identity verification submissions and status tracking.
+**Row Count:** 0
+**RLS Enabled:** ✅ Yes
+
+```sql
+CREATE TABLE user_verifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  verification_type TEXT NOT NULL,  -- 'id' | 'phone' | 'email' | etc.
+  status verification_status DEFAULT 'pending',
+    -- ENUM: 'unverified' | 'pending' | 'verified'
+  document_url TEXT,  -- Supabase Storage URL for uploaded docs
+  verified_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Notes:**
+- Supports multiple verification types per user
+- `document_url` points to Supabase Storage for secure document storage
+- Integrates with trust score and verification badge system
+
+---
+
+### Custom Types (PostgreSQL Enums)
+
+```sql
+-- User role type
 CREATE TYPE user_role AS ENUM ('renter', 'owner');
+
+-- Verification status for users
 CREATE TYPE verification_status AS ENUM ('unverified', 'pending', 'verified');
+
+-- Equipment condition levels
 CREATE TYPE equipment_condition AS ENUM ('new', 'excellent', 'good', 'fair');
+
+-- Booking request lifecycle status
 CREATE TYPE booking_status AS ENUM ('pending', 'approved', 'declined', 'cancelled', 'completed');
 ```
 
-### Extensions
+**Notes:**
+- Enums provide type safety and better performance than text constraints
+- Used across multiple tables for consistency
+
+---
+
+### Installed Extensions
+
+RentAloo uses several PostgreSQL extensions for enhanced functionality:
+
 ```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";  -- UUID generation
-CREATE EXTENSION IF NOT EXISTS "postgis";    -- Geographic data
+-- Core Extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation (v1.1)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";       -- Cryptographic functions (v1.3)
+CREATE EXTENSION IF NOT EXISTS "postgis";        -- Geographic/spatial data (v3.3.7)
+
+-- Supabase Extensions
+CREATE EXTENSION IF NOT EXISTS "supabase_vault"; -- Secure secret storage (v0.3.1)
+CREATE EXTENSION IF NOT EXISTS "pg_graphql";     -- GraphQL support (v1.5.11)
+
+-- Performance & Analysis
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements"; -- Query performance tracking (v1.11)
+CREATE EXTENSION IF NOT EXISTS "hypopg";             -- Hypothetical indexes (v1.4.1)
+CREATE EXTENSION IF NOT EXISTS "index_advisor";      -- Index recommendations (v0.2.0)
 ```
+
+**Available but not installed:** 72+ additional extensions available including `pg_cron`, `http`, `pg_net`, `vector`, and more.
 
 ### Row Level Security (RLS)
 
-**All tables have RLS enabled.** Key policies:
+**All tables have RLS enabled (13 tables with 58 policies).** RLS ensures users can only access data they're authorized to see.
 
-- **profiles**: Users can read own profile, admins can read all
-- **equipment**: Public read for available listings, owners can CRUD own listings
-- **booking_requests**: Renters see own requests, owners see requests for their equipment
-- **messages**: Participants can read/write in their conversations
-- **reviews**: Public read, write only for completed bookings
+#### Key Policy Patterns
 
-**Important Files:**
-- `supabase/migrations/002_rls_policies.sql` - Initial RLS policies
-- `supabase/migrations/003_fix_rls_policies.sql` - RLS fixes
-- `supabase/migrations/017_rls_performance_optimizations.sql` - Performance tuning
-- `supabase/guides/RLSPolicies.md` - RLS documentation
+**profiles:**
+- ✅ Authenticated users can view all profiles
+- ✅ Users can update only their own profile
+- ✅ Users can insert their own profile on signup
 
-### Migrations
+**equipment:**
+- ✅ Anonymous users can view available equipment
+- ✅ Authenticated users can view available equipment OR their own listings
+- ✅ Owners can CRUD their own equipment
 
-22+ migration files in `supabase/migrations/`:
-- `001_initial_schema.sql` - Base schema
-- `002_rls_policies.sql` - Security policies
-- `007_realtime_messaging.sql` - Messaging setup
-- `013_booking_approval_automation.sql` - Booking automation
-- `020_create_payments_table.sql` - Payment schema
+**booking_requests:**
+- ✅ Authenticated users can view: their own requests OR requests for their equipment
+- ✅ Renters can create booking requests
+- ✅ Renters and owners can update bookings they're involved in
+
+**payments:**
+- ✅ Authenticated users can view payments where they are renter OR owner
+- ✅ System can create and update payments (public policies for webhook integration)
+
+**messages & conversations:**
+- ✅ Users can view/send messages only in conversations they participate in
+- ✅ Users can update their own `last_read_at` timestamp
+- ✅ Participants can create conversations
+
+**reviews:**
+- ✅ Anyone can view reviews (public)
+- ✅ Users can create reviews only for their completed bookings
+- ✅ Users can update their own reviews
+
+#### Security Considerations
+
+- RLS policies use `auth.uid()` to identify the current user
+- Policies are **permissive** (use OR logic when multiple apply)
+- Performance optimized with indexes on foreign keys
+- System operations (triggers, webhooks) use `public` role policies
+
+**Related Migrations:**
+- `20251029011317_add_missing_rls_policies.sql`
+- `20251105033811_rls_performance_optimizations.sql`
+- `20251105073546_consolidate_multiple_permissive_policies.sql`
+- `20251105073950_fix_equipment_select_policies.sql`
+
+---
+
+### Database Migrations
+
+**28 migrations applied** tracking schema evolution from initial setup to current state.
+
+#### Recent Migration History
+
+| Migration | Description |
+|-----------|-------------|
+| `20251108032058` | Fix booking payment status sync |
+| `20251107052902` | Enable RLS on payments table |
+| `20251106114419` | Fix payments RLS policy |
+| `20251106051425` | Fix get_unread_messages_count security |
+| `20251106043340` | Add unread_messages_count RPC |
+| `20251105201635` | Create payments table |
+| `20251105073950` | Fix equipment select policies |
+| `20251105073546` | Consolidate multiple permissive policies |
+| `20251105045039` | Fix booking cancellation availability |
+| `20251105044659` | RLS performance optimizations fix |
+| `20251105033811` | RLS performance optimizations |
+| `20251105033731` | Booking system performance optimizations |
+| `20251105020735` | Booking system medium priority fixes |
+| `20251105020658` | Booking system high priority fixes |
+| `20251105020648` | Add completed enum value to booking_status |
+| `20251105015412` | Booking approval automation (triggers) |
+| `20251103114616` | Add conversation_participants last_read_at |
+| `20251103071140` | Messaging guide implementations |
+| `20251031094504` | Fix conversation_participants with security definer |
+| `20251031092927` | Fix conversation_participants insert policy |
+| `20251029075227` | Allow renters to cancel bookings |
+| `20251029063013` | Create payments table (initial) |
+| `20251029013009` | Fix profile creation trigger (simple) |
+| `20251029012723` | Fix profile creation trigger |
+| `20251029012345` | Update profile creation trigger |
+| `20251029012040` | Add profile creation trigger |
+| `20251029011740` | Add missing booking policy |
+| `20251029011317` | Add missing RLS policies |
 
 **Migration Workflow:**
-1. Create migration file: `supabase/migrations/XXX_description.sql`
-2. Write SQL for schema changes
-3. Test locally with Supabase CLI
+1. Create migration file: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
+2. Write SQL for schema changes (DDL, triggers, functions, RLS policies)
+3. Test locally with Supabase CLI or apply directly via MCP
 4. Commit to git
-5. Apply to production via Supabase dashboard or CLI
+5. Migrations auto-apply on push (or manual via dashboard)
+
+---
+
+### Database Relationships & ER Diagram
+
+```
+┌─────────────────┐
+│   auth.users    │ (Supabase Auth)
+└────────┬────────┘
+         │ id
+         ↓
+┌─────────────────┐         ┌──────────────────┐
+│    profiles     │────────→│  renter_profiles │
+│  (base users)   │         └──────────────────┘
+└────────┬────────┘
+         │                   ┌──────────────────┐
+         └──────────────────→│  owner_profiles  │
+                             └──────────────────┘
+         │
+         ├──→ equipment (owner)
+         ├──→ booking_requests (renter)
+         ├──→ messages (sender)
+         ├──→ reviews (reviewer/reviewee)
+         └──→ user_verifications
+
+┌──────────────┐
+│  categories  │──┐
+└──────────────┘  │ parent_id (self-reference)
+         │        │
+         └────────┘
+         │
+         ↓
+┌──────────────┐       ┌────────────────────┐
+│  equipment   │──────→│ equipment_photos   │
+└──────┬───────┘       └────────────────────┘
+       │
+       ├──────────────→ availability_calendar
+       │
+       ↓
+┌───────────────────┐     ┌──────────────┐
+│ booking_requests  │────→│  bookings    │ (1:1)
+└─────┬─────────────┘     └──────┬───────┘
+      │                          │
+      ├──→ booking_history       └──→ reviews
+      ├──→ conversations
+      └──→ payments
+
+┌──────────────────┐       ┌──────────────────────────────┐
+│  conversations   │──────→│ conversation_participants    │
+└────────┬─────────┘       └──────────────────────────────┘
+         │
+         ↓
+┌──────────────────┐
+│    messages      │
+└──────────────────┘
+
+┌──────────────────┐
+│    payments      │ (Stripe integration)
+└──────────────────┘
+```
+
+**Key Relationships:**
+
+1. **User Hierarchy:** `auth.users` → `profiles` → role-specific profiles (`renter_profiles` OR `owner_profiles`)
+2. **Equipment Listings:** `profiles` (owner) → `equipment` → `equipment_photos` + `availability_calendar`
+3. **Booking Flow:** `booking_requests` → `bookings` (1:1 after approval) → `reviews`
+4. **Messaging:** `conversations` ↔ `conversation_participants` (M:N) → `messages`
+5. **Payments:** `booking_requests` → `payments` (Stripe escrow)
+6. **Audit Trail:** `booking_requests` → `booking_history` (all status changes)
+
+---
+
+### Database Functions & RPCs
+
+The database includes several stored procedures for complex operations:
+
+#### `get_unread_messages_count(user_uuid UUID)`
+**Purpose:** Calculate unread message count for a user across all conversations.
+**Returns:** Integer count of unread messages.
+**Security:** SECURITY DEFINER (runs with elevated privileges).
+
+**Usage Example:**
+```typescript
+const { data, error } = await supabase
+  .rpc('get_unread_messages_count', { user_uuid: userId })
+```
+
+#### Database Triggers
+
+**Automatic Profile Creation:**
+- Trigger on `auth.users` insert creates corresponding `profiles` entry
+- Automatically sets up user profile on signup
+
+**Booking Approval Automation:**
+- Trigger on `booking_requests` status change to 'approved'
+- Automatically creates `bookings` entry
+- Updates `availability_calendar` to block dates
+- Creates audit entry in `booking_history`
+
+**Booking Cancellation:**
+- Trigger on status change to 'cancelled'
+- Releases blocked dates in `availability_calendar`
+- Logs cancellation in `booking_history`
+
+**Payment Status Sync:**
+- Trigger keeps `bookings.payment_status` in sync with `payments.payment_status`
+- Ensures data consistency across tables
+
+---
+
+### Storage Buckets
+
+RentAloo uses Supabase Storage for file uploads:
+
+| Bucket | Purpose | RLS | Public |
+|--------|---------|-----|--------|
+| `equipment-photos` | Equipment listing images | ✅ | ✅ Yes |
+| `verification-documents` | ID verification uploads | ✅ | ❌ Private |
+
+**Storage Policies:**
+- Users can upload to buckets for their own resources
+- Equipment photos are publicly accessible
+- Verification documents require authentication
+
+---
 
 ### Type Generation
 
-Generate TypeScript types from Supabase schema:
+Generate TypeScript types from Supabase schema using the MCP tool:
+
+```typescript
+// Use Supabase MCP
+mcp__supabase__generate_typescript_types()
+```
+
+Or via CLI:
 ```bash
 npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/lib/database.types.ts
 ```
 
-**Always regenerate types after schema changes.**
+**⚠️ Always regenerate types after schema changes.**
+
+The generated types are used throughout the codebase:
+```typescript
+import type { Database } from "@/lib/database.types"
+
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"]
+export type Equipment = Database["public"]["Tables"]["equipment"]["Row"]
+export type BookingRequest = Database["public"]["Tables"]["booking_requests"]["Row"]
+```
 
 ---
 
