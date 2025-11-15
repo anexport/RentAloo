@@ -21,7 +21,6 @@ type Props = {
 
 const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
 
   useEffect(() => {
     const load = async () => {
@@ -43,7 +42,7 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
           return;
         }
 
-        // Fetch counts for each category
+        // Fetch counts for each category in parallel
         const categoriesWithCounts = await Promise.all(
           (data || []).map(async (cat) => {
             const { count } = await supabase
@@ -56,13 +55,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
           })
         );
 
-        // Get total count for "All"
-        const { count: total } = await supabase
-          .from("equipment")
-          .select("*", { count: "exact", head: true })
-          .eq("is_available", true);
-
-        setTotalCount(total || 0);
         setCategories(categoriesWithCounts);
       } catch (err) {
         console.error("Unexpected error fetching categories:", err);
@@ -79,7 +71,7 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     void load();
   }, []);
 
-  const CategoryCard = ({
+  const CategoryPill = ({
     id,
     name,
     icon: Icon,
@@ -97,73 +89,51 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     <button
       onClick={onClick}
       aria-label={`Category ${name}`}
+      aria-pressed={isActive}
       className={cn(
-        "group relative flex flex-col items-center gap-3 px-6 py-4 rounded-2xl transition-all duration-300 min-w-[120px] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "group relative inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full transition-all duration-200 whitespace-nowrap text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         isActive
-          ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25"
-          : "bg-card hover:bg-muted/50 border border-border hover:border-primary/30 hover:shadow-md"
+          ? "bg-foreground text-background shadow-sm"
+          : "bg-background hover:bg-muted border border-border hover:border-foreground/20 text-foreground hover:shadow-sm"
       )}
     >
       {/* Icon */}
-      <div
+      <Icon
         className={cn(
-          "relative p-3 rounded-xl transition-all duration-300",
-          isActive
-            ? "bg-white/20"
-            : "bg-primary/10 group-hover:bg-primary/15 group-hover:scale-110"
+          "h-4 w-4 transition-transform duration-200 group-hover:scale-110",
+          isActive ? "text-background" : "text-foreground"
         )}
-      >
-        <Icon
-          className={cn(
-            "h-7 w-7 transition-colors",
-            isActive ? "text-primary-foreground" : "text-primary"
-          )}
-        />
-      </div>
+      />
 
       {/* Category Name */}
-      <div className="space-y-1 text-center">
-        <div
+      <span className="max-w-[140px] truncate">{name}</span>
+
+      {/* Count Badge */}
+      {typeof count === "number" && count > 0 && (
+        <Badge
+          variant={isActive ? "outline" : "secondary"}
           className={cn(
-            "text-sm font-semibold transition-colors",
-            isActive ? "text-primary-foreground" : "text-foreground"
+            "h-5 px-1.5 text-[10px] font-semibold min-w-[20px] justify-center",
+            isActive
+              ? "bg-background/20 text-background border-background/30"
+              : "bg-muted text-muted-foreground"
           )}
         >
-          {name}
-        </div>
-
-        {/* Item Count */}
-        {typeof count === "number" && (
-          <div
-            className={cn(
-              "text-xs transition-colors",
-              isActive
-                ? "text-primary-foreground/80"
-                : "text-muted-foreground group-hover:text-foreground"
-            )}
-          >
-            {count.toLocaleString()} {count === 1 ? "item" : "items"}
-          </div>
-        )}
-      </div>
-
-      {/* Active Indicator */}
-      {isActive && (
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 w-12 bg-primary-foreground rounded-full" />
+          {count > 99 ? "99+" : count}
+        </Badge>
       )}
     </button>
   );
 
   return (
-    <div className="w-full py-2">
+    <div className="w-full">
       <ScrollArea className="w-full">
-        <div className="flex items-stretch gap-3 pb-2">
+        <div className="flex items-center gap-2 py-1">
           {/* All Categories */}
-          <CategoryCard
+          <CategoryPill
             id="all"
             name="All"
             icon={Package}
-            count={totalCount}
             isActive={activeCategoryId === "all"}
             onClick={() => onCategoryChange("all")}
           />
@@ -172,27 +142,19 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
           {categories.map((cat) => {
             const Icon = getCategoryIcon(cat.name);
             return (
-              <div key={cat.id} className="relative">
-                <CategoryCard
-                  id={cat.id}
-                  name={cat.name}
-                  icon={Icon}
-                  count={cat.item_count}
-                  isActive={activeCategoryId === cat.id}
-                  onClick={() => onCategoryChange(cat.id)}
-                />
-
-                {/* "New" badge for new categories */}
-                {cat.name.toLowerCase().includes("new") && (
-                  <Badge className="absolute -top-2 -right-2 h-6 px-2 text-[10px] font-bold shadow-md animate-pulse">
-                    NEW
-                  </Badge>
-                )}
-              </div>
+              <CategoryPill
+                key={cat.id}
+                id={cat.id}
+                name={cat.name}
+                icon={Icon}
+                count={cat.item_count}
+                isActive={activeCategoryId === cat.id}
+                onClick={() => onCategoryChange(cat.id)}
+              />
             );
           })}
         </div>
-        <ScrollBar orientation="horizontal" className="h-2" />
+        <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
     </div>
   );
