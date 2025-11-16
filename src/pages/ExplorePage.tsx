@@ -355,7 +355,6 @@ const ExplorePage = () => {
             <EmptyState
               filters={effectiveFilters}
               onClearFilters={handleClearFilters}
-              onCategorySelect={setCategoryId}
             />
           ) : sortedListings.length > 50 ? (
             <VirtualListingGrid

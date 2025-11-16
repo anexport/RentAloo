@@ -71,6 +71,9 @@ export const fetchListings = async (
 
   if (typeof filters.limit === "number" && filters.limit > 0) {
     query = query.limit(filters.limit);
+  } else {
+    // Default limit to prevent unbounded queries
+    query = query.limit(100);
   }
 
   const { data, error } = await query;

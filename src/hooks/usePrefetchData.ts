@@ -46,11 +46,17 @@ export const usePrefetchData = () => {
       });
     };
 
-    // Run prefetches in parallel
+    // Run prefetches in parallel with error handling
     void Promise.all([
-      prefetchCategories(),
-      prefetchFeaturedListings(),
-      prefetchDefaultListings(),
+      prefetchCategories().catch((err) =>
+        console.error("Failed to prefetch categories:", err)
+      ),
+      prefetchFeaturedListings().catch((err) =>
+        console.error("Failed to prefetch featured listings:", err)
+      ),
+      prefetchDefaultListings().catch((err) =>
+        console.error("Failed to prefetch default listings:", err)
+      ),
     ]);
   }, [queryClient]);
 };

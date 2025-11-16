@@ -41,18 +41,24 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
           return;
         }
 
-        // Fetch counts for each category in parallel
-        const categoriesWithCounts = await Promise.all(
-          (data || []).map(async (cat) => {
-            const { count } = await supabase
-              .from("equipment")
-              .select("*", { count: "exact", head: true })
-              .eq("category_id", cat.id)
-              .eq("is_available", true);
+        // Fetch ALL equipment counts in a single query
+        const { data: equipmentData } = await supabase
+          .from("equipment")
+          .select("category_id")
+          .eq("is_available", true);
 
-            return { ...cat, item_count: count || 0 };
-          })
-        );
+        // Create count map from the results
+        const countMap = new Map<string, number>();
+        equipmentData?.forEach((item) => {
+          const count = countMap.get(item.category_id) || 0;
+          countMap.set(item.category_id, count + 1);
+        });
+
+        // Merge counts with categories (single pass)
+        const categoriesWithCounts = (data || []).map((cat) => ({
+          ...cat,
+          item_count: countMap.get(cat.id) || 0,
+        }));
 
         setCategories(categoriesWithCounts);
       } catch (err) {

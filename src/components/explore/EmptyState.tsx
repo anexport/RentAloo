@@ -1,23 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Filter, Package } from "lucide-react";
 import type { ListingsFilters } from "@/components/equipment/services/listings";
 
 type Props = {
   filters: ListingsFilters;
   onClearFilters: () => void;
-  onCategorySelect: (categoryId: string) => void;
 };
 
-const popularCategories = [
-  { id: "camping", name: "Camping", icon: "⛺" },
-  { id: "skiing", name: "Skiing", icon: "🎿" },
-  { id: "hiking", name: "Hiking", icon: "🥾" },
-  { id: "photography", name: "Photography", icon: "📷" },
-];
-
-const EmptyState = ({ filters, onClearFilters, onCategorySelect }: Props) => {
+const EmptyState = ({ filters, onClearFilters }: Props) => {
   const hasActiveFilters =
     filters.search ||
     filters.location ||
@@ -90,29 +81,9 @@ const EmptyState = ({ filters, onClearFilters, onCategorySelect }: Props) => {
 
         {/* Suggestions */}
         <div className="space-y-4 pt-4">
-          <p className="text-sm font-medium">Try browsing these categories:</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {popularCategories.map((category) => (
-              <Card
-                key={category.id}
-                className="cursor-pointer hover:shadow-md hover:border-primary transition-all"
-                onClick={() => onCategorySelect(category.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onCategorySelect(category.id);
-                  }
-                }}
-              >
-                <CardContent className="p-4 text-center space-y-2">
-                  <div className="text-3xl">{category.icon}</div>
-                  <div className="text-sm font-medium">{category.name}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Try adjusting your filters or browse all available equipment
+          </p>
         </div>
 
         {/* Browse all CTA */}

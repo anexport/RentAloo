@@ -26,6 +26,7 @@ const VirtualListingGrid = ({
     if (!sentinelRef.current) return;
     if (visibleCount >= listings.length) return;
 
+    const element = sentinelRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
@@ -41,7 +42,7 @@ const VirtualListingGrid = ({
       }
     );
 
-    observer.observe(sentinelRef.current);
+    observer.observe(element);
 
     return () => observer.disconnect();
   }, [visibleCount, listings.length, threshold]);
