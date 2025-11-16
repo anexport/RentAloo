@@ -184,6 +184,9 @@ const ExplorePage = () => {
   const sortedListings = useMemo(() => {
     if (!data) return [];
 
+    // Early return for recommended to avoid unnecessary array copy
+    if (sortBy === "recommended") return data;
+
     const sorted = [...data];
 
     switch (sortBy) {
@@ -209,7 +212,6 @@ const ExplorePage = () => {
           return avgB - avgA;
         });
       }
-      case "recommended":
       default:
         return sorted;
     }

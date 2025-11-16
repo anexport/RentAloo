@@ -38,7 +38,7 @@ export const usePrefetchData = () => {
       if (signal.aborted) return;
       await queryClient.prefetchQuery({
         queryKey: ["featured-listings"],
-        queryFn: () => fetchListings({ limit: 4 }),
+        queryFn: () => fetchListings({ limit: 4 }, signal),
         staleTime: 1000 * 60 * 10, // 10 minutes
       });
     };
@@ -48,7 +48,7 @@ export const usePrefetchData = () => {
       if (signal.aborted) return;
       await queryClient.prefetchQuery({
         queryKey: ["listings", {}],
-        queryFn: () => fetchListings({}),
+        queryFn: () => fetchListings({}, signal),
         staleTime: 1000 * 60 * 5, // 5 minutes
       });
     };
