@@ -197,16 +197,14 @@ const ExplorePage = () => {
         );
       case "rating": {
         return sorted.sort((a, b) => {
-          const avgA =
-            a.reviews && a.reviews.length > 0
-              ? a.reviews.reduce((sum, r) => sum + r.rating, 0) /
-                a.reviews.length
-              : 0;
-          const avgB =
-            b.reviews && b.reviews.length > 0
-              ? b.reviews.reduce((sum, r) => sum + r.rating, 0) /
-                b.reviews.length
-              : 0;
+          const avgA = a.reviews?.length
+            ? a.reviews.reduce((sum, r) => sum + r.rating, 0) /
+              a.reviews.length
+            : 0;
+          const avgB = b.reviews?.length
+            ? b.reviews.reduce((sum, r) => sum + r.rating, 0) /
+              b.reviews.length
+            : 0;
           return avgB - avgA;
         });
       }

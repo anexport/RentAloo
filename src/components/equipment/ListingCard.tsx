@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MapPin, ChevronLeft, ChevronRight, Heart } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight, Heart, Package } from "lucide-react";
 import StarRating from "@/components/reviews/StarRating";
 import type { Listing } from "@/components/equipment/services/listings";
 
@@ -20,6 +20,7 @@ type Props = {
 const ListingCard = ({ listing, onOpen }: Props) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const avgRating = (() => {
     if (!listing.reviews || listing.reviews.length === 0) return 0;
     const validRatings = listing.reviews.filter(
@@ -42,7 +43,9 @@ const ListingCard = ({ listing, onOpen }: Props) => {
     } else {
       setCurrentImageIndex(0);
     }
-  }, [listing.photos]);
+    // Reset image error when listing changes
+    setImageError(false);
+  }, [listing.photos, listing.id]);
 
   const handleOpen = () => {
     if (onOpen) onOpen(listing);
@@ -91,7 +94,7 @@ const ListingCard = ({ listing, onOpen }: Props) => {
             }
           }}
         >
-          {listing.photos && listing.photos.length > 0 ? (
+          {listing.photos && listing.photos.length > 0 && !imageError ? (
             <>
               <img
                 src={listing.photos[currentImageIndex]?.photo_url || ""}
@@ -99,6 +102,7 @@ const ListingCard = ({ listing, onOpen }: Props) => {
                 className="w-full h-full object-cover transition-opacity duration-300"
                 loading="lazy"
                 decoding="async"
+                onError={() => setImageError(true)}
               />
 
               {hasMultipleImages && (
@@ -151,8 +155,11 @@ const ListingCard = ({ listing, onOpen }: Props) => {
               )}
             </>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <span className="text-sm">No image</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted">
+              <Package className="h-12 w-12 mb-2 opacity-50" />
+              <span className="text-sm">
+                {imageError ? "Image unavailable" : "No image"}
+              </span>
             </div>
           )}
 

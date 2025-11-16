@@ -6,6 +6,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Package } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { CATEGORY_NAME_MAX_WIDTH } from "@/config/pagination";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -92,8 +93,9 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     onClick: () => void;
   }) => (
     <button
+      type="button"
       onClick={onClick}
-      aria-label={`Category ${name}`}
+      aria-label={`Filter by ${name}${typeof count === "number" ? `, ${count} items` : ""}`}
       aria-pressed={isActive}
       className={cn(
         "group relative inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full transition-all duration-200 whitespace-nowrap text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -111,7 +113,9 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
       />
 
       {/* Category Name */}
-      <span className="max-w-[140px] truncate">{name}</span>
+      <span className="truncate" style={{ maxWidth: CATEGORY_NAME_MAX_WIDTH }}>
+        {name}
+      </span>
 
       {/* Count Badge */}
       {typeof count === "number" && count > 0 && (
