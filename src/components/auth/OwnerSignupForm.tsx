@@ -530,6 +530,7 @@ const OwnerSignupForm = ({
               <Input
                 id="yearsExperience"
                 type="number"
+                inputMode="numeric"
                 min="1"
                 {...register("yearsExperience", { valueAsNumber: true })}
                 placeholder="5"

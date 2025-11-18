@@ -396,6 +396,7 @@ const EquipmentListingForm = ({
               <Input
                 id="daily_rate"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="1"
                 {...register("daily_rate", { valueAsNumber: true })}
@@ -457,6 +458,7 @@ const EquipmentListingForm = ({
               <Input
                 id="latitude"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 {...register("latitude", { valueAsNumber: true })}
                 placeholder="40.7128"
@@ -468,6 +470,7 @@ const EquipmentListingForm = ({
               <Input
                 id="longitude"
                 type="number"
+                inputMode="decimal"
                 step="any"
                 {...register("longitude", { valueAsNumber: true })}
                 placeholder="-74.0060"
