@@ -2,6 +2,8 @@ import type {
   BookingCalculation,
   AvailabilitySlot,
   BookingConflict,
+  InsuranceType,
+  InsuranceOption,
 } from "../types/booking";
 import { formatDateForStorage } from "./utils";
 
@@ -243,3 +245,45 @@ export const getBookingStatusText = (status: string): string => {
       return "Unknown";
   }
 };
+
+/**
+ * Insurance options available for renters during booking
+ */
+export const INSURANCE_OPTIONS: InsuranceOption[] = [
+  {
+    type: 'none',
+    label: 'No Insurance',
+    coverage: 'No coverage',
+    cost_percentage: 0,
+    description: 'You assume full liability for any damage',
+  },
+  {
+    type: 'basic',
+    label: 'Basic Protection',
+    coverage: 'Up to 50% of equipment value',
+    cost_percentage: 5,
+    description: 'Covers accidental damage up to 50% of equipment value',
+  },
+  {
+    type: 'premium',
+    label: 'Premium Protection',
+    coverage: 'Up to 100% of equipment value',
+    cost_percentage: 10,
+    description: 'Full coverage for accidental damage',
+  },
+];
+
+/**
+ * Calculate insurance cost based on rental subtotal and selected insurance type
+ * @param rentalSubtotal - The base rental cost before fees
+ * @param insuranceType - The type of insurance selected
+ * @returns The insurance cost in dollars
+ */
+export function calculateInsuranceCost(
+  rentalSubtotal: number,
+  insuranceType: InsuranceType
+): number {
+  const option = INSURANCE_OPTIONS.find(opt => opt.type === insuranceType);
+  if (!option) return 0;
+  return Number((rentalSubtotal * option.cost_percentage / 100).toFixed(2));
+}
