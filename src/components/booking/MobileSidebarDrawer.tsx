@@ -43,9 +43,9 @@ export const MobileSidebarDrawer = ({
 }: MobileSidebarDrawerProps) => {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="bottom" 
-        className="h-[85vh] max-h-[85vh] rounded-t-2xl overflow-y-auto"
+      <SheetContent
+        side="bottom"
+        className="h-auto max-h-[min(85dvh,calc(100dvh-4rem))] rounded-t-2xl overflow-y-auto"
       >
         {/* Swipe indicator */}
         <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
