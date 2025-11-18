@@ -91,6 +91,8 @@ $$;
 COMMENT ON FUNCTION public.handle_new_user() IS
   'Automatically creates profile and role-specific profile (renter/owner) when a new user signs up. Uses SECURITY DEFINER to bypass RLS policies during profile creation. Verification is tracked in the base profiles table.';
 
--- Note: The trigger will be automatically recreated by Supabase when the function is created
--- since it uses the same name. If not, the trigger needs to be created via the Supabase Dashboard
--- or with appropriate permissions.
+-- Recreate the trigger (was dropped by CASCADE when function was dropped)
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
