@@ -494,7 +494,7 @@ const EquipmentListingForm = ({
                       onClick={() => {
                         void removeExistingPhoto(url);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -521,7 +521,7 @@ const EquipmentListingForm = ({
                     <button
                       type="button"
                       onClick={() => removePhoto(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-4 w-4" />
                     </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -126,6 +126,14 @@ const RenterSignupForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth();
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    const dialogElement = document.querySelector('[role="dialog"]');
+    if (dialogElement) {
+      dialogElement.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep]);
 
   const {
     register,

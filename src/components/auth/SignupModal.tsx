@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mountain, User, Store } from "lucide-react";
 import {
@@ -23,6 +23,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
   );
   const [showRoleSelection, setShowRoleSelection] = useState(!initialRole);
   const navigate = useNavigate();
+  const dialogContentRef = useRef<HTMLDivElement>(null);
 
   // Handle state updates when modal opens/closes or initialRole changes
   useEffect(() => {
@@ -36,6 +37,14 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
       setShowRoleSelection(false);
     }
   }, [open, initialRole]);
+
+  // Scroll to top when role changes or when returning to role selection
+  useEffect(() => {
+    const dialogElement = document.querySelector('[role="dialog"]');
+    if (dialogElement) {
+      dialogElement.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedRole, showRoleSelection]);
 
   const handleRoleSelect = (role: "renter" | "owner") => {
     setSelectedRole(role);

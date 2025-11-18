@@ -96,6 +96,7 @@ const ListingCard = ({ listing, onOpen }: Props) => {
               <img
                 src={listing.photos[currentImageIndex]?.photo_url || ""}
                 alt={listing.title}
+                loading="lazy"
                 className="w-full h-full object-cover transition-opacity duration-300"
               />
 
@@ -106,7 +107,7 @@ const ListingCard = ({ listing, onOpen }: Props) => {
                     <TooltipTrigger asChild>
                       <button
                         onClick={handlePrevImage}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                         aria-label="Previous image"
                       >
                         <ChevronLeft className="h-5 w-5" />
@@ -118,7 +119,7 @@ const ListingCard = ({ listing, onOpen }: Props) => {
                     <TooltipTrigger asChild>
                       <button
                         onClick={handleNextImage}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                         aria-label="Next image"
                       >
                         <ChevronRight className="h-5 w-5" />
