@@ -160,17 +160,20 @@ export default function HomePage() {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       case "rating": {
-        return sorted.sort((a, b) => {
-          const reviewsA = a.reviews ?? [];
-          const reviewsB = b.reviews ?? [];
-          const avgA = reviewsA.length
-            ? reviewsA.reduce((sum, r) => sum + r.rating, 0) / reviewsA.length
+        // Precompute ratings once to avoid O(n × m × log n) complexity
+        const listingsWithRatings = sorted.map((listing) => {
+          const reviews = listing.reviews ?? [];
+          const avgRating = reviews.length
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
             : 0;
-          const avgB = reviewsB.length
-            ? reviewsB.reduce((sum, r) => sum + r.rating, 0) / reviewsB.length
-            : 0;
-          return avgB - avgA;
+          return { listing, avgRating };
         });
+
+        // Sort using precomputed values (O(n log n))
+        listingsWithRatings.sort((a, b) => b.avgRating - a.avgRating);
+
+        // Extract listings
+        return listingsWithRatings.map(({ listing }) => listing);
       }
       default:
         return sorted;

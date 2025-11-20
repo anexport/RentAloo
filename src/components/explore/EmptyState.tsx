@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, Filter, Package } from "lucide-react";
 import type { ListingsFilters } from "@/components/equipment/services/listings";
+import { DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX } from "@/config/pagination";
 
 type Props = {
   filters: ListingsFilters;
@@ -13,8 +14,8 @@ const EmptyState = ({ filters, onClearFilters }: Props) => {
     filters.search ||
     filters.location ||
     (filters.categoryId && filters.categoryId !== "all") ||
-    filters.priceMin ||
-    filters.priceMax ||
+    (typeof filters.priceMin === "number" && filters.priceMin > DEFAULT_PRICE_MIN) ||
+    (typeof filters.priceMax === "number" && filters.priceMax < DEFAULT_PRICE_MAX) ||
     (filters.condition && filters.condition !== "all");
 
   return (
@@ -60,10 +61,11 @@ const EmptyState = ({ filters, onClearFilters }: Props) => {
                   Category
                 </Badge>
               )}
-              {(filters.priceMin || filters.priceMax) && (
+              {((typeof filters.priceMin === "number" && filters.priceMin > DEFAULT_PRICE_MIN) ||
+                (typeof filters.priceMax === "number" && filters.priceMax < DEFAULT_PRICE_MAX)) && (
                 <Badge variant="secondary" className="px-3 py-1">
                   <Filter className="h-3 w-3 mr-1" />
-                  Price: ${filters.priceMin || 0} - ${filters.priceMax || 500}
+                  Price: ${filters.priceMin ?? DEFAULT_PRICE_MIN} - ${filters.priceMax ?? DEFAULT_PRICE_MAX}
                 </Badge>
               )}
               {filters.condition && filters.condition !== "all" && (

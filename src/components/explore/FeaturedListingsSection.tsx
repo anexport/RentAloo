@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import ListingCard from "@/components/equipment/ListingCard";
@@ -14,6 +15,7 @@ type Props = {
 };
 
 const FeaturedListingsSection = ({ onOpenListing }: Props) => {
+  const navigate = useNavigate();
   const { data: featuredListings, isLoading } = useQuery({
     queryKey: ["featured-listings"],
     queryFn: () => fetchListings({ limit: 10 }),
@@ -43,6 +45,10 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
   const scrollNext = useCallback(() => {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
+
+  const handleViewAll = () => {
+    navigate("/explore");
+  };
 
   // Resume autoplay after manual navigation
   useEffect(() => {
@@ -120,6 +126,14 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              onClick={handleViewAll}
+              className="hidden sm:flex items-center gap-2"
+            >
+              View all
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -136,25 +150,37 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
           </div>
         </div>
 
-        <div className="flex justify-center gap-2 mt-6 sm:hidden">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={scrollPrev}
-            className="h-10 w-10 rounded-full"
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={scrollNext}
-            className="h-10 w-10 rounded-full"
-            aria-label="Next slide"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="mt-6 sm:hidden">
+          <div className="flex justify-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={scrollPrev}
+              className="h-10 w-10 rounded-full"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={scrollNext}
+              className="h-10 w-10 rounded-full"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              onClick={handleViewAll}
+              className="flex items-center gap-2"
+            >
+              View all
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </section>
