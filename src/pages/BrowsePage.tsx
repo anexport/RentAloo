@@ -73,7 +73,8 @@ const BrowsePage = () => {
     null
   );
 
-  // Initialize filters from URL params on mount
+  // Initialize filters from URL params on mount only
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const search = searchParams.get("search");
     const location = searchParams.get("location");
@@ -99,6 +100,7 @@ const BrowsePage = () => {
         }));
       }
     }
+    // Empty deps: intentionally runs only on mount to avoid infinite loop
   }, []);
 
   // Login modal state from URL query param
