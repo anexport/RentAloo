@@ -20,6 +20,7 @@ import FiltersSheet, {
 } from "@/components/explore/FiltersSheet";
 import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
+import ExploreHeader from "@/components/layout/ExploreHeader";
 import EmptyState from "@/components/explore/EmptyState";
 import {
   fetchListings,
@@ -265,6 +266,14 @@ const ExplorePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header with navbar when logged in */}
+      {user && (
+        <ExploreHeader
+          onLoginClick={() => handleLoginOpenChange(true)}
+          onSignupClick={() => handleSignupOpenChange(true)}
+        />
+      )}
+
       {/* Sticky Header with Search */}
       <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

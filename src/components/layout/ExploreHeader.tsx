@@ -2,9 +2,29 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Mountain, User, Settings, LogOut, Home, Package } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Menu,
+  Mountain,
+  User,
+  Settings,
+  LogOut,
+  Package,
+  Home,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
 import { toast } from "@/hooks/useToast";
@@ -15,7 +35,11 @@ type Props = {
   onSignupClick?: () => void;
 };
 
-const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupClick }: Props) => {
+const ExploreHeader = ({
+  scrolled: controlledScrolled,
+  onLoginClick,
+  onSignupClick,
+}: Props) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -31,7 +55,8 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
     return () => window.removeEventListener("scroll", handleScroll);
   }, [controlledScrolled]);
 
-  const scrolled = controlledScrolled !== undefined ? controlledScrolled : isScrolled;
+  const scrolled =
+    controlledScrolled !== undefined ? controlledScrolled : isScrolled;
 
   const handleSignOut = async () => {
     try {
@@ -48,7 +73,8 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
       void navigate("/");
     } catch (err) {
       console.error("Unexpected sign out error:", err);
-      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       toast({
         title: "Sign out failed",
         description: message,
@@ -80,37 +106,46 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost" asChild>
-                  <Link to="/">Explore</Link>
-                </Button>
-                <Button variant="secondary" asChild>
-                  <Link to="/owner/dashboard">List your equipment</Link>
-                </Button>
                 <ThemeToggle variant="icon" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Button
+                      variant="ghost"
+                      className="relative h-10 w-10 rounded-full"
+                    >
                       <Avatar>
-                        <AvatarImage src={user.user_metadata?.avatar_url || ""} alt={user.email || ""} />
+                        <AvatarImage
+                          src={user.user_metadata?.avatar_url || ""}
+                          alt={user.email || ""}
+                        />
                         <AvatarFallback>{getUserInitials()}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem asChild>
-                      <Link to="/renter/dashboard" className="flex items-center cursor-pointer">
+                      <Link
+                        to="/renter/dashboard"
+                        className="flex items-center cursor-pointer"
+                      >
                         <Home className="mr-2 h-4 w-4" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/owner/dashboard" className="flex items-center cursor-pointer">
+                      <Link
+                        to="/owner/dashboard"
+                        className="flex items-center cursor-pointer"
+                      >
                         <Package className="mr-2 h-4 w-4" />
                         My Equipment
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/settings" className="flex items-center cursor-pointer">
+                      <Link
+                        to="/settings"
+                        className="flex items-center cursor-pointer"
+                      >
                         <Settings className="mr-2 h-4 w-4" />
                         Settings
                       </Link>
@@ -134,9 +169,7 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
                 <Button variant="ghost" onClick={() => onLoginClick?.()}>
                   Sign In
                 </Button>
-                <Button onClick={() => onSignupClick?.()}>
-                  Get Started
-                </Button>
+                <Button onClick={() => onSignupClick?.()}>Get Started</Button>
               </>
             )}
           </div>
@@ -159,19 +192,16 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
                     <>
                       <div className="flex items-center space-x-3 pb-4 border-b">
                         <Avatar>
-                          <AvatarImage src={user.user_metadata?.avatar_url || ""} alt={user.email || ""} />
+                          <AvatarImage
+                            src={user.user_metadata?.avatar_url || ""}
+                            alt={user.email || ""}
+                          />
                           <AvatarFallback>{getUserInitials()}</AvatarFallback>
                         </Avatar>
                         <div className="text-sm">
                           <div className="font-medium">{user.email}</div>
                         </div>
                       </div>
-                      <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/">
-                          <Home className="mr-2 h-4 w-4" />
-                          Explore
-                        </Link>
-                      </Button>
                       <Button variant="ghost" className="justify-start" asChild>
                         <Link to="/renter/dashboard">
                           <User className="mr-2 h-4 w-4" />
@@ -210,7 +240,10 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
                       >
                         Sign In
                       </Button>
-                      <Button className="justify-start" onClick={() => onSignupClick?.()}>
+                      <Button
+                        className="justify-start"
+                        onClick={() => onSignupClick?.()}
+                      >
                         Get Started
                       </Button>
                     </>
@@ -226,4 +259,3 @@ const ExploreHeader = ({ scrolled: controlledScrolled, onLoginClick, onSignupCli
 };
 
 export default ExploreHeader;
-

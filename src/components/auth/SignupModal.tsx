@@ -31,7 +31,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
     if (!dialogElementRef.current) {
       dialogElementRef.current = document.querySelector('[role="dialog"]');
     }
-    dialogElementRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    dialogElementRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   // Handle state updates when modal opens/closes or initialRole changes
