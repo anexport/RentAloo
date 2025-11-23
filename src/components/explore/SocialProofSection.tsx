@@ -15,7 +15,7 @@ const testimonials = [
     name: "James Chen",
     role: "Weekend Warrior",
     rating: 5,
-    text: "As someone who loves trying new sports, Rentaloo is perfect. I've rented everything from kayaks to camping gear without breaking the bank.",
+    text: "As someone who loves trying new sports, RentAloo is perfect. I've rented everything from kayaks to camping gear without breaking the bank.",
     initials: "JC",
   },
   {
@@ -43,7 +43,7 @@ const SocialProofSection = () => {
             Loved by adventurers everywhere
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of happy renters and owners in the Rentaloo
+            Join thousands of happy renters and owners in the RentAloo
             community
           </p>
         </div>

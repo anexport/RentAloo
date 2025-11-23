@@ -73,41 +73,22 @@ export default function ClaimFilingForm({
   const uploadFile = async (
     file: File,
     fileName: string,
-    primaryBucket = "claim-evidence",
-    fallbackBucket = "inspection-photos"
+    bucketName = "claim-evidence"
   ): Promise<string> => {
-    // Try primary bucket
-    const { error: uploadError } = await supabase.storage
-      .from(primaryBucket)
-      .upload(fileName, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+    const { error: uploadError } = await supabase.storage.from(bucketName).upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
 
     if (uploadError) {
-      // Try fallback bucket
-      const { error: fallbackError } = await supabase.storage
-        .from(fallbackBucket)
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (fallbackError) {
-        throw new Error(`Failed to upload file ${fileName}: ${fallbackError.message}`);
-      }
-
-      // Return URL from fallback bucket
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(fallbackBucket).getPublicUrl(fileName);
-      return publicUrl;
+      throw new Error(
+        `Storage upload failed for ${fileName}: ${uploadError.message}. Please contact support.`
+      );
     }
 
-    // Return URL from primary bucket
     const {
       data: { publicUrl },
-    } = supabase.storage.from(primaryBucket).getPublicUrl(fileName);
+    } = supabase.storage.from(bucketName).getPublicUrl(fileName);
     return publicUrl;
   };
 

@@ -139,6 +139,11 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
                 </div>
               </button>
 
+              {/* Reassuring message about role flexibility */}
+              <p className="text-sm text-muted-foreground text-center pt-2">
+                Don't worry - you can always switch roles or add the other role later in your account settings.
+              </p>
+
               {/* Login Link */}
               <div className="text-center pt-4">
                 <p className="text-sm text-muted-foreground">

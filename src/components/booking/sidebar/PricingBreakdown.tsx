@@ -17,7 +17,22 @@ const PricingBreakdown = ({
   endDate,
   insuranceType,
 }: PricingBreakdownProps) => {
-  const hasInsurance = calculation && calculation.insurance > 0;
+  const hasInsurance = Boolean(
+    calculation &&
+      calculation.insurance > 0 &&
+      insuranceType &&
+      insuranceType !== "none",
+  );
+  const insuranceLabel =
+    insuranceType === "basic"
+      ? "Basic"
+      : insuranceType === "premium"
+        ? "Premium"
+        : "Insurance";
+  const displayInsuranceLabel =
+    insuranceLabel === "Insurance"
+      ? insuranceLabel
+      : `Insurance (${insuranceLabel})`;
   const hasDeposit = calculation && calculation.deposit > 0;
 
   return (
@@ -41,7 +56,7 @@ const PricingBreakdown = ({
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Daily Rate:</dt>
-              <dd className="font-medium">${calculation.dailyRate}</dd>
+              <dd className="font-medium">${calculation.dailyRate.toFixed(2)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">
@@ -60,7 +75,7 @@ const PricingBreakdown = ({
               <div className="flex justify-between">
                 <dt className="flex items-center gap-1 text-muted-foreground">
                   <Shield className="h-3 w-3" />
-                  Insurance ({insuranceType === 'basic' ? 'Basic' : 'Premium'}):
+                  {displayInsuranceLabel}:
                 </dt>
                 <dd className="font-medium">${calculation.insurance.toFixed(2)}</dd>
               </div>
@@ -107,4 +122,3 @@ const PricingBreakdown = ({
 };
 
 export default PricingBreakdown;
-

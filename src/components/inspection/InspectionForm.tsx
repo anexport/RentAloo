@@ -13,7 +13,6 @@ import type { InspectionType, ChecklistItem } from "@/types/inspection";
 
 interface InspectionFormProps {
   bookingId: string;
-  equipmentId: string;
   categorySlug?: string;
   inspectionType: InspectionType;
   isOwner: boolean;
@@ -23,7 +22,6 @@ interface InspectionFormProps {
 
 export default function InspectionForm({
   bookingId,
-  equipmentId,
   categorySlug,
   inspectionType,
   isOwner,

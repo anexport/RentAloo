@@ -67,6 +67,7 @@ export type ListingsFilters = {
   location?: string;
   condition?: Database["public"]["Enums"]["equipment_condition"] | "all";
   limit?: number;
+  verified?: boolean;
 };
 
 export const fetchListings = async (
@@ -171,7 +172,14 @@ export const fetchListings = async (
     return { ...item, reviews };
   });
 
-  return listingsWithReviews;
+  let finalListings = listingsWithReviews;
+  if (filters.verified) {
+    finalListings = finalListings.filter(
+      (listing) => listing.owner?.identity_verified === true
+    );
+  }
+
+  return finalListings;
 };
 
 export const fetchListingById = async (id: string): Promise<Listing | null> => {

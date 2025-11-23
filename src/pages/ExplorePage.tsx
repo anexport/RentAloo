@@ -232,6 +232,10 @@ const ExplorePage = () => {
       filters.location = debouncedFilters.location.trim();
     }
 
+    if (searchFilters.condition && searchFilters.condition !== "all") {
+      filters.condition = searchFilters.condition;
+    }
+
     if (categoryId !== "all") {
       filters.categoryId = categoryId;
     }
@@ -244,8 +248,18 @@ const ExplorePage = () => {
       filters.priceMax = filterValues.priceRange[1];
     }
 
+    if (filterValues.verified) {
+      filters.verified = true;
+    }
+
     return filters;
-  }, [debouncedFilters, categoryId, filterValues.priceRange]);
+  }, [
+    debouncedFilters,
+    searchFilters.condition,
+    categoryId,
+    filterValues.priceRange,
+    filterValues.verified,
+  ]);
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["listings", effectiveFilters],
@@ -327,6 +341,12 @@ const ExplorePage = () => {
       verified: false,
     });
     setCategoryId("all");
+
+    const clearedParams = new URLSearchParams(searchParams);
+    ["search", "location", "category", "priceMin", "priceMax"].forEach(
+      (param) => clearedParams.delete(param)
+    );
+    setSearchParams(clearedParams, { replace: true });
   };
 
   return (

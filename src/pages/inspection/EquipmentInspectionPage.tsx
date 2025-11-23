@@ -163,7 +163,6 @@ export default function EquipmentInspectionPage() {
           <CardContent>
             <InspectionForm
               bookingId={booking.id}
-              equipmentId={booking.equipment_id}
               categorySlug={booking.equipment?.category?.slug}
               inspectionType={inspectionType}
               isOwner={isOwner}

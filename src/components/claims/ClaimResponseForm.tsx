@@ -52,6 +52,12 @@ export default function ClaimResponseForm({
       return;
     }
 
+    const immutableStatuses: Array<ClaimStatus | "closed"> = ["accepted", "resolved", "closed"];
+    if (immutableStatuses.includes(claim.status)) {
+      setError("This claim has already been resolved and can no longer be updated.");
+      return;
+    }
+
     if (action === "negotiate") {
       if (!counterOffer) {
         setError("Please enter a counter offer amount");
@@ -122,10 +128,8 @@ export default function ClaimResponseForm({
         onSuccess();
       }, 1500);
     } catch (err) {
-      console.error("Error responding to claim:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to submit response. Please try again."
-      );
+      console.error(err);
+      setError("We couldn't submit your response. Please try again or contact support.");
     } finally {
       setIsSubmitting(false);
     }

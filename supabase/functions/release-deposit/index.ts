@@ -156,20 +156,60 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Atomically move deposit to "releasing" to prevent concurrent refunds
+    const {
+      data: depositLock,
+      error: depositLockErr,
+    } = await supabase
+      .from("payments")
+      .update({ deposit_status: "releasing" })
+      .eq("id", payment.id)
+      .eq("deposit_status", "held")
+      .select("id")
+      .maybeSingle();
+
+    if (depositLockErr) {
+      console.error("Error locking payment for deposit release:", depositLockErr);
+      return new Response(
+        JSON.stringify({ error: "Failed to reserve deposit for release" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!depositLock) {
+      return new Response(
+        JSON.stringify({ error: "Deposit already being released" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Process Stripe partial refund for deposit amount only
     try {
-      await stripe.refunds.create({
-        payment_intent: payment.stripe_payment_intent_id,
-        amount: Math.round(payment.deposit_amount * 100), // Convert to cents
-        reason: "requested_by_customer",
-        metadata: {
-          type: "deposit_release",
-          booking_id: bookingId,
-          released_by: user.id,
+      await stripe.refunds.create(
+        {
+          payment_intent: payment.stripe_payment_intent_id,
+          amount: Math.round(payment.deposit_amount * 100), // Convert to cents
+          reason: "requested_by_customer",
+          metadata: {
+            type: "deposit_release",
+            booking_id: bookingId,
+            released_by: user.id,
+          },
         },
-      });
+        {
+          idempotencyKey: `deposit_release_${payment.id}`,
+        }
+      );
     } catch (stripeError) {
       console.error("Stripe refund error:", stripeError);
+      const { error: resetErr } = await supabase
+        .from("payments")
+        .update({ deposit_status: "held" })
+        .eq("id", payment.id)
+        .eq("deposit_status", "releasing");
+      if (resetErr) {
+        console.error("Failed to reset deposit status after Stripe error:", resetErr);
+      }
       return new Response(
         JSON.stringify({
           error: "Refund failed",
@@ -186,20 +226,23 @@ Deno.serve(async (req) => {
     }
 
     // Update payment record
-    const { error: updateErr } = await supabase
+    const { data: releasedPayment, error: updateErr } = await supabase
       .from("payments")
       .update({
         deposit_status: "released",
         deposit_released_at: new Date().toISOString(),
       })
-      .eq("id", payment.id);
+      .eq("id", payment.id)
+      .eq("deposit_status", "releasing")
+      .select("id")
+      .maybeSingle();
 
-    if (updateErr) {
+    if (updateErr || !releasedPayment) {
       console.error("Error updating payment after deposit release:", updateErr);
       return new Response(
         JSON.stringify({
           error: "Failed to update payment record",
-          message: updateErr.message,
+          message: updateErr ? updateErr.message : "Deposit status not updated",
         }),
         {
           status: 500,

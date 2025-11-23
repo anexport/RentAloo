@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,17 @@ export default function PhotoCapture({
       onPhotosChange,
       maxPhotos,
     });
+
+  const handleAddPhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAddPhotoKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -56,8 +68,12 @@ export default function PhotoCapture({
 
         {photos.length < maxPhotos && (
           <Card
+            role="button"
+            tabIndex={0}
+            aria-label="Add a new equipment photo"
             className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleAddPhotoClick}
+            onKeyDown={handleAddPhotoKeyDown}
           >
             <Camera className="h-8 w-8 mb-2 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Add Photo</span>
