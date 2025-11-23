@@ -37,14 +37,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronRight } from "lucide-react";
+import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type SortOption =
-  | "recommended"
-  | "price-low"
-  | "price-high"
-  | "newest"
-  | "rating";
+type QueryParamSnapshot = {
+  search: string | null;
+  location: string | null;
+  category: string | null;
+  priceMin: string | null;
+  priceMax: string | null;
+};
 
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -65,7 +67,6 @@ const ExplorePage = () => {
   const [filterValues, setFilterValues] = useState<FilterValues>({
     priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
     conditions: [],
-    equipmentTypes: [],
     verified: false,
   });
 
@@ -74,43 +75,109 @@ const ExplorePage = () => {
     null
   );
 
-  // Track if we've initialized from URL params
-  const hasInitialized = useRef(false);
+  // Track the last URL filters we synced so we only react to actual changes
+  const queryParamSnapshotRef = useRef<QueryParamSnapshot | null>(null);
 
-  // Initialize filters from URL params once on mount
+  // Keep filters in sync with URL params without clobbering local edits
   useEffect(() => {
-    // Only initialize once
-    if (hasInitialized.current) return;
+    const nextSnapshot: QueryParamSnapshot = {
+      search: searchParams.get("search"),
+      location: searchParams.get("location"),
+      category: searchParams.get("category"),
+      priceMin: searchParams.get("priceMin"),
+      priceMax: searchParams.get("priceMax"),
+    };
 
-    const search = searchParams.get("search");
-    const location = searchParams.get("location");
-    const category = searchParams.get("category");
-    const priceMin = searchParams.get("priceMin");
-    const priceMax = searchParams.get("priceMax");
+    const prevSnapshot = queryParamSnapshotRef.current;
+    const snapshotChanged =
+      !prevSnapshot ||
+      prevSnapshot.search !== nextSnapshot.search ||
+      prevSnapshot.location !== nextSnapshot.location ||
+      prevSnapshot.category !== nextSnapshot.category ||
+      prevSnapshot.priceMin !== nextSnapshot.priceMin ||
+      prevSnapshot.priceMax !== nextSnapshot.priceMax;
 
-    if (search || location || category || priceMin || priceMax) {
-      setSearchFilters((prev) => ({
-        ...prev,
-        search: search || prev.search,
-        location: location || prev.location,
-      }));
+    if (!snapshotChanged) return;
 
-      if (category) setCategoryId(category);
-      if (priceMin || priceMax) {
-        const minPrice = priceMin ? parseInt(priceMin) : DEFAULT_PRICE_MIN;
-        const maxPrice = priceMax ? parseInt(priceMax) : DEFAULT_PRICE_MAX;
+    queryParamSnapshotRef.current = nextSnapshot;
 
-        // Validate that priceMin <= priceMax
-        setFilterValues((prev) => ({
-          ...prev,
-          priceRange: [
-            Math.min(minPrice, maxPrice),
-            Math.max(minPrice, maxPrice),
-          ],
-        }));
+    const searchChanged = prevSnapshot?.search !== nextSnapshot.search;
+    const locationChanged = prevSnapshot?.location !== nextSnapshot.location;
+    const categoryChanged = prevSnapshot?.category !== nextSnapshot.category;
+    const priceChanged =
+      prevSnapshot?.priceMin !== nextSnapshot.priceMin ||
+      prevSnapshot?.priceMax !== nextSnapshot.priceMax;
+
+    if (searchChanged || locationChanged) {
+      setSearchFilters((prev) => {
+        const next = { ...prev };
+        let hasChanges = false;
+
+        if (searchChanged) {
+          const nextSearch = nextSnapshot.search ?? "";
+          if (next.search !== nextSearch) {
+            next.search = nextSearch;
+            hasChanges = true;
+          }
+        }
+
+        if (locationChanged) {
+          const nextLocation = nextSnapshot.location ?? "";
+          if (next.location !== nextLocation) {
+            next.location = nextLocation;
+            hasChanges = true;
+          }
+        }
+
+        return hasChanges ? next : prev;
+      });
+    }
+
+    if (categoryChanged) {
+      setCategoryId(nextSnapshot.category ?? "all");
+    }
+
+    if (priceChanged) {
+      const parsePrice = (value: string | null, fallback: number) => {
+        if (!value) return fallback;
+        const parsed = Number.parseInt(value, 10);
+        return Number.isNaN(parsed) ? fallback : parsed;
+      };
+
+      if (!nextSnapshot.priceMin && !nextSnapshot.priceMax) {
+        setFilterValues((prev) => {
+          const [currentMin, currentMax] = prev.priceRange;
+          if (
+            currentMin === DEFAULT_PRICE_MIN &&
+            currentMax === DEFAULT_PRICE_MAX
+          ) {
+            return prev;
+          }
+          return {
+            ...prev,
+            priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
+          };
+        });
+      } else {
+        const minPrice = parsePrice(nextSnapshot.priceMin, DEFAULT_PRICE_MIN);
+        const maxPrice = parsePrice(nextSnapshot.priceMax, DEFAULT_PRICE_MAX);
+
+        const nextRange: [number, number] = [
+          Math.min(minPrice, maxPrice),
+          Math.max(minPrice, maxPrice),
+        ];
+
+        setFilterValues((prev) => {
+          const [currentMin, currentMax] = prev.priceRange;
+          if (currentMin === nextRange[0] && currentMax === nextRange[1]) {
+            return prev;
+          }
+          return {
+            ...prev,
+            priceRange: nextRange,
+          };
+        });
       }
-
-      hasInitialized.current = true;
     }
   }, [searchParams]);
 
@@ -240,7 +307,6 @@ const ExplorePage = () => {
       count++;
     }
     if (filterValues.conditions.length > 0) count++;
-    if (filterValues.equipmentTypes.length > 0) count++;
     if (filterValues.verified) count++;
     return count;
   }, [filterValues]);
@@ -258,7 +324,6 @@ const ExplorePage = () => {
     setFilterValues({
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
       conditions: [],
-      equipmentTypes: [],
       verified: false,
     });
     setCategoryId("all");

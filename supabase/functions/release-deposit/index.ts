@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Deposit of $${payment.deposit_amount.toFixed(2)} has been released`,
+        message: `Deposit of $${Number(payment.deposit_amount).toFixed(2)} has been released`,
       }),
       {
         status: 200,

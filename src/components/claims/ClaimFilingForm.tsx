@@ -59,11 +59,56 @@ export default function ClaimFilingForm({
       setError("Please upload at least 2 evidence photos");
       return false;
     }
+    if (evidencePhotos.length > 10) {
+      setError("Maximum 10 evidence photos allowed");
+      return false;
+    }
     if (requiresQuote && repairQuotes.length === 0) {
       setError("Repair quote required for claims over $100");
       return false;
     }
     return true;
+  };
+
+  const uploadFile = async (
+    file: File,
+    fileName: string,
+    primaryBucket = "claim-evidence",
+    fallbackBucket = "inspection-photos"
+  ): Promise<string> => {
+    // Try primary bucket
+    const { error: uploadError } = await supabase.storage
+      .from(primaryBucket)
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      // Try fallback bucket
+      const { error: fallbackError } = await supabase.storage
+        .from(fallbackBucket)
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (fallbackError) {
+        throw new Error(`Failed to upload file ${fileName}: ${fallbackError.message}`);
+      }
+
+      // Return URL from fallback bucket
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(fallbackBucket).getPublicUrl(fileName);
+      return publicUrl;
+    }
+
+    // Return URL from primary bucket
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(primaryBucket).getPublicUrl(fileName);
+    return publicUrl;
   };
 
   const handleSubmit = async () => {
@@ -85,37 +130,8 @@ export default function ClaimFilingForm({
         const file = evidencePhotos[i];
         const fileExt = file.name.split(".").pop() || "jpg";
         const fileName = `${user.id}/${bookingId}/claim/${Date.now()}_${i}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("claim-evidence")
-          .upload(fileName, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          // Try inspection-photos bucket as fallback
-          const { error: fallbackError } = await supabase.storage
-            .from("inspection-photos")
-            .upload(fileName, file, {
-              cacheControl: "3600",
-              upsert: false,
-            });
-
-          if (fallbackError) {
-            throw new Error(`Failed to upload photo ${i + 1}`);
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("inspection-photos").getPublicUrl(fileName);
-          photoUrls.push(publicUrl);
-        } else {
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("claim-evidence").getPublicUrl(fileName);
-          photoUrls.push(publicUrl);
-        }
+        const publicUrl = await uploadFile(file, fileName);
+        photoUrls.push(publicUrl);
       }
 
       // Upload repair quotes
@@ -124,37 +140,8 @@ export default function ClaimFilingForm({
         const file = repairQuotes[i];
         const fileExt = file.name.split(".").pop() || "pdf";
         const fileName = `${user.id}/${bookingId}/quotes/${Date.now()}_${i}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("claim-evidence")
-          .upload(fileName, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          // Try inspection-photos bucket as fallback
-          const { error: fallbackError } = await supabase.storage
-            .from("inspection-photos")
-            .upload(fileName, file, {
-              cacheControl: "3600",
-              upsert: false,
-            });
-
-          if (fallbackError) {
-            throw new Error(`Failed to upload quote ${i + 1}`);
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("inspection-photos").getPublicUrl(fileName);
-          quoteUrls.push(publicUrl);
-        } else {
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from("claim-evidence").getPublicUrl(fileName);
-          quoteUrls.push(publicUrl);
-        }
+        const publicUrl = await uploadFile(file, fileName);
+        quoteUrls.push(publicUrl);
       }
 
       // Create claim record
@@ -258,6 +245,7 @@ export default function ClaimFilingForm({
         photos={evidencePhotos}
         onPhotosChange={setEvidencePhotos}
         pickupPhotos={pickupPhotos}
+        maxPhotos={10}
       />
 
       <RepairQuoteUpload

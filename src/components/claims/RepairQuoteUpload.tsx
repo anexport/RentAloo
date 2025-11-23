@@ -70,6 +70,7 @@ export default function RepairQuoteUpload({
               variant="ghost"
               size="icon"
               onClick={() => removeQuote(index)}
+              aria-label={`Remove quote ${index + 1}`}
             >
               <X className="h-4 w-4" />
             </Button>

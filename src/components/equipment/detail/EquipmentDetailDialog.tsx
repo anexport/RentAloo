@@ -38,7 +38,7 @@ import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
-import { calculateBookingTotal, checkBookingConflicts, calculateInsuranceCost } from "@/lib/booking";
+import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
 import { formatDateForStorage } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
@@ -53,6 +53,22 @@ const hasCategory = (
   listing: Listing | undefined
 ): listing is Listing & { category: NonNullable<Listing["category"]> } => {
   return !!listing?.category;
+};
+
+const calculateDamageDeposit = (equipment?: Listing | null): number => {
+  if (!equipment) return 0;
+
+  if (equipment.damage_deposit_amount) {
+    return equipment.damage_deposit_amount;
+  }
+
+  if (equipment.damage_deposit_percentage) {
+    return (
+      equipment.daily_rate * (equipment.damage_deposit_percentage / 100)
+    );
+  }
+
+  return 0;
 };
 
 const EquipmentDetailDialog = ({
@@ -146,10 +162,7 @@ const EquipmentDetailDialog = ({
       if (!data) return;
 
       // Calculate damage deposit from equipment settings
-      const damageDeposit = data.damage_deposit_amount
-        || (data.damage_deposit_percentage
-          ? (data.daily_rate * (data.damage_deposit_percentage / 100))
-          : 0);
+      const damageDeposit = calculateDamageDeposit(data);
 
       const newCalculation = calculateBookingTotal(
         data.daily_rate,
@@ -345,16 +358,8 @@ const EquipmentDetailDialog = ({
       const startDate = formatDateForStorage(dateRange.from);
       const endDate = formatDateForStorage(dateRange.to);
 
-      // Calculate insurance cost
-      const insuranceCost = calculation?.subtotal
-        ? calculateInsuranceCost(calculation.subtotal, selectedInsurance)
-        : 0;
-
       // Calculate damage deposit from equipment settings
-      const damageDeposit = data.damage_deposit_amount
-        || (data.damage_deposit_percentage
-          ? (data.daily_rate * (data.damage_deposit_percentage / 100))
-          : 0);
+      const damageDeposit = calculateDamageDeposit(data);
 
       const bookingData = {
         equipment_id: data.id,
@@ -365,7 +370,7 @@ const EquipmentDetailDialog = ({
         status: "pending" as const,
         message: null,
         insurance_type: selectedInsurance,
-        insurance_cost: insuranceCost,
+        insurance_cost: calculation?.insurance || 0,
         damage_deposit_amount: damageDeposit,
       };
 
@@ -512,6 +517,8 @@ const EquipmentDetailDialog = ({
         </div>
       );
     }
+
+    const damageDeposit = calculateDamageDeposit(data);
 
     return (
       <div className="space-y-6">
@@ -719,10 +726,7 @@ const EquipmentDetailDialog = ({
                     }
                     onCalculationChange={handleCalculationChange}
                     insuranceType={selectedInsurance}
-                    depositAmount={data.damage_deposit_amount
-                      || (data.damage_deposit_percentage
-                        ? (data.daily_rate * (data.damage_deposit_percentage / 100))
-                        : undefined)}
+                    depositAmount={damageDeposit || undefined}
                   />
                 )}
               </TabsContent>

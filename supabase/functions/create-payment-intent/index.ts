@@ -12,6 +12,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Keep currency math normalized to cents to avoid floating point drift
+const roundToTwo = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -74,7 +78,7 @@ Deno.serve(async (req) => {
     const { data: br, error: brErr } = await supabase
       .from("booking_requests")
       .select(
-        "id, renter_id, total_amount, status, start_date, end_date, insurance_type, insurance_cost, damage_deposit_amount, equipment:equipment(id, owner_id, daily_rate, damage_deposit_amount, damage_deposit_percentage)"
+        "id, renter_id, total_amount, status, start_date, end_date, insurance_type, insurance_cost, damage_deposit_amount, equipment:equipment(id, owner_id)"
       )
       .eq("id", bookingRequestId)
       .single();
@@ -94,11 +98,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get owner_id from equipment
-    const ownerId = (br.equipment as { owner_id?: string })?.owner_id || null;
+    // Verify booking request is pending (instant booking flow: pending → payment → approved)
+    // Reject payment for already approved, declined, cancelled, or completed bookings
+    if (br.status !== 'pending') {
+      const message = br.status === 'approved'
+        ? "This booking has already been paid for"
+        : `Cannot process payment for ${br.status} booking request`;
+      return new Response(
+        JSON.stringify({ error: message }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Get equipment ownership context
+    const equipment = br.equipment as { id?: string; owner_id?: string } | null;
+    const ownerId = equipment?.owner_id ?? null;
+    const equipmentId = equipment?.id ?? null;
+
     if (!ownerId) {
       return new Response(
         JSON.stringify({ error: "Equipment owner not found" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!equipmentId) {
+      return new Response(
+        JSON.stringify({ error: "Equipment not found" }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -112,7 +144,7 @@ Deno.serve(async (req) => {
     const { data: conflictCheck, error: conflictError } = await supabase.rpc(
       "check_booking_conflicts",
       {
-        p_equipment_id: (br.equipment as { id: string }).id,
+        p_equipment_id: equipmentId,
         p_start_date: br.start_date,
         p_end_date: br.end_date,
         p_exclude_booking_id: br.id, // Exclude current booking request
@@ -202,37 +234,52 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Calculate payment breakdown (mirror src/lib/payment.ts)
-    const rentalSubtotal = Number(br.total_amount);
-    const service_fee = Number((rentalSubtotal * 0.05).toFixed(2));
-    const tax = 0;
-
-    // Calculate deposit based on equipment configuration
-    const equipment = br.equipment as {
-      id: string;
-      owner_id: string;
-      daily_rate: number;
-      damage_deposit_amount?: number | null;
-      damage_deposit_percentage?: number | null;
-    };
-
-    let depositAmount = 0;
-    if (br.damage_deposit_amount) {
-      // Use pre-calculated deposit from booking_request (if set during booking)
-      depositAmount = Number(br.damage_deposit_amount);
-    } else if (equipment.damage_deposit_amount) {
-      // Use fixed deposit amount from equipment
-      depositAmount = Number(equipment.damage_deposit_amount);
-    } else if (equipment.damage_deposit_percentage) {
-      // Calculate percentage-based deposit
-      depositAmount = Number((equipment.daily_rate * equipment.damage_deposit_percentage / 100).toFixed(2));
+    const bookingTotal = Number(br.total_amount);
+    if (!Number.isFinite(bookingTotal) || bookingTotal <= 0) {
+      console.error("Invalid booking total snapshot", {
+        bookingRequestId: br.id,
+        bookingTotal,
+      });
+      return new Response(
+        JSON.stringify({
+          error: "Booking total is invalid. Please refresh and try again.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Get insurance cost (should already be calculated in booking_request)
-    const insuranceAmount = Number(br.insurance_cost || 0);
+    const insuranceAmount = roundToTwo(Number(br.insurance_cost ?? 0));
+    const depositAmount = roundToTwo(Number(br.damage_deposit_amount ?? 0));
+    const subtotalBeforeFees = roundToTwo(
+      bookingTotal - insuranceAmount - depositAmount
+    );
 
-    // Total includes rental, fees, insurance, and deposit
-    const total = Number((rentalSubtotal + service_fee + tax + insuranceAmount + depositAmount).toFixed(2));
+    if (!Number.isFinite(subtotalBeforeFees) || subtotalBeforeFees < 0) {
+      console.error("Booking totals are inconsistent", {
+        bookingRequestId: br.id,
+        bookingTotal,
+        insuranceAmount,
+        depositAmount,
+      });
+      return new Response(
+        JSON.stringify({
+          error:
+            "Booking totals no longer match the quote. Please contact support.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const rentalSubtotal = roundToTwo(subtotalBeforeFees / 1.05);
+    const service_fee = roundToTwo(subtotalBeforeFees - rentalSubtotal);
+    const tax = 0;
+    const total = bookingTotal;
 
     // Create PaymentIntent
     const pi = await stripe.paymentIntents.create({

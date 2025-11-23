@@ -58,7 +58,7 @@ export default function EquipmentInspectionPage() {
               id,
               title,
               owner_id,
-              category:categories(name)
+              category:categories(slug)
             )
           `
           )

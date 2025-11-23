@@ -39,6 +39,8 @@ export default function FileClaimPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      // Clear stale errors before starting another fetch attempt
+      setError("");
       if (!bookingId || !user) {
         setError("Invalid booking or not authenticated");
         setLoading(false);
@@ -122,6 +124,9 @@ export default function FileClaimPage() {
         if (inspectionData) {
           setPickupPhotos((inspectionData as InspectionDetails).photos || []);
         }
+
+        // Ensure any previous error is cleared after a successful load
+        setError("");
       } catch (err) {
         console.error("Error fetching booking:", err);
         setError("Failed to load booking details");

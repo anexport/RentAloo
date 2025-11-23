@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 
 interface PhotoCaptureProps {
   photos: File[];
@@ -16,35 +16,12 @@ export default function PhotoCapture({
   minPhotos = 3,
   maxPhotos = 10,
 }: PhotoCaptureProps) {
-  const [previews, setPreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const newPhotos = files.slice(0, maxPhotos - photos.length);
-    onPhotosChange([...photos, ...newPhotos]);
-
-    newPhotos.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setPreviews((prev) => [...prev, reader.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
+  const { previews, fileInputRef, handleFileSelect, removePhoto } =
+    usePhotoUpload({
+      photos,
+      onPhotosChange,
+      maxPhotos,
     });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    onPhotosChange(photos.filter((_, i) => i !== index));
-    setPreviews(previews.filter((_, i) => i !== index));
-  };
 
   return (
     <div className="space-y-4">

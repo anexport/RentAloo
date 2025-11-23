@@ -101,7 +101,6 @@ export default function HomePage() {
   const [filterValues, setFilterValues] = useState<FilterValues>({
     priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
     conditions: [],
-    equipmentTypes: [],
     verified: false,
   });
 
@@ -176,14 +175,37 @@ export default function HomePage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Sort listings
-  const sortedListings = useMemo(() => {
+  // Apply client-side filters (conditions, verified)
+  const clientFilteredListings = useMemo(() => {
     if (!data) return [];
 
-    // Early return for recommended to avoid unnecessary array copy
-    if (sortBy === "recommended") return data;
+    let filtered = data;
 
-    const sorted = [...data];
+    // Filter by conditions (if any selected)
+    if (filterValues.conditions.length > 0) {
+      filtered = filtered.filter((listing) =>
+        filterValues.conditions.includes(listing.condition)
+      );
+    }
+
+    // Filter by owner verification
+    if (filterValues.verified) {
+      filtered = filtered.filter(
+        (listing) => listing.owner?.identity_verified === true
+      );
+    }
+
+    return filtered;
+  }, [data, filterValues.conditions, filterValues.verified]);
+
+  // Sort listings
+  const sortedListings = useMemo(() => {
+    if (!clientFilteredListings) return [];
+
+    // Early return for recommended to avoid unnecessary array copy
+    if (sortBy === "recommended") return clientFilteredListings;
+
+    const sorted = [...clientFilteredListings];
 
     switch (sortBy) {
       case "price-low":
@@ -214,7 +236,7 @@ export default function HomePage() {
       default:
         return sorted;
     }
-  }, [data, sortBy]);
+  }, [clientFilteredListings, sortBy]);
 
   const handleOpenListing = (listing: Listing) => {
     setSelectedListingId(listing.id);
@@ -230,7 +252,6 @@ export default function HomePage() {
       count++;
     }
     if (filterValues.conditions.length > 0) count++;
-    if (filterValues.equipmentTypes.length > 0) count++;
     if (filterValues.verified) count++;
     return count;
   }, [filterValues]);
@@ -248,7 +269,6 @@ export default function HomePage() {
     setFilterValues({
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
       conditions: [],
-      equipmentTypes: [],
       verified: false,
     });
     setCategoryId("all");
@@ -300,7 +320,8 @@ export default function HomePage() {
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex-1">
               <h3 className="text-lg font-semibold">
-                {data?.length ?? 0} {(data?.length ?? 0) === 1 ? "item" : "items"}
+                {clientFilteredListings.length}{" "}
+                {clientFilteredListings.length === 1 ? "item" : "items"}
                 {debouncedFilters.location && (
                   <span className="text-muted-foreground font-normal">
                     {" "}
@@ -316,7 +337,7 @@ export default function HomePage() {
               <FiltersSheet
                 value={filterValues}
                 onChange={setFilterValues}
-                resultCount={data?.length ?? 0}
+                resultCount={clientFilteredListings.length}
                 activeFilterCount={activeFilterCount}
               />
               <Select

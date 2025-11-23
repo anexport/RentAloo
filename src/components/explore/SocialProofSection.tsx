@@ -15,7 +15,7 @@ const testimonials = [
     name: "James Chen",
     role: "Weekend Warrior",
     rating: 5,
-    text: "As someone who loves trying new sports, RentAloo is perfect. I've rented everything from kayaks to camping gear without breaking the bank.",
+    text: "As someone who loves trying new sports, Rentaloo is perfect. I've rented everything from kayaks to camping gear without breaking the bank.",
     initials: "JC",
   },
   {
@@ -43,13 +43,13 @@ const SocialProofSection = () => {
             Loved by adventurers everywhere
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of happy renters and owners in the RentAloo
+            Join thousands of happy renters and owners in the Rentaloo
             community
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-3xl mx-auto mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-3xl mx-auto mb-12">
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-primary mb-2">

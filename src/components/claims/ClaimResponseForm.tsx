@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,13 @@ export default function ClaimResponseForm({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (selectedPhoto) {
+      overlayRef.current?.focus();
+    }
+  }, [selectedPhoto]);
 
   const handleSubmit = async () => {
     if (!user) {
@@ -45,9 +52,30 @@ export default function ClaimResponseForm({
       return;
     }
 
-    if (action === "negotiate" && !counterOffer) {
-      setError("Please enter a counter offer amount");
-      return;
+    if (action === "negotiate") {
+      if (!counterOffer) {
+        setError("Please enter a counter offer amount");
+        return;
+      }
+
+      const parsedCounter = parseFloat(counterOffer);
+
+      if (!Number.isFinite(parsedCounter)) {
+        setError("Please enter a valid counter offer amount");
+        return;
+      }
+
+      if (parsedCounter < 0) {
+        setError("Counter offer must be a positive amount");
+        return;
+      }
+
+      if (parsedCounter > claim.estimated_cost) {
+        setError(
+          `Counter offer cannot exceed claimed amount of $${claim.estimated_cost.toFixed(2)}`
+        );
+        return;
+      }
     }
 
     if (action === "dispute" && !notes.trim()) {
@@ -59,10 +87,13 @@ export default function ClaimResponseForm({
     setIsSubmitting(true);
 
     try {
+      const parsedCounter =
+        action === "negotiate" ? parseFloat(counterOffer) : undefined;
+
       const renterResponse = {
         action,
         notes: notes.trim() || undefined,
-        counter_offer: action === "negotiate" ? parseFloat(counterOffer) : undefined,
+        counter_offer: parsedCounter,
         responded_at: new Date().toISOString(),
       };
 
@@ -293,13 +324,24 @@ export default function ClaimResponseForm({
       {/* Photo Modal */}
       {selectedPhoto && (
         <div
+          ref={overlayRef}
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Damage evidence photo"
+          tabIndex={-1}
           onClick={() => setSelectedPhoto(null)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setSelectedPhoto(null);
+            }
+          }}
         >
           <img
             src={selectedPhoto}
-            alt="Evidence"
+            alt="Damage evidence"
             className="max-w-full max-h-full object-contain"
+            onClick={(event) => event.stopPropagation()}
           />
         </div>
       )}

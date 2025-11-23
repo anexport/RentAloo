@@ -35,7 +35,6 @@ import { DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX } from "@/config/pagination";
 export type FilterValues = {
   priceRange: [number, number];
   conditions: string[];
-  equipmentTypes: string[];
   verified: boolean;
 };
 
@@ -51,15 +50,6 @@ const CONDITIONS = [
   { value: "excellent", label: "Excellent" },
   { value: "good", label: "Good" },
   { value: "fair", label: "Fair" },
-];
-
-const EQUIPMENT_TYPES = [
-  { value: "camping", label: "Camping Gear" },
-  { value: "hiking", label: "Hiking Equipment" },
-  { value: "climbing", label: "Climbing Gear" },
-  { value: "water-sports", label: "Water Sports" },
-  { value: "winter-sports", label: "Winter Sports" },
-  { value: "cycling", label: "Cycling" },
 ];
 
 const FiltersSheet = ({
@@ -80,10 +70,8 @@ const FiltersSheet = ({
       prev.priceRange[0] !== value.priceRange[0] ||
       prev.priceRange[1] !== value.priceRange[1] ||
       prev.conditions.length !== value.conditions.length ||
-      prev.equipmentTypes.length !== value.equipmentTypes.length ||
       prev.verified !== value.verified ||
-      !prev.conditions.every((c) => value.conditions.includes(c)) ||
-      !prev.equipmentTypes.every((t) => value.equipmentTypes.includes(t));
+      !prev.conditions.every((c) => value.conditions.includes(c));
 
     if (valueChanged) {
       setLocalValue(value);
@@ -100,7 +88,6 @@ const FiltersSheet = ({
     const cleared: FilterValues = {
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
       conditions: [],
-      equipmentTypes: [],
       verified: false,
     };
     setLocalValue(cleared);
@@ -114,19 +101,12 @@ const FiltersSheet = ({
     setLocalValue({ ...localValue, conditions: next });
   };
 
-  const handleEquipmentTypeToggle = (type: string) => {
-    const next = localValue.equipmentTypes.includes(type)
-      ? localValue.equipmentTypes.filter((t) => t !== type)
-      : [...localValue.equipmentTypes, type];
-    setLocalValue({ ...localValue, equipmentTypes: next });
-  };
-
   const FiltersContent = () => (
     <div className="space-y-6">
       <Accordion
         type="multiple"
         className="w-full"
-        defaultValue={["price", "condition", "type"]}
+        defaultValue={["price", "condition"]}
       >
         {/* Price Range */}
         <AccordionItem value="price">
@@ -186,32 +166,6 @@ const FiltersSheet = ({
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
                     {condition.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Equipment Type */}
-        <AccordionItem value="type">
-          <AccordionTrigger>Equipment type</AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-3 pt-2">
-              {EQUIPMENT_TYPES.map((type) => (
-                <div key={type.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`type-${type.value}`}
-                    checked={localValue.equipmentTypes.includes(type.value)}
-                    onCheckedChange={() =>
-                      handleEquipmentTypeToggle(type.value)
-                    }
-                  />
-                  <label
-                    htmlFor={`type-${type.value}`}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {type.label}
                   </label>
                 </div>
               ))}

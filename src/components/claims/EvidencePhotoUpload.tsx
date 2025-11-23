@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
 import { Camera, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 
 interface EvidencePhotoUploadProps {
   photos: File[];
@@ -19,35 +19,12 @@ export default function EvidencePhotoUpload({
   minPhotos = 2,
   maxPhotos = 10,
 }: EvidencePhotoUploadProps) {
-  const [previews, setPreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const newPhotos = files.slice(0, maxPhotos - photos.length);
-    onPhotosChange([...photos, ...newPhotos]);
-
-    newPhotos.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setPreviews((prev) => [...prev, reader.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
+  const { previews, fileInputRef, handleFileSelect, removePhoto } =
+    usePhotoUpload({
+      photos,
+      onPhotosChange,
+      maxPhotos,
     });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    onPhotosChange(photos.filter((_, i) => i !== index));
-    setPreviews(previews.filter((_, i) => i !== index));
-  };
 
   return (
     <div className="space-y-4">
@@ -113,6 +90,12 @@ export default function EvidencePhotoUpload({
       {photos.length < minPhotos && (
         <p className="text-sm text-destructive">
           Please add at least {minPhotos - photos.length} more photo(s)
+        </p>
+      )}
+
+      {photos.length >= maxPhotos && (
+        <p className="text-sm text-muted-foreground">
+          Maximum {maxPhotos} photos reached
         </p>
       )}
 

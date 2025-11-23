@@ -11,7 +11,7 @@ export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type Listing = EquipmentRow & {
   category: CategoryRow | null;
   photos: EquipmentPhotoRow[];
-  owner: Pick<ProfileRow, "id" | "email"> | null;
+  owner: Pick<ProfileRow, "id" | "email" | "identity_verified"> | null;
   reviews?: Array<Pick<ReviewRow, "rating">>;
 };
 
@@ -47,13 +47,14 @@ function isListingQueryResult(item: unknown): item is Omit<Listing, "reviews"> {
     candidate.category === null ||
     (typeof candidate.category === "object" && candidate.category !== null);
 
-  // Validate owner structure (should be null or have id and email)
+  // Validate owner structure (should be null or have id, email, and identity_verified)
   const hasValidOwner =
     candidate.owner === null ||
     (typeof candidate.owner === "object" &&
       candidate.owner !== null &&
       "id" in candidate.owner &&
-      "email" in candidate.owner);
+      "email" in candidate.owner &&
+      "identity_verified" in candidate.owner);
 
   return hasValidCategory && hasValidOwner;
 }
@@ -78,7 +79,7 @@ export const fetchListings = async (
       `*,
        category:categories(*),
        photos:equipment_photos(*),
-       owner:profiles!equipment_owner_id_fkey(id,email)
+       owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
       `
     )
     .eq("is_available", true)
@@ -180,7 +181,7 @@ export const fetchListingById = async (id: string): Promise<Listing | null> => {
       `*,
        category:categories(*),
        photos:equipment_photos(*),
-       owner:profiles!equipment_owner_id_fkey(id,email)
+       owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
       `
     )
     .eq("id", id)
