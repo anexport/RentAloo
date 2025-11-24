@@ -11,7 +11,7 @@ export type ReviewRow = Database["public"]["Tables"]["reviews"]["Row"];
 export type Listing = EquipmentRow & {
   category: CategoryRow | null;
   photos: EquipmentPhotoRow[];
-  owner: Pick<ProfileRow, "id" | "email"> | null;
+  owner: Pick<ProfileRow, "id" | "email" | "identity_verified"> | null;
   reviews?: Array<Pick<ReviewRow, "rating">>;
 };
 
@@ -47,13 +47,14 @@ function isListingQueryResult(item: unknown): item is Omit<Listing, "reviews"> {
     candidate.category === null ||
     (typeof candidate.category === "object" && candidate.category !== null);
 
-  // Validate owner structure (should be null or have id and email)
+  // Validate owner structure (should be null or have id, email, and identity_verified)
   const hasValidOwner =
     candidate.owner === null ||
     (typeof candidate.owner === "object" &&
       candidate.owner !== null &&
       "id" in candidate.owner &&
-      "email" in candidate.owner);
+      "email" in candidate.owner &&
+      "identity_verified" in candidate.owner);
 
   return hasValidCategory && hasValidOwner;
 }
@@ -64,11 +65,15 @@ export type ListingsFilters = {
   priceMin?: number;
   priceMax?: number;
   location?: string;
+  conditions?: Database["public"]["Enums"]["equipment_condition"][];
   condition?: Database["public"]["Enums"]["equipment_condition"] | "all";
+  limit?: number;
+  verified?: boolean;
 };
 
 export const fetchListings = async (
-  filters: ListingsFilters = {}
+  filters: ListingsFilters = {},
+  signal?: AbortSignal
 ): Promise<Listing[]> => {
   let query = supabase
     .from("equipment")
@@ -76,11 +81,15 @@ export const fetchListings = async (
       `*,
        category:categories(*),
        photos:equipment_photos(*),
-       owner:profiles!equipment_owner_id_fkey(id,email)
+       owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
       `
     )
     .eq("is_available", true)
     .order("created_at", { ascending: false });
+
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
 
   if (filters.categoryId && filters.categoryId !== "all") {
     query = query.eq("category_id", filters.categoryId);
@@ -93,7 +102,14 @@ export const fetchListings = async (
     query = query.lte("daily_rate", filters.priceMax);
   }
 
-  if (filters.condition && filters.condition !== "all") {
+  const selectedConditions =
+    filters.conditions && filters.conditions.length > 0
+      ? Array.from(new Set(filters.conditions))
+      : [];
+
+  if (selectedConditions.length > 0) {
+    query = query.in("condition", selectedConditions);
+  } else if (filters.condition && filters.condition !== "all") {
     query = query.eq("condition", filters.condition);
   }
 
@@ -109,6 +125,13 @@ export const fetchListings = async (
     query = query.or(
       `title.ilike.%${sanitized}%,description.ilike.%${sanitized}%`
     );
+  }
+
+  if (typeof filters.limit === "number" && filters.limit > 0) {
+    query = query.limit(filters.limit);
+  } else {
+    // Default limit to prevent unbounded queries
+    query = query.limit(100);
   }
 
   const { data, error } = await query;
@@ -128,13 +151,26 @@ export const fetchListings = async (
   // Fetch all reviews in a single query
   const reviewsMap = new Map<string, Array<Pick<ReviewRow, "rating">>>();
   if (ownerIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("rating, reviewee_id")
-      .in("reviewee_id", ownerIds);
+    const reviewsQuery = signal
+      ? supabase
+          .from("reviews")
+          .select("rating, reviewee_id")
+          .in("reviewee_id", ownerIds)
+          .abortSignal(signal)
+      : supabase
+          .from("reviews")
+          .select("rating, reviewee_id")
+          .in("reviewee_id", ownerIds);
 
-    // Build map from reviewee_id to reviews
-    if (reviews) {
+    const { data: reviews, error: reviewsError } = await reviewsQuery;
+    if (reviewsError) {
+      // Log and continue so listings can still be rendered without reviews
+      console.error("Failed to load reviews for listings", {
+        ownerIds,
+        error: reviewsError,
+      });
+    } else if (reviews) {
+      // Build map from reviewee_id to reviews
       reviews.forEach((review) => {
         const existing = reviewsMap.get(review.reviewee_id) || [];
         existing.push({ rating: review.rating });
@@ -149,7 +185,14 @@ export const fetchListings = async (
     return { ...item, reviews };
   });
 
-  return listingsWithReviews;
+  let finalListings = listingsWithReviews;
+  if (filters.verified) {
+    finalListings = finalListings.filter(
+      (listing) => listing.owner?.identity_verified === true
+    );
+  }
+
+  return finalListings;
 };
 
 export const fetchListingById = async (id: string): Promise<Listing | null> => {
@@ -159,7 +202,7 @@ export const fetchListingById = async (id: string): Promise<Listing | null> => {
       `*,
        category:categories(*),
        photos:equipment_photos(*),
-       owner:profiles!equipment_owner_id_fkey(id,email)
+       owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
       `
     )
     .eq("id", id)
@@ -176,10 +219,20 @@ export const fetchListingById = async (id: string): Promise<Listing | null> => {
   const base = data as Omit<Listing, "reviews">;
   if (!base.owner?.id) return { ...base, reviews: [] };
 
-  const { data: reviews } = await supabase
+  const { data: reviews, error: reviewsError } = await supabase
     .from("reviews")
     .select("rating")
     .eq("reviewee_id", base.owner.id);
+
+  if (reviewsError) {
+    // Log and fall back to an empty reviews list to keep the page usable
+    console.error("Failed to load reviews for listing", {
+      listingId: id,
+      ownerId: base.owner.id,
+      error: reviewsError,
+    });
+    return { ...base, reviews: [] };
+  }
 
   return { ...base, reviews: reviews || [] };
 };

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import type {
   BookingRequestWithDetails,
   BookingStatus,
+  InsuranceType,
 } from "../types/booking";
 import type { Database } from "@/lib/database.types";
 
@@ -157,6 +158,9 @@ export const useBookingRequests = (userRole?: "renter" | "owner") => {
     end_date: string;
     total_amount: number;
     message?: string;
+    insurance_type?: InsuranceType;
+    insurance_cost?: number;
+    damage_deposit_amount?: number;
   }) => {
     if (!user) throw new Error("User not authenticated");
 

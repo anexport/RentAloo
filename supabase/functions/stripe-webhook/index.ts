@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
               await supabase.from("messages").insert({
                 conversation_id: conversationId,
                 sender_id: bookingRequest.renter_id,
-                content: `Payment confirmed! I've booked your "${equipmentTitle}" from ${startDate} to ${endDate} ($${bookingRequest.total_amount.toFixed(2)} total).`,
+                content: `Payment confirmed! I've booked your "${equipmentTitle}" from ${startDate} to ${endDate} ($${Number(bookingRequest.total_amount).toFixed(2)} total).`,
                 message_type: "booking_approved"
               });
             }
