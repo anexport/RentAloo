@@ -120,8 +120,15 @@ export const fetchListings = async (
     const locationQuery = filters.location.trim();
     const cityName = locationQuery.split(',')[0].trim();
 
-    // Use city name for search to be more flexible with state/region variations
-    query = query.ilike("location", `%${cityName}%`);
+    // Sanitize city name to escape SQL LIKE pattern metacharacters (%, _, \)
+    // to prevent users from altering the matching behavior
+    const sanitizedCityName = cityName
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/%/g, '\\%')     // Escape % wildcard
+      .replace(/_/g, '\\_');    // Escape _ single-char wildcard
+
+    // Use sanitized city name for search to be more flexible with state/region variations
+    query = query.ilike("location", `%${sanitizedCityName}%`);
   }
 
   if (filters.search && filters.search.trim().length > 0) {
