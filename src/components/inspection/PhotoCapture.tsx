@@ -60,6 +60,7 @@ export default function PhotoCapture({
               size="icon"
               className="absolute top-2 right-2"
               onClick={() => removePhoto(index)}
+              aria-label={`Remove photo ${index + 1}`}
             >
               <X className="h-4 w-4" />
             </Button>

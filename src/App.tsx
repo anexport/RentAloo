@@ -4,6 +4,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { NuqsAdapter } from "nuqs/adapters/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 import EmailVerification from "@/pages/auth/EmailVerification";
@@ -37,8 +38,9 @@ function App() {
   return (
     <>
       <Router>
-        <div className="min-h-screen bg-background">
-          <Routes>
+        <NuqsAdapter>
+          <div className="min-h-screen bg-background">
+            <Routes>
             {/* Public routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/explore" element={<ExplorePage />} />
@@ -94,9 +96,10 @@ function App() {
                 />
               </>
             )}
-          </Routes>
-          <Toaster />
-        </div>
+            </Routes>
+            <Toaster />
+          </div>
+        </NuqsAdapter>
       </Router>
       <Analytics />
     </>

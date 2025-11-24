@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useQueryState, parseAsStringEnum, parseAsInteger } from "nuqs";
 import { useAuth } from "@/hooks/useAuth";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
@@ -40,20 +41,31 @@ import { ChevronRight } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 
-type QueryParamSnapshot = {
-  search: string | null;
-  location: string | null;
-  category: string | null;
-  priceMin: string | null;
-  priceMax: string | null;
-};
-
 const ExplorePage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const [categoryId, setCategoryId] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
+
+  // Filter params managed via nuqs
+  const [searchQuery, setSearchQuery] = useQueryState("search", {
+    defaultValue: "",
+  });
+  const [locationQuery, setLocationQuery] = useQueryState("location", {
+    defaultValue: "",
+  });
+  const [categoryId, setCategoryId] = useQueryState("category", {
+    defaultValue: "all",
+  });
+
+  // Price range params managed via nuqs
+  const [priceMin, setPriceMin] = useQueryState(
+    "priceMin",
+    parseAsInteger.withDefault(DEFAULT_PRICE_MIN)
+  );
+  const [priceMax, setPriceMax] = useQueryState(
+    "priceMax",
+    parseAsInteger.withDefault(DEFAULT_PRICE_MAX)
+  );
+
   const [searchFilters, setSearchFilters] = useState<SearchBarFilters>({
     search: "",
     location: "",
@@ -75,146 +87,75 @@ const ExplorePage = () => {
     null
   );
 
-  // Track the last URL filters we synced so we only react to actual changes
-  const queryParamSnapshotRef = useRef<QueryParamSnapshot | null>(null);
-
-  // Keep filters in sync with URL params without clobbering local edits
+  // Sync searchFilters with nuqs URL params (one-way: URL → state)
   useEffect(() => {
-    const nextSnapshot: QueryParamSnapshot = {
-      search: searchParams.get("search"),
-      location: searchParams.get("location"),
-      category: searchParams.get("category"),
-      priceMin: searchParams.get("priceMin"),
-      priceMax: searchParams.get("priceMax"),
-    };
-
-    const prevSnapshot = queryParamSnapshotRef.current;
-    const snapshotChanged =
-      !prevSnapshot ||
-      prevSnapshot.search !== nextSnapshot.search ||
-      prevSnapshot.location !== nextSnapshot.location ||
-      prevSnapshot.category !== nextSnapshot.category ||
-      prevSnapshot.priceMin !== nextSnapshot.priceMin ||
-      prevSnapshot.priceMax !== nextSnapshot.priceMax;
-
-    if (!snapshotChanged) return;
-
-    queryParamSnapshotRef.current = nextSnapshot;
-
-    const searchChanged = prevSnapshot?.search !== nextSnapshot.search;
-    const locationChanged = prevSnapshot?.location !== nextSnapshot.location;
-    const categoryChanged = prevSnapshot?.category !== nextSnapshot.category;
-    const priceChanged =
-      prevSnapshot?.priceMin !== nextSnapshot.priceMin ||
-      prevSnapshot?.priceMax !== nextSnapshot.priceMax;
-
-    if (searchChanged || locationChanged) {
-      setSearchFilters((prev) => {
-        const next = { ...prev };
-        let hasChanges = false;
-
-        if (searchChanged) {
-          const nextSearch = nextSnapshot.search ?? "";
-          if (next.search !== nextSearch) {
-            next.search = nextSearch;
-            hasChanges = true;
-          }
-        }
-
-        if (locationChanged) {
-          const nextLocation = nextSnapshot.location ?? "";
-          if (next.location !== nextLocation) {
-            next.location = nextLocation;
-            hasChanges = true;
-          }
-        }
-
-        return hasChanges ? next : prev;
-      });
-    }
-
-    if (categoryChanged) {
-      setCategoryId(nextSnapshot.category ?? "all");
-    }
-
-    if (priceChanged) {
-      const parsePrice = (value: string | null, fallback: number) => {
-        if (!value) return fallback;
-        const parsed = Number.parseInt(value, 10);
-        return Number.isNaN(parsed) ? fallback : parsed;
-      };
-
-      if (!nextSnapshot.priceMin && !nextSnapshot.priceMax) {
-        setFilterValues((prev) => {
-          const [currentMin, currentMax] = prev.priceRange;
-          if (
-            currentMin === DEFAULT_PRICE_MIN &&
-            currentMax === DEFAULT_PRICE_MAX
-          ) {
-            return prev;
-          }
-          return {
-            ...prev,
-            priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
-          };
-        });
-      } else {
-        const minPrice = parsePrice(nextSnapshot.priceMin, DEFAULT_PRICE_MIN);
-        const maxPrice = parsePrice(nextSnapshot.priceMax, DEFAULT_PRICE_MAX);
-
-        const nextRange: [number, number] = [
-          Math.min(minPrice, maxPrice),
-          Math.max(minPrice, maxPrice),
-        ];
-
-        setFilterValues((prev) => {
-          const [currentMin, currentMax] = prev.priceRange;
-          if (currentMin === nextRange[0] && currentMax === nextRange[1]) {
-            return prev;
-          }
-          return {
-            ...prev,
-            priceRange: nextRange,
-          };
-        });
+    setSearchFilters((prev) => {
+      // Only update if values actually changed from URL to avoid loops
+      if (
+        prev.search === (searchQuery ?? "") &&
+        prev.location === (locationQuery ?? "")
+      ) {
+        return prev;
       }
-    }
-  }, [searchParams]);
+      return {
+        ...prev,
+        search: searchQuery ?? "",
+        location: locationQuery ?? "",
+      };
+    });
+  }, [searchQuery, locationQuery]);
 
-  // Login modal state from URL query param
-  const loginOpen = searchParams.get("login") === "true";
+  // Note: URL params are only updated via handleSubmitSearch (line 166-171)
+  // This prevents circular dependency issues where debounced values overwrite
+  // incoming URL params from navigation (e.g., from HomePage search)
+
+  // Sync filterValues.priceRange with nuqs price params
+  useEffect(() => {
+    setFilterValues((prev) => ({
+      ...prev,
+      priceRange: [priceMin ?? DEFAULT_PRICE_MIN, priceMax ?? DEFAULT_PRICE_MAX],
+    }));
+  }, [priceMin, priceMax]);
+
+  // Login modal state - managed via nuqs
+  const [loginOpen, setLoginOpen] = useQueryState("login", {
+    defaultValue: false,
+    parse: (value) => value === "true",
+    serialize: (value) => (value ? "true" : null),
+    history: "replace",
+  });
 
   const handleLoginOpenChange = (open: boolean) => {
-    if (open) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("login", "true");
-      setSearchParams(newParams, { replace: true });
-    } else {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("login");
-      setSearchParams(newParams, { replace: true });
-    }
+    void setLoginOpen(open);
   };
 
-  // Signup modal state from URL query params
-  const signupOpen = searchParams.get("signup") === "true";
-  const signupRole = searchParams.get("role") as "renter" | "owner" | null;
+  // Signup modal state - managed via nuqs
+  const [signupOpen, setSignupOpen] = useQueryState("signup", {
+    defaultValue: false,
+    parse: (value) => value === "true",
+    serialize: (value) => (value ? "true" : null),
+    history: "replace",
+  });
+
+  const [signupRole, setSignupRole] = useQueryState(
+    "role",
+    parseAsStringEnum<"renter" | "owner">(["renter", "owner"]).withOptions({
+      history: "replace",
+    })
+  );
 
   const handleSignupOpenChange = (open: boolean) => {
-    if (open) {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.set("signup", "true");
-      setSearchParams(newParams, { replace: true });
-    } else {
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("signup");
-      newParams.delete("role");
-      setSearchParams(newParams, { replace: true });
+    void setSignupOpen(open);
+    if (!open) {
+      void setSignupRole(null);
     }
   };
 
   const handleSubmitSearch = (filters: SearchBarFilters) => {
     setSearchFilters(filters);
+    // Update URL params with submitted search filters
+    void setSearchQuery(filters.search || null);
+    void setLocationQuery(filters.location || null);
   };
 
   // Debounce filters for better performance
@@ -263,7 +204,7 @@ const ExplorePage = () => {
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["listings", effectiveFilters],
-    queryFn: () => fetchListings(effectiveFilters),
+    queryFn: ({ signal }) => fetchListings(effectiveFilters, signal),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -325,6 +266,14 @@ const ExplorePage = () => {
     return count;
   }, [filterValues]);
 
+  const handleFilterChange = (newFilters: FilterValues) => {
+    setFilterValues(newFilters);
+    // Sync price range changes to URL
+    const [min, max] = newFilters.priceRange;
+    void setPriceMin(min !== DEFAULT_PRICE_MIN ? min : null);
+    void setPriceMax(max !== DEFAULT_PRICE_MAX ? max : null);
+  };
+
   const handleClearFilters = () => {
     setSearchFilters({
       search: "",
@@ -340,13 +289,13 @@ const ExplorePage = () => {
       conditions: [],
       verified: false,
     });
-    setCategoryId("all");
 
-    const clearedParams = new URLSearchParams(searchParams);
-    ["search", "location", "category", "priceMin", "priceMax"].forEach(
-      (param) => clearedParams.delete(param)
-    );
-    setSearchParams(clearedParams, { replace: true });
+    // Clear all URL params via nuqs
+    void setSearchQuery(null);
+    void setLocationQuery(null);
+    void setCategoryId("all");
+    void setPriceMin(null);
+    void setPriceMax(null);
   };
 
   return (
@@ -417,7 +366,7 @@ const ExplorePage = () => {
           <div className="flex items-center gap-2">
             <FiltersSheet
               value={filterValues}
-              onChange={setFilterValues}
+              onChange={handleFilterChange}
               resultCount={data?.length ?? 0}
               activeFilterCount={activeFilterCount}
             />

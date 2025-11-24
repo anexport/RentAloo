@@ -73,8 +73,26 @@ export default function ClaimFilingForm({
   const uploadFile = async (
     file: File,
     fileName: string,
-    bucketName = "claim-evidence"
+    bucketName = "claim-evidence",
+    maxSizeMB?: number,
+    allowedTypes?: string[]
   ): Promise<string> => {
+    const maxBytes = maxSizeMB ? maxSizeMB * 1024 * 1024 : undefined;
+
+    if (maxBytes && file.size > maxBytes) {
+      throw new Error(
+        `File ${file.name} exceeds the ${maxSizeMB}MB limit. Please upload a smaller file.`
+      );
+    }
+
+    if (allowedTypes?.length && !allowedTypes.includes(file.type)) {
+      throw new Error(
+        `File type ${file.type || "unknown"} is not allowed. Accepted types: ${allowedTypes.join(
+          ", "
+        )}.`
+      );
+    }
+
     const { error: uploadError } = await supabase.storage.from(bucketName).upload(fileName, file, {
       cacheControl: "3600",
       upsert: false,
@@ -93,6 +111,15 @@ export default function ClaimFilingForm({
   };
 
   const handleSubmit = async () => {
+    const getFileExtension = (fileName: string, defaultExt: string) => {
+      const lastDot = fileName.lastIndexOf(".");
+      if (lastDot > 0) {
+        const ext = fileName.slice(lastDot + 1);
+        return ext || defaultExt;
+      }
+      return defaultExt;
+    };
+
     if (!user) {
       setError("You must be logged in to file a claim");
       return;
@@ -104,14 +131,38 @@ export default function ClaimFilingForm({
 
     setIsSubmitting(true);
 
+    const uploadedFiles: Array<{ bucket: string; path: string }> = [];
+
+    const cleanupUploadedFiles = async () => {
+      if (!uploadedFiles.length) return;
+
+      const results = await Promise.all(
+        uploadedFiles.map(({ bucket, path }) => supabase.storage.from(bucket).remove([path]))
+      );
+
+      results.forEach(({ error }, index) => {
+        if (error) {
+          console.error("Failed to clean up uploaded file", uploadedFiles[index], error);
+        }
+      });
+    };
+
     try {
+      const bucketName = "claim-evidence";
+
       // Upload evidence photos
       const photoUrls: string[] = [];
       for (let i = 0; i < evidencePhotos.length; i++) {
         const file = evidencePhotos[i];
-        const fileExt = file.name.split(".").pop() || "jpg";
+        const fileExt = getFileExtension(file.name, "jpg");
         const fileName = `${user.id}/${bookingId}/claim/${Date.now()}_${i}.${fileExt}`;
-        const publicUrl = await uploadFile(file, fileName);
+        const publicUrl = await uploadFile(file, fileName, bucketName, 10, [
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "image/heic",
+        ]);
+        uploadedFiles.push({ bucket: bucketName, path: fileName });
         photoUrls.push(publicUrl);
       }
 
@@ -119,9 +170,16 @@ export default function ClaimFilingForm({
       const quoteUrls: string[] = [];
       for (let i = 0; i < repairQuotes.length; i++) {
         const file = repairQuotes[i];
-        const fileExt = file.name.split(".").pop() || "pdf";
+        const fileExt = getFileExtension(file.name, "pdf");
         const fileName = `${user.id}/${bookingId}/quotes/${Date.now()}_${i}.${fileExt}`;
-        const publicUrl = await uploadFile(file, fileName);
+        const publicUrl = await uploadFile(file, fileName, bucketName, 10, [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/webp",
+          "image/heic",
+        ]);
+        uploadedFiles.push({ bucket: bucketName, path: fileName });
         quoteUrls.push(publicUrl);
       }
 
@@ -148,6 +206,7 @@ export default function ClaimFilingForm({
         onSuccess();
       }, 1500);
     } catch (err) {
+      await cleanupUploadedFiles();
       console.error("Error filing claim:", err);
       setError(
         err instanceof Error ? err.message : "Failed to file claim. Please try again."

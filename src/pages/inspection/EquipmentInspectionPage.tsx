@@ -45,6 +45,10 @@ export default function EquipmentInspectionPage() {
         return;
       }
 
+      // Clear stale errors and show loading when a valid fetch is about to run
+      setError("");
+      setLoading(true);
+
       try {
         const { data, error: fetchError } = await supabase
           .from("booking_requests")
