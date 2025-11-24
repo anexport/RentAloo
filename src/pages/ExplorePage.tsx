@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { useQueryState, parseAsStringEnum, parseAsInteger } from "nuqs";
+import {
+  useQueryState,
+  parseAsStringEnum,
+  parseAsInteger,
+  parseAsArrayOf,
+  parseAsBoolean,
+} from "nuqs";
 import { useAuth } from "@/hooks/useAuth";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
@@ -41,6 +47,13 @@ import { ChevronRight } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 
+const CONDITION_VALUES: Array<Listing["condition"]> = [
+  "new",
+  "excellent",
+  "good",
+  "fair",
+];
+
 const ExplorePage = () => {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
@@ -64,6 +77,18 @@ const ExplorePage = () => {
   const [priceMax, setPriceMax] = useQueryState(
     "priceMax",
     parseAsInteger.withDefault(DEFAULT_PRICE_MAX)
+  );
+
+  const [conditionsParam, setConditionsParam] = useQueryState(
+    "conditions",
+    parseAsArrayOf(
+      parseAsStringEnum<Listing["condition"]>(CONDITION_VALUES)
+    ).withDefault([])
+  );
+
+  const [verifiedParam, setVerifiedParam] = useQueryState(
+    "verified",
+    parseAsBoolean.withDefault(false)
   );
 
   const [searchFilters, setSearchFilters] = useState<SearchBarFilters>({
@@ -109,13 +134,35 @@ const ExplorePage = () => {
   // This prevents circular dependency issues where debounced values overwrite
   // incoming URL params from navigation (e.g., from HomePage search)
 
-  // Sync filterValues.priceRange with nuqs price params
+  // Sync filterValues with nuqs params (price, conditions, verified)
   useEffect(() => {
-    setFilterValues((prev) => ({
-      ...prev,
-      priceRange: [priceMin ?? DEFAULT_PRICE_MIN, priceMax ?? DEFAULT_PRICE_MAX],
-    }));
-  }, [priceMin, priceMax]);
+    const nextPriceRange: [number, number] = [
+      priceMin ?? DEFAULT_PRICE_MIN,
+      priceMax ?? DEFAULT_PRICE_MAX,
+    ];
+    const nextConditions = conditionsParam ?? [];
+    const nextVerified = verifiedParam ?? false;
+
+    setFilterValues((prev) => {
+      const priceUnchanged =
+        prev.priceRange[0] === nextPriceRange[0] &&
+        prev.priceRange[1] === nextPriceRange[1];
+      const conditionsUnchanged =
+        prev.conditions.length === nextConditions.length &&
+        prev.conditions.every(
+          (condition, index) => condition === nextConditions[index]
+        );
+      if (priceUnchanged && conditionsUnchanged && prev.verified === nextVerified)
+        return prev;
+
+      return {
+        ...prev,
+        priceRange: nextPriceRange,
+        conditions: nextConditions,
+        verified: nextVerified,
+      };
+    });
+  }, [priceMin, priceMax, conditionsParam, verifiedParam]);
 
   // Login modal state - managed via nuqs
   const [loginOpen, setLoginOpen] = useQueryState("login", {
@@ -285,6 +332,8 @@ const ExplorePage = () => {
     const [min, max] = newFilters.priceRange;
     void setPriceMin(min !== DEFAULT_PRICE_MIN ? min : null);
     void setPriceMax(max !== DEFAULT_PRICE_MAX ? max : null);
+    void setConditionsParam(newFilters.conditions);
+    void setVerifiedParam(newFilters.verified);
   };
 
   const handleClearFilters = () => {
@@ -309,6 +358,8 @@ const ExplorePage = () => {
     void setCategoryId("all");
     void setPriceMin(null);
     void setPriceMax(null);
+    void setConditionsParam(null);
+    void setVerifiedParam(null);
   };
 
   return (

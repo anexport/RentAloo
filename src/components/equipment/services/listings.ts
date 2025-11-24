@@ -162,10 +162,15 @@ export const fetchListings = async (
           .select("rating, reviewee_id")
           .in("reviewee_id", ownerIds);
 
-    const { data: reviews } = await reviewsQuery;
-
-    // Build map from reviewee_id to reviews
-    if (reviews) {
+    const { data: reviews, error: reviewsError } = await reviewsQuery;
+    if (reviewsError) {
+      // Log and continue so listings can still be rendered without reviews
+      console.error("Failed to load reviews for listings", {
+        ownerIds,
+        error: reviewsError,
+      });
+    } else if (reviews) {
+      // Build map from reviewee_id to reviews
       reviews.forEach((review) => {
         const existing = reviewsMap.get(review.reviewee_id) || [];
         existing.push({ rating: review.rating });
@@ -214,10 +219,20 @@ export const fetchListingById = async (id: string): Promise<Listing | null> => {
   const base = data as Omit<Listing, "reviews">;
   if (!base.owner?.id) return { ...base, reviews: [] };
 
-  const { data: reviews } = await supabase
+  const { data: reviews, error: reviewsError } = await supabase
     .from("reviews")
     .select("rating")
     .eq("reviewee_id", base.owner.id);
+
+  if (reviewsError) {
+    // Log and fall back to an empty reviews list to keep the page usable
+    console.error("Failed to load reviews for listing", {
+      listingId: id,
+      ownerId: base.owner.id,
+      error: reviewsError,
+    });
+    return { ...base, reviews: [] };
+  }
 
   return { ...base, reviews: reviews || [] };
 };
