@@ -286,27 +286,39 @@ export async function searchGooglePlaces(
           let normalizedLabel = text; // fallback to full text
 
           if (place.addressComponents && place.addressComponents.length > 0) {
-            let locality = '';
+            let cityName = '';
             let adminArea = '';
 
             for (const component of place.addressComponents) {
               const types = component.types || [];
 
-              // Extract city/locality
-              if (types.includes('locality')) {
-                locality = component.longText || component.shortText || '';
+              // Extract city/town name from various Google Places component types
+              // Priority order: locality > postal_town > sublocality > admin_area_level_2
+              // This handles different naming conventions across countries (e.g., UK uses postal_town)
+              if (!cityName && types.includes('locality')) {
+                cityName = component.longText || component.shortText || '';
+              } else if (!cityName && types.includes('postal_town')) {
+                // Used in UK and other countries for town/city names
+                cityName = component.longText || component.shortText || '';
+              } else if (!cityName && types.includes('sublocality_level_1')) {
+                // Sometimes used for city districts or smaller towns
+                cityName = component.longText || component.shortText || '';
+              } else if (!cityName && types.includes('administrative_area_level_2')) {
+                // Can represent cities or counties in some countries
+                cityName = component.longText || component.shortText || '';
               }
+
               // Extract state/region (prefer short name for US states, e.g., "CA")
-              else if (types.includes('administrative_area_level_1')) {
+              if (!adminArea && types.includes('administrative_area_level_1')) {
                 adminArea = component.shortText || component.longText || '';
               }
             }
 
             // Build normalized label: "City, State" (matching database format)
-            if (locality && adminArea) {
-              normalizedLabel = `${locality}, ${adminArea}`;
-            } else if (locality) {
-              normalizedLabel = locality;
+            if (cityName && adminArea) {
+              normalizedLabel = `${cityName}, ${adminArea}`;
+            } else if (cityName) {
+              normalizedLabel = cityName;
             } else if (adminArea) {
               normalizedLabel = adminArea;
             }
