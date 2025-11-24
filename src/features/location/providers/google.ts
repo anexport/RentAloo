@@ -288,6 +288,7 @@ export async function searchGooglePlaces(
           if (place.addressComponents && place.addressComponents.length > 0) {
             let cityName = '';
             let adminArea = '';
+            let countryCode = '';
 
             for (const component of place.addressComponents) {
               const types = component.types || [];
@@ -312,13 +313,28 @@ export async function searchGooglePlaces(
               if (!adminArea && types.includes('administrative_area_level_1')) {
                 adminArea = component.shortText || component.longText || '';
               }
+
+              // Extract country code for disambiguation when adminArea is missing
+              if (!countryCode && types.includes('country')) {
+                countryCode = component.shortText || ''; // e.g., "US", "FR", "IT"
+              }
             }
 
-            // Build normalized label: "City, State" (matching database format)
+            // Build normalized label with fallback hierarchy for global coverage:
+            // 1. "City, State" - Best case (e.g., "Denver, CO")
+            // 2. "City, Country" - When state unavailable (e.g., "Paris, FR" vs just "Paris")
+            // 3. "City" - Single city name (last resort for city-only data)
+            // 4. "State, Country" - When only region available (e.g., "California, US" vs "California, Colombia")
+            // 5. "State" - Region only (fallback)
+            // 6. Original text - Ultimate fallback
             if (cityName && adminArea) {
               normalizedLabel = `${cityName}, ${adminArea}`;
+            } else if (cityName && countryCode) {
+              normalizedLabel = `${cityName}, ${countryCode}`;
             } else if (cityName) {
               normalizedLabel = cityName;
+            } else if (adminArea && countryCode) {
+              normalizedLabel = `${adminArea}, ${countryCode}`;
             } else if (adminArea) {
               normalizedLabel = adminArea;
             }
