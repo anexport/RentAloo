@@ -226,7 +226,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     if (match) {
       onChange({ ...value, equipmentType: match.name });
     }
-  }, [equipmentOptions, onChange, value, value.equipmentCategoryId, value.equipmentType]);
+  }, [equipmentOptions, onChange, value.equipmentCategoryId, value.equipmentType]);
 
   const renderAutocompleteCommand = (
     placeholder: string,

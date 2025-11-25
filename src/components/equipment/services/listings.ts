@@ -144,7 +144,12 @@ export const fetchListings = async (
     const term = filters.search.trim();
     // Sanitize user input to avoid PostgREST filter injection by removing
     // reserved separators used by the `.or()` filter grammar.
-    const sanitized = term.replace(/[(),]/g, "");
+    // Also escape SQL LIKE metacharacters to keep search terms literal.
+    const sanitized = term
+      .replace(/[(),]/g, "")
+      .replace(/\\/g, "\\\\")
+      .replace(/%/g, "\\%")
+      .replace(/_/g, "\\_");
     query = query.or(
       `title.ilike.%${sanitized}%,description.ilike.%${sanitized}%`
     );
