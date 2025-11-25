@@ -226,7 +226,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     if (match) {
       onChange({ ...value, equipmentType: match.name });
     }
-  }, [equipmentOptions, onChange, value.equipmentCategoryId, value.equipmentType]);
+  }, [equipmentOptions, onChange, value]);
 
   const renderAutocompleteCommand = (
     placeholder: string,
@@ -712,7 +712,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {categoriesLoading
-                      ? Array.from({ length: 4 }).map((_, idx) => (
+                      ? Array.from({ length: FALLBACK_EQUIPMENT_TYPES.length }).map((_, idx) => (
                           <div
                             key={`skeleton-${idx}`}
                             className="h-20 rounded-2xl border bg-muted animate-pulse"
