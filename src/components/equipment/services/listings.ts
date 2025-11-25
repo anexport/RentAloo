@@ -69,6 +69,10 @@ export type ListingsFilters = {
   condition?: Database["public"]["Enums"]["equipment_condition"] | "all";
   limit?: number;
   verified?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  equipmentTypeName?: string;
+  equipmentCategoryId?: string;
 };
 
 export const fetchListings = async (
@@ -91,8 +95,13 @@ export const fetchListings = async (
     query = query.abortSignal(signal);
   }
 
-  if (filters.categoryId && filters.categoryId !== "all") {
-    query = query.eq("category_id", filters.categoryId);
+  const categoryFilter =
+    filters.equipmentCategoryId ||
+    (filters.categoryId && filters.categoryId !== "all"
+      ? filters.categoryId
+      : undefined);
+  if (categoryFilter) {
+    query = query.eq("category_id", categoryFilter);
   }
 
   if (typeof filters.priceMin === "number") {
@@ -157,9 +166,51 @@ export const fetchListings = async (
     "reviews"
   >[];
 
+  let filteredListings = validatedListings;
+
+  // Apply date availability filter if provided
+  if (filters.dateFrom) {
+    const from = filters.dateFrom;
+    const to = filters.dateTo ?? filters.dateFrom;
+    const availabilityQuery = supabase
+      .from("availability_calendar")
+      .select("equipment_id")
+      .gte("date", from)
+      .lte("date", to)
+      .eq("is_available", false);
+
+    const availabilityRequest = signal
+      ? availabilityQuery.abortSignal(signal)
+      : availabilityQuery;
+
+    const { data: unavailable, error: availabilityError } =
+      await availabilityRequest;
+
+    if (availabilityError) {
+      console.error("Failed to load availability calendar for filters", {
+        filters,
+        error: availabilityError,
+      });
+    } else if (unavailable) {
+      const unavailableIds = new Set(unavailable.map((row) => row.equipment_id));
+      filteredListings = filteredListings.filter(
+        (item) => !unavailableIds.has(item.id)
+      );
+    }
+  }
+
+  // Apply equipment type filter client-side if only the name was provided (fallback)
+  if (!filters.equipmentCategoryId && filters.equipmentTypeName) {
+    const target = filters.equipmentTypeName.toLowerCase();
+    filteredListings = filteredListings.filter((item) => {
+      const categoryName = item.category?.name?.toLowerCase();
+      return categoryName ? categoryName.includes(target) : false;
+    });
+  }
+
   // Collect all unique owner IDs
   const ownerIds = [
-    ...new Set(validatedListings.map((item) => item.owner?.id).filter(Boolean)),
+    ...new Set(filteredListings.map((item) => item.owner?.id).filter(Boolean)),
   ] as string[];
 
   // Fetch all reviews in a single query
@@ -194,7 +245,7 @@ export const fetchListings = async (
   }
 
   // Map over listings once to attach reviews
-  const listingsWithReviews: Listing[] = validatedListings.map((item) => {
+  const listingsWithReviews: Listing[] = filteredListings.map((item) => {
     const reviews = item.owner?.id ? reviewsMap.get(item.owner.id) || [] : [];
     return { ...item, reviews };
   });

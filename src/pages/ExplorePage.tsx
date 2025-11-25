@@ -8,6 +8,7 @@ import {
   parseAsArrayOf,
   parseAsBoolean,
 } from "nuqs";
+import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
@@ -65,6 +66,24 @@ const ExplorePage = () => {
   const [locationQuery, setLocationQuery] = useQueryState("location", {
     defaultValue: "",
   });
+  const [dateFromQuery, setDateFromQuery] = useQueryState("dateFrom", {
+    defaultValue: "",
+  });
+  const [dateToQuery, setDateToQuery] = useQueryState("dateTo", {
+    defaultValue: "",
+  });
+  const [equipmentTypeQuery, setEquipmentTypeQuery] = useQueryState(
+    "equipmentType",
+    {
+      defaultValue: "",
+    }
+  );
+  const [equipmentCategoryIdQuery, setEquipmentCategoryIdQuery] = useQueryState(
+    "equipmentCategoryId",
+    {
+      defaultValue: "",
+    }
+  );
   const [categoryId, setCategoryId] = useQueryState("category", {
     defaultValue: "all",
   });
@@ -99,6 +118,7 @@ const ExplorePage = () => {
     priceMax: undefined,
     dateRange: undefined,
     equipmentType: undefined,
+    equipmentCategoryId: undefined,
   });
 
   const [filterValues, setFilterValues] = useState<FilterValues>({
@@ -118,17 +138,53 @@ const ExplorePage = () => {
       // Only update if values actually changed from URL to avoid loops
       if (
         prev.search === (searchQuery ?? "") &&
-        prev.location === (locationQuery ?? "")
+        prev.location === (locationQuery ?? "") &&
+        prev.equipmentType === (equipmentTypeQuery ?? "") &&
+        prev.equipmentCategoryId === (equipmentCategoryIdQuery ?? "") &&
+        ((!prev.dateRange?.from && !dateFromQuery) ||
+          (prev.dateRange?.from &&
+            dateFromQuery &&
+            format(prev.dateRange.from, "yyyy-MM-dd") === dateFromQuery)) &&
+        ((!prev.dateRange?.to && !dateToQuery) ||
+          (prev.dateRange?.to &&
+            dateToQuery &&
+            format(prev.dateRange.to, "yyyy-MM-dd") === dateToQuery))
       ) {
         return prev;
       }
+
+      const parsedFrom =
+        dateFromQuery && !Number.isNaN(Date.parse(dateFromQuery))
+          ? new Date(dateFromQuery)
+          : undefined;
+      const parsedTo =
+        dateToQuery && !Number.isNaN(Date.parse(dateToQuery))
+          ? new Date(dateToQuery)
+          : undefined;
+
       return {
         ...prev,
         search: searchQuery ?? "",
         location: locationQuery ?? "",
+        dateRange:
+          parsedFrom || parsedTo
+            ? {
+                from: parsedFrom,
+                to: parsedTo,
+              }
+            : undefined,
+        equipmentType: equipmentTypeQuery || undefined,
+        equipmentCategoryId: equipmentCategoryIdQuery || undefined,
       };
     });
-  }, [searchQuery, locationQuery]);
+  }, [
+    searchQuery,
+    locationQuery,
+    dateFromQuery,
+    dateToQuery,
+    equipmentTypeQuery,
+    equipmentCategoryIdQuery,
+  ]);
 
   // Note: URL params are only updated via handleSubmitSearch (line 166-171)
   // This prevents circular dependency issues where debounced values overwrite
@@ -203,6 +259,16 @@ const ExplorePage = () => {
     // Update URL params with submitted search filters
     void setSearchQuery(filters.search || null);
     void setLocationQuery(filters.location || null);
+    void setEquipmentTypeQuery(filters.equipmentType || null);
+    void setEquipmentCategoryIdQuery(filters.equipmentCategoryId || null);
+    const from = filters.dateRange?.from
+      ? format(filters.dateRange.from, "yyyy-MM-dd")
+      : null;
+    const to = filters.dateRange?.to
+      ? format(filters.dateRange.to, "yyyy-MM-dd")
+      : null;
+    void setDateFromQuery(from);
+    void setDateToQuery(to);
   };
 
   // Debounce filters for better performance
@@ -218,6 +284,20 @@ const ExplorePage = () => {
 
     if (debouncedFilters.location && debouncedFilters.location.trim()) {
       filters.location = debouncedFilters.location.trim();
+    }
+
+    if (debouncedFilters.equipmentCategoryId) {
+      filters.categoryId = debouncedFilters.equipmentCategoryId;
+    }
+    if (debouncedFilters.equipmentType) {
+      filters.equipmentTypeName = debouncedFilters.equipmentType;
+    }
+
+    if (debouncedFilters.dateRange?.from) {
+      filters.dateFrom = format(debouncedFilters.dateRange.from, "yyyy-MM-dd");
+    }
+    if (debouncedFilters.dateRange?.to) {
+      filters.dateTo = format(debouncedFilters.dateRange.to, "yyyy-MM-dd");
     }
 
     const mergedConditions = new Set<Listing["condition"]>();
@@ -345,6 +425,7 @@ const ExplorePage = () => {
       priceMax: undefined,
       dateRange: undefined,
       equipmentType: undefined,
+      equipmentCategoryId: undefined,
     });
     setFilterValues({
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
@@ -355,6 +436,10 @@ const ExplorePage = () => {
     // Clear all URL params via nuqs
     void setSearchQuery(null);
     void setLocationQuery(null);
+    void setDateFromQuery(null);
+    void setDateToQuery(null);
+    void setEquipmentTypeQuery(null);
+    void setEquipmentCategoryIdQuery(null);
     void setCategoryId("all");
     void setPriceMin(null);
     void setPriceMax(null);

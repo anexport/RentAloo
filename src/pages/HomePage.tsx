@@ -43,6 +43,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ArrowRight } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { format } from "date-fns";
 
 type SortOption =
   | "recommended"
@@ -96,6 +97,7 @@ export default function HomePage() {
     priceMax: undefined,
     dateRange: undefined,
     equipmentType: undefined,
+    equipmentCategoryId: undefined,
   });
 
   const [filterValues, setFilterValues] = useState<FilterValues>({
@@ -117,14 +119,26 @@ export default function HomePage() {
 
     if (searchFilters.search) params.set("search", searchFilters.search);
     if (searchFilters.location) params.set("location", searchFilters.location);
-    if (searchFilters.category && searchFilters.category !== "all") {
-      params.set("category", searchFilters.category);
+    if (categoryId && categoryId !== "all") {
+      params.set("category", categoryId);
     }
     if (searchFilters.priceMin !== undefined) {
       params.set("priceMin", searchFilters.priceMin.toString());
     }
     if (searchFilters.priceMax !== undefined) {
       params.set("priceMax", searchFilters.priceMax.toString());
+    }
+    if (searchFilters.dateRange?.from) {
+      params.set("dateFrom", format(searchFilters.dateRange.from, "yyyy-MM-dd"));
+    }
+    if (searchFilters.dateRange?.to) {
+      params.set("dateTo", format(searchFilters.dateRange.to, "yyyy-MM-dd"));
+    }
+    if (searchFilters.equipmentType) {
+      params.set("equipmentType", searchFilters.equipmentType);
+    }
+    if (searchFilters.equipmentCategoryId) {
+      params.set("equipmentCategoryId", searchFilters.equipmentCategoryId);
     }
 
     navigate(`/explore?${params.toString()}`);
@@ -159,6 +173,19 @@ export default function HomePage() {
     ) {
       filters.priceMin = filterValues.priceRange[0];
       filters.priceMax = filterValues.priceRange[1];
+    }
+    if (debouncedFilters.dateRange?.from) {
+      filters.dateFrom = format(debouncedFilters.dateRange.from, "yyyy-MM-dd");
+    }
+    if (debouncedFilters.dateRange?.to) {
+      filters.dateTo = format(debouncedFilters.dateRange.to, "yyyy-MM-dd");
+    }
+    if (debouncedFilters.equipmentCategoryId) {
+      // Use specific category id from "what" when category bar is at "all"
+      filters.categoryId = filters.categoryId ?? debouncedFilters.equipmentCategoryId;
+    }
+    if (debouncedFilters.equipmentType) {
+      filters.equipmentTypeName = debouncedFilters.equipmentType;
     }
 
     return filters;
@@ -265,6 +292,7 @@ export default function HomePage() {
       priceMax: undefined,
       dateRange: undefined,
       equipmentType: undefined,
+      equipmentCategoryId: undefined,
     });
     setFilterValues({
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
