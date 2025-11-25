@@ -9,5 +9,5 @@ export type SearchBarFilters = {
   priceMax?: number;
   dateRange?: DateRange;
   equipmentType?: string;
+  equipmentCategoryId?: string;
 };
-

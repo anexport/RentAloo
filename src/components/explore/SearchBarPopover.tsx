@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -45,12 +45,23 @@ import {
 } from "@/features/location/useGeolocation";
 import { ToastAction } from "@/components/ui/toast";
 import { useAddressAutocomplete } from "@/features/location/useAddressAutocomplete";
+import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
 
 type Props = {
   value: SearchBarFilters;
   onChange: (next: SearchBarFilters) => void;
   onSubmit: () => void;
 };
+
+const FALLBACK_EQUIPMENT_TYPES = [
+  "Camping",
+  "Hiking",
+  "Climbing",
+  "Water Sports",
+  "Winter Sports",
+  "Cycling",
+];
 
 const POPULAR_LOCATIONS = [
   "San Francisco, CA",
@@ -59,15 +70,6 @@ const POPULAR_LOCATIONS = [
   "Portland, OR",
   "Denver, CO",
   "Austin, TX",
-];
-
-const EQUIPMENT_TYPES = [
-  "Camping",
-  "Hiking",
-  "Climbing",
-  "Water Sports",
-  "Winter Sports",
-  "Cycling",
 ];
 
 type SectionKey = "where" | "when" | "what";
@@ -83,6 +85,8 @@ const MOBILE_SECTIONS: Array<{
 ];
 
 const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
+  type Category = Database["public"]["Tables"]["categories"]["Row"];
+
   const isDesktop = useMediaQuery(createMinWidthQuery("md"));
   const [locationOpen, setLocationOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
@@ -91,6 +95,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [activeSection, setActiveSection] = useState<SectionKey>("where");
   const [isSelectingDates, setIsSelectingDates] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
@@ -154,11 +160,73 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     ];
   }, []);
 
+  const equipmentOptions = useMemo(() => {
+    return categories.length > 0
+      ? categories.map((cat) => ({ id: cat.id, name: cat.name }))
+      : FALLBACK_EQUIPMENT_TYPES.map((name, idx) => ({
+          id: `fallback-${idx}`,
+          name,
+        }));
+  }, [categories]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .is("parent_id", null)
+          .order("name")
+          .abortSignal(controller.signal);
+
+        if (error) {
+          if (!controller.signal.aborted) {
+            console.error("Error loading categories", error);
+            toast({
+              title: "Couldn't load categories",
+              description: "Please try again shortly.",
+              variant: "destructive",
+            });
+            setCategories([]);
+          }
+          return;
+        }
+
+        if (!controller.signal.aborted) {
+          setCategories(data ?? []);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Unexpected error loading categories", err);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCategoriesLoading(false);
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => controller.abort();
+  }, [toast]);
+
   const handleLocationSelect = (location: string) => {
     onChange({ ...value, location });
     setLocationOpen(false);
     setActiveSection("when");
   };
+
+  useEffect(() => {
+    if (!value.equipmentCategoryId || value.equipmentType) return;
+    const match = equipmentOptions.find(
+      (opt) => !opt.id.startsWith("fallback-") && opt.id === value.equipmentCategoryId
+    );
+    if (match) {
+      onChange({ ...value, equipmentType: match.name });
+    }
+  }, [equipmentOptions, onChange, value]);
 
   const renderAutocompleteCommand = (
     placeholder: string,
@@ -257,8 +325,14 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     setActiveSection("what");
   };
 
-  const handleEquipmentSelect = (type: string) => {
-    onChange({ ...value, equipmentType: type });
+  const handleEquipmentSelect = (option: { id: string; name: string }) => {
+    onChange({
+      ...value,
+      equipmentType: option.name,
+      equipmentCategoryId: option.id.startsWith("fallback-")
+        ? undefined
+        : option.id,
+    });
     setEquipmentOpen(false);
     setSheetOpen(false);
     setActiveSection("where");
@@ -276,6 +350,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       location: "",
       dateRange: undefined,
       equipmentType: undefined,
+      equipmentCategoryId: undefined,
     });
     setActiveSection("where");
     setIsSelectingDates(false);
@@ -636,40 +711,51 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {EQUIPMENT_TYPES.map((type) => (
-                      <Button
-                        key={type}
-                        variant={
-                          value.equipmentType === type ? "default" : "outline"
-                        }
-                        className="h-20 flex flex-col items-start justify-between rounded-2xl border"
-                        onClick={() => handleEquipmentSelect(type)}
-                        aria-label={`Select ${type}`}
-                      >
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-semibold">{type}</span>
-                      </Button>
-                    ))}
+                    {categoriesLoading
+                      ? Array.from({ length: FALLBACK_EQUIPMENT_TYPES.length }).map((_, idx) => (
+                          <div
+                            key={`skeleton-${idx}`}
+                            className="h-20 rounded-2xl border bg-muted animate-pulse"
+                          />
+                        ))
+                      : equipmentOptions.map((type) => (
+                          <Button
+                            key={type.id}
+                            variant={
+                              value.equipmentType === type.name ? "default" : "outline"
+                            }
+                            className="h-20 flex flex-col items-start justify-between rounded-2xl border"
+                            onClick={() => handleEquipmentSelect(type)}
+                            aria-label={`Select ${type.name}`}
+                          >
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-semibold">{type.name}</span>
+                          </Button>
+                        ))}
                   </div>
                   {value.equipmentType && (
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
-                        {value.equipmentType}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          onChange({ ...value, equipmentType: undefined })
-                        }
-                        className="h-7 text-xs"
-                      >
-                        Clear
-                      </Button>
-                    </div>
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full px-3 py-1 text-xs"
+                  >
+                    {value.equipmentType}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        equipmentType: undefined,
+                        equipmentCategoryId: undefined,
+                      })
+                    }
+                    className="h-7 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
                   )}
                 </div>
               )}
@@ -825,33 +911,44 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             <div className="space-y-2">
               <div className="text-sm font-semibold mb-3">Equipment type</div>
               <div className="grid grid-cols-2 gap-2">
-                {EQUIPMENT_TYPES.map((type) => (
-                  <Badge
-                    key={type}
-                    variant={
-                      value.equipmentType === type ? "default" : "outline"
-                    }
-                    className="cursor-pointer justify-center py-2 hover:bg-primary/10"
-                    onClick={() => handleEquipmentSelect(type)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        handleEquipmentSelect(type);
-                      }
-                    }}
-                    aria-label={`Select ${type}`}
-                  >
-                    {type}
-                  </Badge>
-                ))}
+                {categoriesLoading
+                  ? Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={`badge-skel-${idx}`}
+                        className="h-10 rounded-full bg-muted border animate-pulse"
+                      />
+                    ))
+                  : equipmentOptions.map((type) => (
+                      <Badge
+                        key={type.id}
+                        variant={
+                          value.equipmentType === type.name ? "default" : "outline"
+                        }
+                        className="cursor-pointer justify-center py-2 hover:bg-primary/10"
+                        onClick={() => handleEquipmentSelect(type)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            handleEquipmentSelect(type);
+                          }
+                        }}
+                        aria-label={`Select ${type.name}`}
+                      >
+                        {type.name}
+                      </Badge>
+                    ))}
               </div>
               <div className="mt-4 flex justify-end gap-2 border-t pt-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    onChange({ ...value, equipmentType: undefined })
+                    onChange({
+                      ...value,
+                      equipmentType: undefined,
+                      equipmentCategoryId: undefined,
+                    })
                   }
                 >
                   Clear
