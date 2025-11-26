@@ -6,7 +6,18 @@
     "reviews_count": "{{count}} avis",
     "reviews_count_plural": "{{count}} avis",
     "wishlist_add": "Ajouter à la liste de souhaits",
-    "wishlist_remove": "Retirer de la liste de souhaits"
+    "wishlist_remove": "Retirer de la liste de souhaits",
+    "view": "Voir",
+    "see_availability": "Voir la disponibilité",
+    "wishlist_save": "Enregistrer dans la liste de souhaits",
+    "view_listing": "Voir {{title}}",
+    "previous_image": "Image précédente",
+    "next_image": "Image suivante",
+    "previous_photo": "Photo précédente",
+    "next_photo": "Photo suivante",
+    "go_to_image": "Aller à l'image {{number}}",
+    "image_unavailable": "Image non disponible",
+    "no_image": "Aucune image"
   },
   "details": {
     "title": "Détails du matériel",

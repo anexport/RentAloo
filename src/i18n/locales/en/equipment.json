@@ -2,11 +2,22 @@
   "listing_card": {
     "per_day": "per day",
     "view_details": "View Details",
+    "view": "View",
+    "see_availability": "See availability",
     "no_reviews": "No reviews yet",
     "reviews_count": "{{count}} review",
     "reviews_count_plural": "{{count}} reviews",
     "wishlist_add": "Add to wishlist",
-    "wishlist_remove": "Remove from wishlist"
+    "wishlist_remove": "Remove from wishlist",
+    "wishlist_save": "Save to wishlist",
+    "view_listing": "View {{title}}",
+    "previous_image": "Previous image",
+    "next_image": "Next image",
+    "previous_photo": "Previous photo",
+    "next_photo": "Next photo",
+    "go_to_image": "Go to image {{number}}",
+    "image_unavailable": "Image unavailable",
+    "no_image": "No image"
   },
   "details": {
     "title": "Equipment Details",

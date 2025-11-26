@@ -6,7 +6,18 @@
     "reviews_count": "{{count}} reseña",
     "reviews_count_plural": "{{count}} reseñas",
     "wishlist_add": "Agregar a deseos",
-    "wishlist_remove": "Eliminar de deseos"
+    "wishlist_remove": "Eliminar de deseos",
+    "view": "Ver",
+    "see_availability": "Ver disponibilidad",
+    "wishlist_save": "Guardar en deseos",
+    "view_listing": "Ver {{title}}",
+    "previous_image": "Imagen anterior",
+    "next_image": "Imagen siguiente",
+    "previous_photo": "Foto anterior",
+    "next_photo": "Foto siguiente",
+    "go_to_image": "Ir a la imagen {{number}}",
+    "image_unavailable": "Imagen no disponible",
+    "no_image": "Sin imagen"
   },
   "details": {
     "title": "Detalles del Equipamiento",
