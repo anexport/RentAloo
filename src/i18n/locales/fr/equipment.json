@@ -40,7 +40,8 @@
     "price_low_high": "Prix: du moins au plus cher",
     "price_high_low": "Prix: du plus au moins cher",
     "newest_first": "Plus récent en premier",
-    "highest_rated": "Mieux noté"
+    "highest_rated": "Mieux noté",
+    "recommended": "Recommandé"
   },
   "search": {
     "placeholder": "Rechercher du matériel...",
@@ -75,5 +76,23 @@
     "delete": "Supprimer",
     "no_equipment": "Vous n'avez pas encore listé de matériel",
     "get_started": "Commencez par ajouter votre première annonce"
+  },
+  "browse": {
+    "title": "Parcourir tout le matériel",
+    "subtitle": "Explorez notre collection complète d'équipements disponibles",
+    "items_count": "{{count}} article",
+    "items_count_plural": "{{count}} articles",
+    "in_location": "à {{location}}",
+    "available_near_you": "Disponible à la location près de chez vous",
+    "view_all": "Tout voir sur la page de navigation"
+  },
+  "errors": {
+    "load_failed": "Échec du chargement du matériel. Veuillez réessayer.",
+    "retry": "Réessayer"
+  },
+  "cta": {
+    "ready_title": "Prêt à commencer à louer ?",
+    "ready_message": "Rejoignez des milliers de locataires et de propriétaires qui tirent le meilleur parti de leur équipement outdoor. Commencez à parcourir le matériel près de chez vous dès aujourd'hui.",
+    "start_browsing": "Commencer à parcourir"
   }
 }

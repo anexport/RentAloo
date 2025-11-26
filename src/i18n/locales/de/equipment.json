@@ -40,7 +40,8 @@
     "price_low_high": "Preis: niedrig bis hoch",
     "price_high_low": "Preis: hoch bis niedrig",
     "newest_first": "Neueste zuerst",
-    "highest_rated": "Höchste Bewertungen"
+    "highest_rated": "Höchste Bewertungen",
+    "recommended": "Empfohlen"
   },
   "search": {
     "placeholder": "Equipment suchen...",
@@ -75,5 +76,23 @@
     "delete": "Löschen",
     "no_equipment": "Sie haben noch kein Equipment eingestellt",
     "get_started": "Beginnen Sie mit Ihrem ersten Angebot"
+  },
+  "browse": {
+    "title": "Gesamtes Equipment durchsuchen",
+    "subtitle": "Entdecken Sie unsere komplette Sammlung verfügbarer Ausrüstung",
+    "items_count": "{{count}} Artikel",
+    "items_count_plural": "{{count}} Artikel",
+    "in_location": "in {{location}}",
+    "available_near_you": "Verfügbar zur Miete in Ihrer Nähe",
+    "view_all": "Alle auf der Durchsuchen-Seite anzeigen"
+  },
+  "errors": {
+    "load_failed": "Fehler beim Laden des Equipments. Bitte versuchen Sie es erneut.",
+    "retry": "Wiederholen"
+  },
+  "cta": {
+    "ready_title": "Bereit, mit dem Mieten zu beginnen?",
+    "ready_message": "Schließen Sie sich Tausenden von Mietern und Eigentümern an, die das Beste aus ihrer Outdoor-Ausrüstung machen. Beginnen Sie noch heute, Equipment in Ihrer Nähe zu durchsuchen.",
+    "start_browsing": "Durchsuchen starten"
   }
 }

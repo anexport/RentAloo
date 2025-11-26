@@ -40,7 +40,8 @@
     "price_low_high": "Precio: Menor a Mayor",
     "price_high_low": "Precio: Mayor a Menor",
     "newest_first": "Más Nuevo Primero",
-    "highest_rated": "Mejor Calificado"
+    "highest_rated": "Mejor Calificado",
+    "recommended": "Recomendado"
   },
   "search": {
     "placeholder": "Buscar equipamiento...",
@@ -75,5 +76,23 @@
     "delete": "Eliminar",
     "no_equipment": "Aún no has listado ningún equipamiento",
     "get_started": "Comienza agregando tu primer anuncio"
+  },
+  "browse": {
+    "title": "Explorar todo el equipamiento",
+    "subtitle": "Explora nuestra colección completa de equipo disponible",
+    "items_count": "{{count}} artículo",
+    "items_count_plural": "{{count}} artículos",
+    "in_location": "en {{location}}",
+    "available_near_you": "Disponible para alquilar cerca de ti",
+    "view_all": "Ver Todo en la Página de Exploración"
+  },
+  "errors": {
+    "load_failed": "Error al cargar el equipamiento. Por favor, inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
+  "cta": {
+    "ready_title": "¿Listo para empezar a alquilar?",
+    "ready_message": "Únete a miles de arrendatarios y propietarios que aprovechan al máximo su equipo outdoor. Comienza a explorar equipamiento cerca de ti hoy.",
+    "start_browsing": "Comenzar a Explorar"
   }
 }
