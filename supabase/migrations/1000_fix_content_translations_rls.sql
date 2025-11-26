@@ -48,5 +48,26 @@ FOR UPDATE
 TO service_role
 USING (true);
 
+-- Policy 5: Users can only delete translations for equipment they own
+CREATE POLICY "Users can delete translations for own equipment"
+ON content_translations
+FOR DELETE
+TO authenticated
+USING (
+  content_type = 'equipment' AND
+  EXISTS (
+    SELECT 1 FROM equipment
+    WHERE equipment.id = content_translations.content_id
+    AND equipment.owner_id = auth.uid()
+  )
+);
+
+-- Policy 6: Allow service role to delete any translations (for cleanup/maintenance)
+CREATE POLICY "Service role can delete any translations"
+ON content_translations
+FOR DELETE
+TO service_role
+USING (true);
+
 -- Add comment explaining the security model
 COMMENT ON TABLE content_translations IS 'Caches translations of user-generated content. Write access restricted to content owners or service role to prevent tampering.';
