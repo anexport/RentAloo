@@ -33,6 +33,9 @@ export function useEquipmentAutocomplete(params?: {
 
     // Clear suggestions if query is too short
     if (q.length < minLength) {
+      // Abort any in-flight request so stale results can't repopulate after clearing
+      controllerRef.current?.abort();
+      controllerRef.current = null;
       setSuggestions([]);
       setLoading(false);
       setError(null);
