@@ -67,8 +67,8 @@ const ExploreHeader = ({
       if (error) {
         console.error("Sign out error:", error);
         toast({
-          title: "Sign out failed",
-          description: error.message || "Failed to sign out. Please try again.",
+          title: t("errors.signout_failed_title"),
+          description: error.message || t("errors.signout_failed_message"),
           variant: "destructive",
         });
         return;
@@ -77,9 +77,9 @@ const ExploreHeader = ({
     } catch (err) {
       console.error("Unexpected sign out error:", err);
       const message =
-        err instanceof Error ? err.message : "An unexpected error occurred";
+        err instanceof Error ? err.message : t("errors.signout_failed_message");
       toast({
-        title: "Sign out failed",
+        title: t("errors.signout_failed_title"),
         description: message,
         variant: "destructive",
       });
@@ -185,7 +185,7 @@ const ExploreHeader = ({
             <LanguageSelector variant="default" />
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Button variant="ghost" size="icon" aria-label={t("aria.open_menu")}>
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>

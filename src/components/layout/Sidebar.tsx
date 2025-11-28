@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   Search,
@@ -36,6 +37,7 @@ interface NavItem {
 }
 
 const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
+  const { t } = useTranslation("navigation");
   const location = useLocation();
   const { profile } = useVerification();
   const verificationProgress = profile ? getVerificationProgress(profile) : 0;
@@ -223,27 +225,27 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
 
   // Navigation items grouped by section
   const mainNavItems: NavItem[] = [
-    { label: "Dashboard", icon: Home, href: "/renter/dashboard" },
-    { label: "Browse Equipment", icon: Search, href: "/equipment" },
+    { label: t("sidebar.dashboard"), icon: Home, href: "/renter/dashboard" },
+    { label: t("sidebar.browse_equipment"), icon: Search, href: "/equipment" },
   ];
 
   const activityNavItems: NavItem[] = [
     {
-      label: "My Bookings",
+      label: t("sidebar.my_bookings"),
       icon: Calendar,
       href: "/renter/dashboard?tab=bookings",
     },
     {
-      label: "Messages",
+      label: t("sidebar.messages"),
       icon: MessageSquare,
       href: "/messages",
       ...(unreadMessages > 0 && { badge: unreadMessages }),
     },
-    { label: "Payments", icon: CreditCard, href: "/renter/payments" },
+    { label: t("sidebar.payments"), icon: CreditCard, href: "/renter/payments" },
   ];
 
   const accountNavItems: NavItem[] = [
-    { label: "Settings", icon: User, href: "/settings" },
+    { label: t("sidebar.settings"), icon: User, href: "/settings" },
   ];
 
   const isActive = (href: string) => {
@@ -293,7 +295,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             size="icon"
             onClick={onToggle}
             className="h-8 w-8"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("aria.expand_sidebar") : t("aria.collapse_sidebar")}
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -310,7 +312,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           {/* Main Section */}
           {!collapsed && (
             <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Main
+              {t("sidebar.main")}
             </div>
           )}
           <div className="space-y-1 mb-6">
@@ -350,7 +352,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           {/* Activity Section */}
           {!collapsed && (
             <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Activity
+              {t("sidebar.activity")}
             </div>
           )}
           <div className="space-y-1 mb-6">
@@ -390,7 +392,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           {/* Account Section */}
           {!collapsed && (
             <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              Account
+              {t("sidebar.account")}
             </div>
           )}
           <div className="space-y-1">
@@ -441,7 +443,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
               )}
-              title={collapsed ? "My Equipment Listings" : undefined}
+              title={collapsed ? t("sidebar.my_equipment_listings") : undefined}
             >
               <Package
                 className={cn(
@@ -449,7 +451,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   !isActive("/owner/dashboard") && "group-hover:scale-110"
                 )}
               />
-              {!collapsed && <span>My Equipment Listings</span>}
+              {!collapsed && <span>{t("sidebar.my_equipment_listings")}</span>}
               {!collapsed && (
                 <div className="ml-auto flex items-center gap-2">
                   {pendingOwnerRequests > 0 && (
@@ -475,14 +477,14 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                 "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent",
                 collapsed ? "justify-center" : ""
               )}
-              title={collapsed ? "Verification" : undefined}
+              title={collapsed ? t("sidebar.verification") : undefined}
             >
               <Shield className="h-5 w-5 shrink-0 text-primary" />
               {!collapsed && (
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-foreground">
-                      Trust Score
+                      {t("sidebar.trust_score")}
                     </span>
                     <span className="text-xs font-semibold text-primary">
                       {verificationProgress}%

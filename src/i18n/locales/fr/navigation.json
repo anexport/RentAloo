@@ -28,5 +28,28 @@
   "auth": {
     "sign_in": "Se connecter",
     "get_started": "Commencer"
+  },
+  "errors": {
+    "signout_failed_title": "Déconnexion échouée",
+    "signout_failed_message": "Échec de la déconnexion. Veuillez réessayer."
+  },
+  "aria": {
+    "open_menu": "Ouvrir le menu",
+    "expand_sidebar": "Développer la barre latérale",
+    "collapse_sidebar": "Réduire la barre latérale"
+  },
+  "sidebar": {
+    "main": "Principal",
+    "activity": "Activité",
+    "account": "Compte",
+    "dashboard": "Tableau de bord",
+    "browse_equipment": "Parcourir le matériel",
+    "my_bookings": "Mes réservations",
+    "messages": "Messages",
+    "payments": "Paiements",
+    "settings": "Paramètres",
+    "my_equipment_listings": "Mes annonces de matériel",
+    "verification": "Vérification",
+    "trust_score": "Score de confiance"
   }
 }

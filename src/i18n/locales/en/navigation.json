@@ -28,5 +28,28 @@
     "settings": "Settings",
     "verification": "Identity Verification",
     "payment_confirmation": "Payment Confirmation"
+  },
+  "errors": {
+    "signout_failed_title": "Sign out failed",
+    "signout_failed_message": "Failed to sign out. Please try again."
+  },
+  "aria": {
+    "open_menu": "Open menu",
+    "expand_sidebar": "Expand sidebar",
+    "collapse_sidebar": "Collapse sidebar"
+  },
+  "sidebar": {
+    "main": "Main",
+    "activity": "Activity",
+    "account": "Account",
+    "dashboard": "Dashboard",
+    "browse_equipment": "Browse Equipment",
+    "my_bookings": "My Bookings",
+    "messages": "Messages",
+    "payments": "Payments",
+    "settings": "Settings",
+    "my_equipment_listings": "My Equipment Listings",
+    "verification": "Verification",
+    "trust_score": "Trust Score"
   }
 }

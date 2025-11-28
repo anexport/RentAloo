@@ -28,5 +28,28 @@
   "auth": {
     "sign_in": "Iniciar Sesión",
     "get_started": "Comenzar"
+  },
+  "errors": {
+    "signout_failed_title": "Error al cerrar sesión",
+    "signout_failed_message": "No se pudo cerrar sesión. Por favor, inténtelo de nuevo."
+  },
+  "aria": {
+    "open_menu": "Abrir menú",
+    "expand_sidebar": "Expandir barra lateral",
+    "collapse_sidebar": "Contraer barra lateral"
+  },
+  "sidebar": {
+    "main": "Principal",
+    "activity": "Actividad",
+    "account": "Cuenta",
+    "dashboard": "Panel de Control",
+    "browse_equipment": "Explorar Equipamiento",
+    "my_bookings": "Mis Reservas",
+    "messages": "Mensajes",
+    "payments": "Pagos",
+    "settings": "Configuración",
+    "my_equipment_listings": "Mis Anuncios de Equipamiento",
+    "verification": "Verificación",
+    "trust_score": "Puntuación de Confianza"
   }
 }

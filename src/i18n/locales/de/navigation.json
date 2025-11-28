@@ -28,5 +28,28 @@
   "auth": {
     "sign_in": "Anmelden",
     "get_started": "Erste Schritte"
+  },
+  "errors": {
+    "signout_failed_title": "Abmeldung fehlgeschlagen",
+    "signout_failed_message": "Abmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+  "aria": {
+    "open_menu": "Menü öffnen",
+    "expand_sidebar": "Seitenleiste erweitern",
+    "collapse_sidebar": "Seitenleiste minimieren"
+  },
+  "sidebar": {
+    "main": "Haupt",
+    "activity": "Aktivität",
+    "account": "Konto",
+    "dashboard": "Dashboard",
+    "browse_equipment": "Equipment durchsuchen",
+    "my_bookings": "Meine Buchungen",
+    "messages": "Nachrichten",
+    "payments": "Zahlungen",
+    "settings": "Einstellungen",
+    "my_equipment_listings": "Meine Equipment-Angebote",
+    "verification": "Verifizierung",
+    "trust_score": "Vertrauenswert"
   }
 }

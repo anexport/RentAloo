@@ -18,9 +18,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 
+// Validation messages will be translated in the component
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email(),
+  password: z.string().min(1),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -86,7 +87,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
         }
       }
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError(t("login.errors.unexpected_error"));
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +165,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
               />
               {errors.email && (
                 <p className="text-sm text-destructive">
-                  {errors.email.message}
+                  {t("login.errors.invalid_email")}
                 </p>
               )}
             </div>
@@ -198,7 +199,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
               </div>
               {errors.password && (
                 <p className="text-sm text-destructive">
-                  {errors.password.message}
+                  {t("login.errors.password_required")}
                 </p>
               )}
             </div>
