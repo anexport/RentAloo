@@ -31,6 +31,7 @@ import {
   Crosshair,
   X,
   Wrench,
+  Loader2,
 } from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -754,13 +755,18 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     />
                     <CommandList className="max-h-[400px]" aria-busy={equipmentAutocomplete.loading}>
                       <CommandEmpty>
-                        {equipmentAutocomplete.loading
-                          ? "Searching..."
-                          : equipmentAutocomplete.query.trim().length === 0
-                          ? "Start typing to search."
-                          : equipmentAutocomplete.error
-                          ? `Error: ${equipmentAutocomplete.error}`
-                          : "No results found."}
+                        {equipmentAutocomplete.loading ? (
+                          <div className="flex items-center justify-center gap-2 py-6">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Searching...</span>
+                          </div>
+                        ) : equipmentAutocomplete.query.trim().length === 0 ? (
+                          "Start typing to search."
+                        ) : equipmentAutocomplete.error ? (
+                          `Error: ${equipmentAutocomplete.error}`
+                        ) : (
+                          "No results found."
+                        )}
                       </CommandEmpty>
 
                       {/* Categories Group */}
@@ -1034,13 +1040,18 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               />
               <CommandList aria-busy={equipmentAutocomplete.loading}>
                 <CommandEmpty>
-                  {equipmentAutocomplete.loading
-                    ? "Searching..."
-                    : equipmentAutocomplete.query.trim().length === 0
-                    ? "Start typing to search."
-                    : equipmentAutocomplete.error
-                    ? `Error: ${equipmentAutocomplete.error}`
-                    : "No results found."}
+                  {equipmentAutocomplete.loading ? (
+                    <div className="flex items-center justify-center gap-2 py-6">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Searching...</span>
+                    </div>
+                  ) : equipmentAutocomplete.query.trim().length === 0 ? (
+                    "Start typing to search."
+                  ) : equipmentAutocomplete.error ? (
+                    `Error: ${equipmentAutocomplete.error}`
+                  ) : (
+                    "No results found."
+                  )}
                 </CommandEmpty>
 
                 {/* Categories Group */}
