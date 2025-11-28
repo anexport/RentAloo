@@ -77,6 +77,40 @@ const POPULAR_LOCATIONS = [
   "Austin, TX",
 ];
 
+const POPULAR_CATEGORIES = [
+  "Camping",
+  "Hiking",
+  "Cycling",
+  "Water Sports",
+  "Winter Sports",
+];
+
+const RECENT_SEARCHES_KEY = "rentaloo_recent_equipment_searches";
+const MAX_RECENT_SEARCHES = 5;
+
+// Helper functions for recent searches
+const getRecentSearches = (): string[] => {
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addRecentSearch = (search: string) => {
+  try {
+    const recent = getRecentSearches();
+    // Remove if already exists (to move it to front)
+    const filtered = recent.filter((s) => s !== search);
+    // Add to front and limit to MAX
+    const updated = [search, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error("Failed to save recent search:", error);
+  }
+};
+
 type SectionKey = "where" | "when" | "what";
 
 const MOBILE_SECTIONS: Array<{
@@ -101,6 +135,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [isSelectingDates, setIsSelectingDates] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
@@ -189,6 +224,11 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           name,
         }));
   }, [categories]);
+
+  // Load recent searches on mount
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -377,6 +417,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         search: suggestion.label,            // Search by exact title
       });
     }
+
+    // Save to recent searches
+    addRecentSearch(suggestion.label);
+    setRecentSearches(getRecentSearches());
 
     // Clear input and close popover/sheet
     equipmentAutocomplete.setQuery("");
@@ -786,6 +830,81 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         )}
                       </CommandEmpty>
 
+                      {/* Recent Searches (shown when no search query) */}
+                      {equipmentAutocomplete.query.trim().length === 0 &&
+                        recentSearches.length > 0 && (
+                          <CommandGroup heading="Recent">
+                            {recentSearches.map((searchTerm, idx) => (
+                              <CommandItem
+                                key={`recent-${idx}`}
+                                onSelect={() => {
+                                  // Find matching category
+                                  const category = categories.find(
+                                    (cat) => cat.name === searchTerm
+                                  );
+                                  if (category) {
+                                    handleEquipmentSuggestionSelect({
+                                      id: category.id,
+                                      label: category.name,
+                                      type: "category",
+                                    });
+                                  } else {
+                                    // Treat as equipment search
+                                    onChange({
+                                      ...value,
+                                      equipmentType: searchTerm,
+                                      equipmentCategoryId: undefined,
+                                      search: searchTerm,
+                                    });
+                                    setSheetOpen(false);
+                                  }
+                                }}
+                                className="cursor-pointer py-3"
+                              >
+                                <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                                {searchTerm}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+
+                      {/* Popular Categories (shown when no search query) */}
+                      {equipmentAutocomplete.query.trim().length === 0 && (
+                        <CommandGroup heading="Popular">
+                          {POPULAR_CATEGORIES.map((categoryName) => (
+                            <CommandItem
+                              key={categoryName}
+                              onSelect={() => {
+                                // Find the category ID from loaded categories
+                                const category = categories.find(
+                                  (cat) => cat.name === categoryName
+                                );
+                                if (category) {
+                                  handleEquipmentSuggestionSelect({
+                                    id: category.id,
+                                    label: category.name,
+                                    type: "category",
+                                  });
+                                } else {
+                                  // Fallback: set as equipmentType without category filter
+                                  onChange({
+                                    ...value,
+                                    equipmentType: categoryName,
+                                    equipmentCategoryId: undefined,
+                                    search: "",
+                                  });
+                                  setSheetOpen(false);
+                                }
+                              }}
+                              className="cursor-pointer py-3"
+                            >
+                              <Package className="mr-2 h-4 w-4" />
+                              {categoryName}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
+
                       {/* Categories Group */}
                       {categorySuggestions.length > 0 && (
                         <CommandGroup heading="Categories">
@@ -1081,6 +1200,81 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     "No results found."
                   )}
                 </CommandEmpty>
+
+                {/* Recent Searches (shown when no search query) */}
+                {equipmentAutocomplete.query.trim().length === 0 &&
+                  recentSearches.length > 0 && (
+                    <CommandGroup heading="Recent">
+                      {recentSearches.map((searchTerm, idx) => (
+                        <CommandItem
+                          key={`recent-${idx}`}
+                          onSelect={() => {
+                            // Find matching category
+                            const category = categories.find(
+                              (cat) => cat.name === searchTerm
+                            );
+                            if (category) {
+                              handleEquipmentSuggestionSelect({
+                                id: category.id,
+                                label: category.name,
+                                type: "category",
+                              });
+                            } else {
+                              // Treat as equipment search
+                              onChange({
+                                ...value,
+                                equipmentType: searchTerm,
+                                equipmentCategoryId: undefined,
+                                search: searchTerm,
+                              });
+                              setEquipmentOpen(false);
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                          {searchTerm}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+
+                {/* Popular Categories (shown when no search query) */}
+                {equipmentAutocomplete.query.trim().length === 0 && (
+                  <CommandGroup heading="Popular">
+                    {POPULAR_CATEGORIES.map((categoryName) => (
+                      <CommandItem
+                        key={categoryName}
+                        onSelect={() => {
+                          // Find the category ID from loaded categories
+                          const category = categories.find(
+                            (cat) => cat.name === categoryName
+                          );
+                          if (category) {
+                            handleEquipmentSuggestionSelect({
+                              id: category.id,
+                              label: category.name,
+                              type: "category",
+                            });
+                          } else {
+                            // Fallback: set as equipmentType without category filter
+                            onChange({
+                              ...value,
+                              equipmentType: categoryName,
+                              equipmentCategoryId: undefined,
+                              search: "",
+                            });
+                            setEquipmentOpen(false);
+                          }
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        {categoryName}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
 
                 {/* Categories Group */}
                 {categorySuggestions.length > 0 && (
