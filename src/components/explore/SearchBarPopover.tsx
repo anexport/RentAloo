@@ -749,7 +749,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   </div>
                   <Command shouldFilter={false} className="rounded-2xl border">
                     <CommandInput
-                      placeholder="Search equipment or categories..."
+                      placeholder="What are you looking for?"
                       value={equipmentAutocomplete.query}
                       onValueChange={equipmentAutocomplete.setQuery}
                     />
@@ -1009,7 +1009,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     What
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
-                    {value.equipmentType || "Search equipment..."}
+                    {value.equipmentType || "What are you looking for?"}
                   </div>
                 </div>
                 {value.equipmentType && (
@@ -1034,7 +1034,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           <PopoverContent className="w-80 p-0" align="start">
             <Command shouldFilter={false}>
               <CommandInput
-                placeholder="Search equipment or categories..."
+                placeholder="What are you looking for?"
                 value={equipmentAutocomplete.query}
                 onValueChange={equipmentAutocomplete.setQuery}
               />
