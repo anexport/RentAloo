@@ -445,6 +445,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       search: "",
     });
     equipmentAutocomplete.setQuery("");
+    addressAutocomplete.setQuery("");
     setActiveSection("where");
     setIsSelectingDates(false);
   };
