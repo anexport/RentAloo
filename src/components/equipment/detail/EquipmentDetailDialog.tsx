@@ -13,23 +13,21 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   Info,
-  Package,
   Star,
-  CreditCard,
+  MapPin,
 } from "lucide-react";
 import { fetchListingById } from "@/components/equipment/services/listings";
 import { EquipmentHeader } from "./EquipmentHeader";
 import { EquipmentPhotoGallery } from "./EquipmentPhotoGallery";
-import { EquipmentOverviewTab } from "./EquipmentOverviewTab";
-import { DetailsTab } from "./DetailsTab";
+import { OwnerInformationCard } from "./OwnerInformationCard";
+import { ConditionVisualization } from "./ConditionVisualization";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
+import EquipmentLocationMap from "@/components/equipment/EquipmentLocationMap";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import BookingSidebar from "@/components/booking/BookingSidebar";
 import { FloatingBookingCTA } from "@/components/booking/FloatingBookingCTA";
 import { MobileSidebarDrawer } from "@/components/booking/MobileSidebarDrawer";
-import BookingRequestForm from "@/components/booking/BookingRequestForm";
-import PaymentForm from "@/components/payment/PaymentForm";
 import ReviewList from "@/components/reviews/ReviewList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
@@ -48,12 +46,6 @@ type EquipmentDetailDialogProps = {
   listingId?: string;
 };
 
-// Type guard to check if listing has category
-const hasCategory = (
-  listing: Listing | undefined
-): listing is Listing & { category: NonNullable<Listing["category"]> } => {
-  return !!listing?.category;
-};
 
 const calculateDamageDeposit = (equipment?: Listing | null): number => {
   if (!equipment) return 0;
@@ -94,11 +86,11 @@ const EquipmentDetailDialog = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<InsuranceType>("none");
   const requestIdRef = useRef(0);
-  const sheetContentRef = useRef<HTMLElement | null>(null);
-  
+  const [sheetContentEl, setSheetContentEl] = useState<HTMLElement | null>(null);
+
   // Callback ref to attach to the scrollable container
   const sheetContentRefCallback = useCallback((element: HTMLElement | null) => {
-    sheetContentRef.current = element;
+    setSheetContentEl(element);
   }, []);
 
   const handleCalculationChange = useCallback(
@@ -382,14 +374,13 @@ const EquipmentDetailDialog = ({
 
       if (error) throw error;
 
-      // Set booking request ID and switch to book tab for payment
+      // Set booking request ID
       if (newBooking) {
         setBookingRequestId(newBooking.id);
-        setActiveTab("book");
-        // Close mobile drawer on mobile so payment form is visible
-        if (isMobile) {
-          setMobileSidebarOpen(false);
-        }
+        toast({
+          title: "Booking Request Created",
+          description: "Complete payment in the booking panel to confirm your rental.",
+        });
       }
     } catch (error) {
       console.error("Error creating booking request:", error);
@@ -518,8 +509,6 @@ const EquipmentDetailDialog = ({
       );
     }
 
-    const damageDeposit = calculateDamageDeposit(data);
-
     return (
       <div className="space-y-6">
         {/* Header with meta info */}
@@ -551,22 +540,14 @@ const EquipmentDetailDialog = ({
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger
                   value="overview"
                   className="flex items-center gap-2"
-                  aria-label="Overview - Description and details"
+                  aria-label="About this equipment"
                 >
                   <Info className="h-4 w-4" />
-                  <span>Overview</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="details"
-                  className="flex items-center gap-2"
-                  aria-label="Details - Availability and location"
-                >
-                  <Package className="h-4 w-4" />
-                  <span>Details</span>
+                  <span>About</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviews"
@@ -581,55 +562,108 @@ const EquipmentDetailDialog = ({
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger
-                  value="book"
-                  className="flex items-center gap-2"
-                  aria-label="Book"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span>Book</span>
-                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6 mt-6">
-                <EquipmentOverviewTab
-                  description={data.description}
-                  condition={data.condition}
-                  category={data.category}
-                  dailyRate={data.daily_rate}
-                  location={data.location}
-                  owner={data.owner && ownerProfile ? {
-                    id: data.owner.id,
-                    email: data.owner.email,
-                    name: undefined, // Not available in profiles table
-                    avatar_url: undefined, // Not available in profiles table
-                    joinedDate: ownerProfile.created_at 
-                      ? new Date(ownerProfile.created_at).getFullYear().toString()
-                      : undefined,
-                    totalRentals: undefined, // Could be fetched separately if needed
-                    responseRate: undefined, // Could be calculated from messaging data
-                    rating: avgRating,
-                    isVerified: false, // Could be fetched from verification table
-                  } : undefined}
-                  rentalCount={rentalCountData || 0}
-                  averageRating={avgRating}
-                  isVerified={false} // Could be fetched from verification table
-                  lastInspectionDate={
-                    data.created_at 
-                      ? data.created_at
-                      : undefined
-                  }
-                />
-              </TabsContent>
+              <TabsContent value="overview" className="space-y-8 mt-6">
+                {/* Description Section */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-3">Description</h2>
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                    {data.description}
+                  </p>
+                </div>
 
-              <TabsContent value="details" className="mt-6">
-                <DetailsTab
-                  equipmentId={data.id}
-                  dailyRate={data.daily_rate}
-                  location={data.location}
-                  latitude={data.latitude}
-                  longitude={data.longitude}
-                />
+                <Separator />
+
+                {/* Key Details Grid */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Key Details</h2>
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground mb-1">Condition</dt>
+                      <dd className="font-medium capitalize flex items-center gap-2">
+                        {data.condition}
+                        <ConditionVisualization
+                          condition={data.condition}
+                          lastInspectionDate={data.created_at}
+                          compact={true}
+                        />
+                      </dd>
+                    </div>
+                    {data.category && (
+                      <div>
+                        <dt className="text-muted-foreground mb-1">Category</dt>
+                        <dd className="font-medium">{data.category.name}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt className="text-muted-foreground mb-1">Daily Rate</dt>
+                      <dd className="font-semibold text-lg">${data.daily_rate}</dd>
+                    </div>
+                    {rentalCountData !== undefined && rentalCountData > 0 && (
+                      <div>
+                        <dt className="text-muted-foreground mb-1">Total Rentals</dt>
+                        <dd className="font-medium">{rentalCountData}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+
+                <Separator />
+
+                {/* Availability Section */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    Availability
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select dates in the booking panel to check availability and pricing.
+                  </p>
+                  <AvailabilityCalendar
+                    equipmentId={data.id}
+                    defaultDailyRate={data.daily_rate}
+                    viewOnly={true}
+                  />
+                </section>
+
+                <Separator />
+
+                {/* Location Section */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Pickup Location
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {data.location}
+                  </p>
+                  <EquipmentLocationMap
+                    location={data.location}
+                    latitude={data.latitude}
+                    longitude={data.longitude}
+                  />
+                </section>
+
+                <Separator />
+
+                {/* Owner Information */}
+                {data.owner && ownerProfile && (
+                  <OwnerInformationCard
+                    owner={{
+                      id: data.owner.id,
+                      email: data.owner.email,
+                      name: undefined,
+                      avatar_url: undefined,
+                      joinedDate: ownerProfile.created_at
+                        ? new Date(ownerProfile.created_at).getFullYear().toString()
+                        : undefined,
+                      totalRentals: rentalCountData,
+                      responseRate: undefined,
+                      rating: avgRating,
+                      isVerified: false,
+                    }}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-6">
@@ -640,94 +674,15 @@ const EquipmentDetailDialog = ({
                     showEquipment={false}
                   />
                 ) : (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Star className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                          No Reviews Yet
-                        </h3>
-                        <p className="text-muted-foreground max-w-md">
-                          This owner hasn't received any reviews yet. Be the first to rent and share your experience!
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="book" className="mt-6">
-                {!hasCategory(data) ? (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">
-                          Category Information Missing
-                        </h3>
-                        <p className="text-muted-foreground max-w-md">
-                          This equipment is missing category information. Please
-                          contact the owner or try again later.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : bookingRequestId && calculation ? (
-                  <PaymentForm
-                    bookingRequestId={bookingRequestId}
-                    ownerId={data.owner?.id || ""}
-                    totalAmount={calculation.total}
-                    onSuccess={(paymentId) => {
-                      setActiveTab("overview");
-                      toast({
-                        title: "Payment Successful",
-                        description:
-                          "Your booking has been confirmed! The owner has been notified.",
-                      });
-                      setBookingRequestId(null);
-                    }}
-                    onCancel={async () => {
-                      // Delete pending booking request immediately when user cancels
-                      if (bookingRequestId) {
-                        try {
-                          const { error: deleteError } = await supabase
-                            .from("booking_requests")
-                            .delete()
-                            .eq("id", bookingRequestId)
-                            .eq("status", "pending");
-
-                          if (deleteError) {
-                            console.error("Error deleting booking request:", deleteError);
-                          }
-                        } catch (error) {
-                          console.error("Error cleaning up booking request:", error);
-                        }
-                      }
-                      setBookingRequestId(null);
-                    }}
-                  />
-                ) : (
-                  <BookingRequestForm
-                    equipment={{
-                      ...data,
-                      category: data.category,
-                    }}
-                    onSuccess={(id) => {
-                      setBookingRequestId(id);
-                    }}
-                    isEmbedded={true}
-                    initialDates={
-                      watchedStartDate && watchedEndDate
-                        ? {
-                            start_date: watchedStartDate,
-                            end_date: watchedEndDate,
-                          }
-                        : undefined
-                    }
-                    onCalculationChange={handleCalculationChange}
-                    insuranceType={selectedInsurance}
-                    depositAmount={damageDeposit || undefined}
-                  />
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Star className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      No Reviews Yet
+                    </h3>
+                    <p className="text-muted-foreground max-w-md">
+                      This owner hasn't received any reviews yet. Be the first to rent and share your experience!
+                    </p>
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
@@ -759,13 +714,13 @@ const EquipmentDetailDialog = ({
         </div>
 
         {/* Mobile-only: Floating CTA and Sidebar Drawer */}
-        {isMobile && (
+        {isMobile && sheetContentEl && (
           <>
             <FloatingBookingCTA
               dailyRate={data.daily_rate}
               onOpenBooking={() => setMobileSidebarOpen(true)}
               isVisible={true}
-              scrollContainerRef={sheetContentRef}
+              scrollContainerRef={{ current: sheetContentEl }}
             />
             
             <MobileSidebarDrawer
