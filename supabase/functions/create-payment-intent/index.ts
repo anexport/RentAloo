@@ -16,6 +16,17 @@ const corsHeaders = {
 const roundToTwo = (value: number) =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
+// Type for booking data passed from frontend
+interface BookingData {
+  equipment_id: string;
+  start_date: string;
+  end_date: string;
+  total_amount: number;
+  insurance_type: string;
+  insurance_cost: number;
+  damage_deposit_amount: number;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -62,11 +73,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse request body
-    const { bookingRequestId } = await req.json();
-    if (!bookingRequestId) {
+    // Parse request body - now accepts booking data directly
+    const body = await req.json();
+    const bookingData = body as BookingData;
+
+    // Validate required fields
+    if (!bookingData.equipment_id) {
       return new Response(
-        JSON.stringify({ error: "Missing bookingRequestId" }),
+        JSON.stringify({ error: "Missing equipment_id" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -74,38 +88,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Load booking request and validate ownership
-    const { data: br, error: brErr } = await supabase
-      .from("booking_requests")
-      .select(
-        "id, renter_id, total_amount, status, start_date, end_date, insurance_type, insurance_cost, damage_deposit_amount, equipment:equipment(id, owner_id)"
-      )
-      .eq("id", bookingRequestId)
+    if (!bookingData.start_date || !bookingData.end_date) {
+      return new Response(
+        JSON.stringify({ error: "Missing rental dates" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!bookingData.total_amount || bookingData.total_amount <= 0) {
+      return new Response(
+        JSON.stringify({ error: "Invalid total amount" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Get equipment details and verify it exists
+    const { data: equipment, error: equipError } = await supabase
+      .from("equipment")
+      .select("id, owner_id, daily_rate, is_available, title")
+      .eq("id", bookingData.equipment_id)
       .single();
 
-    if (brErr || !br) {
-      return new Response(JSON.stringify({ error: "Booking not found" }), {
+    if (equipError || !equipment) {
+      return new Response(JSON.stringify({ error: "Equipment not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify caller is the renter
-    if (br.renter_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify booking request is pending (instant booking flow: pending → payment → approved)
-    // Reject payment for already approved, declined, cancelled, or completed bookings
-    if (br.status !== 'pending') {
-      const message = br.status === 'approved'
-        ? "This booking has already been paid for"
-        : `Cannot process payment for ${br.status} booking request`;
+    // Verify user is not booking their own equipment
+    if (equipment.owner_id === user.id) {
       return new Response(
-        JSON.stringify({ error: message }),
+        JSON.stringify({ error: "Cannot book your own equipment" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -113,41 +133,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get equipment ownership context
-    const equipment = br.equipment as { id?: string; owner_id?: string } | null;
-    const ownerId = equipment?.owner_id ?? null;
-    const equipmentId = equipment?.id ?? null;
-
-    if (!ownerId) {
+    // Check equipment is available
+    if (!equipment.is_available) {
       return new Response(
-        JSON.stringify({ error: "Equipment owner not found" }),
+        JSON.stringify({ error: "Equipment is not available" }),
         {
-          status: 404,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    if (!equipmentId) {
-      return new Response(
-        JSON.stringify({ error: "Equipment not found" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Check availability one more time before creating payment intent
-    // This prevents race conditions where multiple users try to book same dates
-    // Exclude the current booking_request_id so it doesn't conflict with itself
-    const { data: conflictCheck, error: conflictError } = await supabase.rpc(
+    // Check availability for the dates - NO booking ID to exclude since no booking exists yet
+    const { data: isAvailable, error: conflictError } = await supabase.rpc(
       "check_booking_conflicts",
       {
-        p_equipment_id: equipmentId,
-        p_start_date: br.start_date,
-        p_end_date: br.end_date,
-        p_exclude_booking_id: br.id, // Exclude current booking request
+        p_equipment_id: bookingData.equipment_id,
+        p_start_date: bookingData.start_date,
+        p_end_date: bookingData.end_date,
+        p_exclude_booking_id: null, // No booking to exclude
       }
     );
 
@@ -164,7 +168,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (conflictCheck === false) {
+    if (isAvailable === false) {
       return new Response(
         JSON.stringify({
           error:
@@ -177,97 +181,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Idempotency: prevent multiple successful payments
-    const { data: existingSucceeded } = await supabase
-      .from("payments")
-      .select("id")
-      .eq("booking_request_id", bookingRequestId)
-      .eq("payment_status", "succeeded")
-      .limit(1);
-
-    if (existingSucceeded && existingSucceeded.length > 0) {
-      return new Response(
-        JSON.stringify({ error: "Payment already completed" }),
-        {
-          status: 409,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Check for existing pending payment with PaymentIntent
-    const { data: existingPending } = await supabase
-      .from("payments")
-      .select("stripe_payment_intent_id")
-      .eq("booking_request_id", bookingRequestId)
-      .eq("payment_status", "pending")
-      .not("stripe_payment_intent_id", "is", null)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingPending?.stripe_payment_intent_id) {
-      try {
-        // Try to retrieve existing PaymentIntent
-        const existingPi = await stripe.paymentIntents.retrieve(
-          existingPending.stripe_payment_intent_id
-        );
-
-        if (
-          existingPi.status !== "canceled" &&
-          existingPi.status !== "succeeded"
-        ) {
-          // Return existing client secret
-          return new Response(
-            JSON.stringify({
-              clientSecret: existingPi.client_secret,
-              paymentIntentId: existingPi.id,
-            }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-      } catch (err) {
-        // PaymentIntent not found or invalid, continue to create new one
-        console.error("Error retrieving existing PaymentIntent:", err);
-      }
-    }
-
-    const bookingTotal = Number(br.total_amount);
-    if (!Number.isFinite(bookingTotal) || bookingTotal <= 0) {
-      console.error("Invalid booking total snapshot", {
-        bookingRequestId: br.id,
-        bookingTotal,
-      });
-      return new Response(
-        JSON.stringify({
-          error: "Booking total is invalid. Please refresh and try again.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const insuranceAmount = roundToTwo(Number(br.insurance_cost ?? 0));
-    const depositAmount = roundToTwo(Number(br.damage_deposit_amount ?? 0));
+    // Calculate breakdown from total
+    const bookingTotal = Number(bookingData.total_amount);
+    const insuranceAmount = roundToTwo(Number(bookingData.insurance_cost ?? 0));
+    const depositAmount = roundToTwo(Number(bookingData.damage_deposit_amount ?? 0));
     const subtotalBeforeFees = roundToTwo(
       bookingTotal - insuranceAmount - depositAmount
     );
 
     if (!Number.isFinite(subtotalBeforeFees) || subtotalBeforeFees < 0) {
       console.error("Booking totals are inconsistent", {
-        bookingRequestId: br.id,
         bookingTotal,
         insuranceAmount,
         depositAmount,
       });
       return new Response(
         JSON.stringify({
-          error:
-            "Booking totals no longer match the quote. Please contact support.",
+          error: "Booking totals are invalid. Please try again.",
         }),
         {
           status: 400,
@@ -277,104 +207,33 @@ Deno.serve(async (req) => {
     }
 
     const rentalSubtotal = roundToTwo(subtotalBeforeFees / 1.05);
-    const service_fee = roundToTwo(subtotalBeforeFees - rentalSubtotal);
-    const tax = 0;
-    const total = bookingTotal;
+    const serviceFee = roundToTwo(subtotalBeforeFees - rentalSubtotal);
 
-    // Create PaymentIntent
+    // Create PaymentIntent with ALL booking data in metadata
+    // This data will be used by the webhook to create the booking after payment
     const pi = await stripe.paymentIntents.create({
-      amount: Math.round(total * 100), // Convert to cents
+      amount: Math.round(bookingTotal * 100), // Convert to cents
       currency: "usd",
       metadata: {
-        booking_request_id: br.id,
-        renter_id: br.renter_id,
-        owner_id: ownerId,
+        // All data needed to create booking after payment
+        equipment_id: bookingData.equipment_id,
+        renter_id: user.id,
+        owner_id: equipment.owner_id,
+        start_date: bookingData.start_date,
+        end_date: bookingData.end_date,
+        total_amount: bookingTotal.toString(),
         rental_amount: rentalSubtotal.toString(),
-        deposit_amount: depositAmount.toString(),
-        insurance_amount: insuranceAmount.toString(),
-        insurance_type: br.insurance_type || 'none',
+        service_fee: serviceFee.toString(),
+        insurance_type: bookingData.insurance_type || "none",
+        insurance_cost: insuranceAmount.toString(),
+        damage_deposit_amount: depositAmount.toString(),
+        equipment_title: equipment.title || "",
       },
     });
 
-    // Upsert pending payment row
-    // First check if payment exists for this booking_request_id
-    const { data: existingPayment } = await supabase
-      .from("payments")
-      .select("id")
-      .eq("booking_request_id", br.id)
-      .eq("payment_status", "pending")
-      .maybeSingle();
-
-    if (existingPayment) {
-      // Update existing payment with new PaymentIntent
-      const { data: updateData, error: updateError } = await supabase
-        .from("payments")
-        .update({
-          stripe_payment_intent_id: pi.id,
-          subtotal: rentalSubtotal,
-          rental_amount: rentalSubtotal,
-          service_fee,
-          tax,
-          insurance_amount: insuranceAmount,
-          deposit_amount: depositAmount,
-          total_amount: total,
-          escrow_amount: total,
-          owner_payout_amount: rentalSubtotal,
-          deposit_status: depositAmount > 0 ? 'held' : null,
-        })
-        .eq("id", existingPayment.id);
-
-      if (updateError) {
-        console.error("Failed to update payment record:", updateError);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to update payment record",
-            details: updateError.message,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-    } else {
-      // Insert new payment row
-      const { data: insertData, error: insertError } = await supabase
-        .from("payments")
-        .insert({
-          booking_request_id: br.id,
-          renter_id: br.renter_id,
-          owner_id: ownerId,
-          subtotal: rentalSubtotal,
-          rental_amount: rentalSubtotal,
-          service_fee,
-          tax,
-          insurance_amount: insuranceAmount,
-          deposit_amount: depositAmount,
-          total_amount: total,
-          escrow_amount: total,
-          owner_payout_amount: rentalSubtotal,
-          currency: "usd",
-          payment_status: "pending",
-          escrow_status: "held",
-          deposit_status: depositAmount > 0 ? 'held' : null,
-          stripe_payment_intent_id: pi.id,
-        });
-
-      if (insertError) {
-        console.error("Failed to insert payment record:", insertError);
-        return new Response(
-          JSON.stringify({
-            error: "Failed to create payment record",
-            details: insertError.message,
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-    }
+    // DO NOT create any database records here
+    // The booking and payment will be created by the webhook after payment success
+    // This prevents orphaned bookings if user abandons payment
 
     return new Response(
       JSON.stringify({

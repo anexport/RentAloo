@@ -28,12 +28,15 @@ import { Badge } from "@/components/ui/badge";
 import BookingSidebar from "@/components/booking/BookingSidebar";
 import { FloatingBookingCTA } from "@/components/booking/FloatingBookingCTA";
 import { MobileSidebarDrawer } from "@/components/booking/MobileSidebarDrawer";
+import PaymentCheckoutForm from "@/components/payment/PaymentCheckoutForm";
+import OrderSummaryCard from "@/components/payment/OrderSummaryCard";
 import ReviewList from "@/components/reviews/ReviewList";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { supabase } from "@/lib/supabase";
+import type { PaymentBookingData } from "@/lib/stripe";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
 import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
@@ -77,12 +80,10 @@ const EquipmentDetailDialog = ({
   );
   const [watchedStartDate, setWatchedStartDate] = useState<string>("");
   const [watchedEndDate, setWatchedEndDate] = useState<string>("");
-  const [bookingRequestId, setBookingRequestId] = useState<string | null>(null);
+  const [showPaymentMode, setShowPaymentMode] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [conflicts, setConflicts] = useState<BookingConflict[]>([]);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
-  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
-  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<InsuranceType>("none");
   const requestIdRef = useRef(0);
@@ -335,20 +336,37 @@ const EquipmentDetailDialog = ({
     [dateRange, handleStartDateSelect, handleEndDateSelect]
   );
 
-  // Handle creating booking request and initializing payment
-  const handleBookAndPay = useCallback(async () => {
-    // Early return if loading conflicts or already creating
-    if (loadingConflicts || isCreatingBooking) {
+  // Prepare booking data for payment (NO database record created yet!)
+  const bookingData: PaymentBookingData | null = 
+    data && dateRange?.from && dateRange?.to && calculation
+      ? {
+          equipment_id: data.id,
+          start_date: formatDateForStorage(dateRange.from),
+          end_date: formatDateForStorage(dateRange.to),
+          total_amount: calculation.total,
+          insurance_type: selectedInsurance,
+          insurance_cost: calculation.insurance,
+          damage_deposit_amount: calculateDamageDeposit(data),
+        }
+      : null;
+
+  // Handle transitioning to payment mode (NO booking created in DB)
+  const handleProceedToPayment = useCallback(() => {
+    // Validate before showing payment
+    if (loadingConflicts) {
       return;
     }
 
-    if (
-      !user ||
-      !data ||
-      !dateRange?.from ||
-      !dateRange?.to ||
-      conflicts.length > 0
-    ) {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Login Required",
+        description: "Please log in to book this equipment.",
+      });
+      return;
+    }
+
+    if (!data || !dateRange?.from || !dateRange?.to || conflicts.length > 0) {
       return;
     }
 
@@ -362,63 +380,18 @@ const EquipmentDetailDialog = ({
       return;
     }
 
-    if (!data.category) {
+    if (!calculation) {
       toast({
         variant: "destructive",
-        title: "Missing Category Information",
-        description: "Equipment category information is missing.",
+        title: "Price Not Calculated",
+        description: "Please wait for the price to calculate.",
       });
       return;
     }
 
-    setIsCreatingBooking(true);
-
-    try {
-      const startDate = formatDateForStorage(dateRange.from);
-      const endDate = formatDateForStorage(dateRange.to);
-
-      // Calculate damage deposit from equipment settings
-      const damageDeposit = calculateDamageDeposit(data);
-
-      const bookingData = {
-        equipment_id: data.id,
-        renter_id: user.id,
-        start_date: startDate,
-        end_date: endDate,
-        total_amount: calculation?.total || 0,
-        status: "pending" as const,
-        message: null,
-        insurance_type: selectedInsurance,
-        insurance_cost: calculation?.insurance || 0,
-        damage_deposit_amount: damageDeposit,
-      };
-
-      const { data: newBooking, error } = await supabase
-        .from("booking_requests")
-        .insert(bookingData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Set booking request ID
-      if (newBooking) {
-        setBookingRequestId(newBooking.id);
-        toast({
-          title: "Booking Request Created",
-          description: "Complete payment in the booking panel to confirm your rental.",
-        });
-      }
-    } catch (error) {
-      console.error("Error creating booking request:", error);
-      toast({
-        variant: "destructive",
-        title: "Booking Failed",
-        description: "Failed to create booking request. Please try again.",
-      });
-    } finally {
-      setIsCreatingBooking(false);
-    }
+    // Just switch to payment mode - NO booking is created here!
+    // The booking will be created by the webhook after payment succeeds
+    setShowPaymentMode(true);
   }, [
     user,
     data,
@@ -427,80 +400,53 @@ const EquipmentDetailDialog = ({
     calculation,
     toast,
     loadingConflicts,
-    isCreatingBooking,
-    selectedInsurance,
   ]);
 
-  // Handle booking button click
+  // Handle booking button click - proceeds to payment mode
   const handleBooking = useCallback(() => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Login Required",
-        description: "Please log in to book this equipment.",
-      });
-      return;
-    }
-    void handleBookAndPay();
-  }, [user, toast, handleBookAndPay]);
+    handleProceedToPayment();
+  }, [handleProceedToPayment]);
+
+  // Handle payment success - booking is created by webhook, just update UI
+  const handlePaymentSuccess = useCallback(() => {
+    toast({
+      title: "Payment Successful",
+      description: "Your booking has been confirmed! The owner has been notified.",
+    });
+    setShowPaymentMode(false);
+    setMobileSidebarOpen(false);
+    // Reset booking state
+    setDateRange(undefined);
+    setCalculation(null);
+    setWatchedStartDate("");
+    setWatchedEndDate("");
+    setSelectedInsurance("none");
+  }, [toast]);
+
+  // Handle payment cancellation - just reset UI state (no DB cleanup needed!)
+  const handlePaymentCancel = useCallback(() => {
+    // Simply exit payment mode - no booking was created so nothing to clean up!
+    setShowPaymentMode(false);
+    // Keep the dates and calculation so user can modify and try again
+  }, []);
 
 
-  // Reset calendar and dates when dialog closes
+  // Reset state when dialog closes
+  // No database cleanup needed since bookings are only created after payment!
   useEffect(() => {
     if (!open) {
-      // If there's a pending booking request, clean it up
-      const cleanupBookingRequest = async () => {
-        // Capture the current bookingRequestId before clearing state
-        const currentBookingRequestId = bookingRequestId;
-
-        if (currentBookingRequestId) {
-          try {
-            // Check if booking request still exists and is pending
-            const { data: existingRequest, error: checkError } = await supabase
-              .from("booking_requests")
-              .select("id, status")
-              .eq("id", currentBookingRequestId)
-              .maybeSingle();
-
-            if (checkError && checkError.code !== "PGRST116") {
-              console.error("Error checking booking request:", checkError);
-              return;
-            }
-
-            // If booking request exists and is still pending, delete it
-            if (existingRequest && existingRequest.status === "pending") {
-              const { error: deleteError } = await supabase
-                .from("booking_requests")
-                .delete()
-                .eq("id", currentBookingRequestId)
-                .eq("status", "pending");
-
-              if (deleteError) {
-                console.error("Error deleting booking request:", deleteError);
-              }
-            }
-          } catch (error) {
-            console.error("Error cleaning up booking request:", error);
-          }
-        }
-      };
-
-      void cleanupBookingRequest();
-
       // Clear local state
       setDateRange(undefined);
       setCalculation(null);
       setWatchedStartDate("");
       setWatchedEndDate("");
       setConflicts([]);
-      setBookingRequestId(null);
-      setIsCreatingBooking(false);
-      setIsCancellingBooking(false);
+      setShowPaymentMode(false);
       setMobileSidebarOpen(false);
       setActiveTab("overview");
       setSelectedInsurance("none");
     }
-  }, [open, bookingRequestId]);
+  }, [open]);
 
   const avgRating = (() => {
     if (!data?.reviews || data.reviews.length === 0) return 0;
@@ -557,8 +503,33 @@ const EquipmentDetailDialog = ({
 
         <Separator />
 
-        {/* Main content with tabs and sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+        {/* Payment Mode: Full-width payment form with order summary sidebar */}
+        {showPaymentMode && bookingData && calculation && !isMobile ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+            {/* Payment Form - Full Width */}
+            <div>
+              <PaymentCheckoutForm
+                bookingData={bookingData}
+                totalAmount={calculation.total}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+              />
+            </div>
+
+            {/* Order Summary Sidebar */}
+            <aside className="lg:sticky lg:top-6 h-fit">
+              <OrderSummaryCard
+                listing={data}
+                calculation={calculation}
+                startDate={watchedStartDate}
+                endDate={watchedEndDate}
+                insuranceType={selectedInsurance}
+              />
+            </aside>
+          </div>
+        ) : (
+          /* Normal Mode: Equipment details with booking sidebar */
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
           {/* Main content tabs */}
           <div className="space-y-6">
             <Tabs
@@ -731,12 +702,13 @@ const EquipmentDetailDialog = ({
               selectedInsurance={selectedInsurance}
               onInsuranceChange={setSelectedInsurance}
               onBooking={handleBooking}
-              isCreatingBooking={isCreatingBooking}
+              isLoading={loadingConflicts}
               user={user}
               equipmentId={listingId}
             />
           )}
         </div>
+        )}
 
         {/* Mobile-only: Floating CTA and Sidebar Drawer */}
         {isMobile && sheetContentEl && (
@@ -766,9 +738,13 @@ const EquipmentDetailDialog = ({
               selectedInsurance={selectedInsurance}
               onInsuranceChange={setSelectedInsurance}
               onBooking={handleBooking}
-              isCreatingBooking={isCreatingBooking}
+              isLoading={loadingConflicts}
               user={user}
               equipmentId={listingId}
+              showPaymentMode={showPaymentMode}
+              bookingData={bookingData}
+              onPaymentSuccess={handlePaymentSuccess}
+              onPaymentCancel={handlePaymentCancel}
             />
           </>
         )}

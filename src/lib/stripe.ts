@@ -19,10 +19,29 @@ export const getStripe = (): Promise<Stripe | null> => {
 };
 
 /**
+ * Booking data required to create a payment intent
+ * This is sent to the Edge Function which stores it in Stripe metadata
+ * The booking is only created in the database after payment succeeds
+ */
+export type PaymentBookingData = {
+  equipment_id: string;
+  start_date: string;
+  end_date: string;
+  total_amount: number;
+  insurance_type: string;
+  insurance_cost: number;
+  damage_deposit_amount: number;
+};
+
+/**
  * Create a payment intent via Supabase Edge Function
+ * 
+ * IMPORTANT: This does NOT create a booking in the database!
+ * The booking is created by the webhook after payment succeeds.
+ * This prevents orphaned bookings if users abandon payment.
  */
 export const createPaymentIntent = async (
-  bookingRequestId: string
+  bookingData: PaymentBookingData
 ): Promise<{ clientSecret: string; paymentIntentId: string }> => {
   // Get session token
   const { data: session } = await supabase.auth.getSession();
@@ -38,7 +57,7 @@ export const createPaymentIntent = async (
     throw new Error("VITE_SUPABASE_URL is not configured");
   }
 
-  // Call Edge Function
+  // Call Edge Function with booking data
   const response = await fetch(
     `${supabaseUrl}/functions/v1/create-payment-intent`,
     {
@@ -47,7 +66,7 @@ export const createPaymentIntent = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ bookingRequestId }),
+      body: JSON.stringify(bookingData),
     }
   );
 
