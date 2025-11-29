@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslation } from "react-i18next";
+import { useTranslation, type TFunction } from "react-i18next";
 import * as z from "zod";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,17 +20,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Star } from "lucide-react";
 import StarRating from "./StarRating";
 
-const createReviewSchema = (t: any) =>
+const createReviewSchema = (t: TFunction) =>
   z.object({
     rating: z
       .number()
-      .min(1, t("reviews:form.validation_errors.min_rating"))
-      .max(5, t("reviews:form.validation_errors.max_rating"))
-      .int("Rating must be a whole number"),
+      .min(1, t("form.validation_errors.min_rating"))
+      .max(5, t("form.validation_errors.max_rating"))
+      .int(t("form.validation_errors.rating_whole_number")),
     comment: z
       .string()
-      .min(10, t("reviews:form.validation_errors.min_length"))
-      .max(1000, t("reviews:form.validation_errors.max_length")),
+      .min(10, t("form.validation_errors.min_length"))
+      .max(1000, t("form.validation_errors.max_length")),
   });
 
 interface ReviewFormProps {

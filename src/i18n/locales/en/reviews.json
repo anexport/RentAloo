@@ -23,6 +23,7 @@
       "min_rating": "Rating must be at least 1 star",
       "max_rating": "Rating cannot exceed 5 stars",
       "rating_required": "Please select a rating",
+      "rating_whole_number": "Rating must be a whole number",
       "min_length": "Review must be at least 10 characters",
       "max_length": "Review cannot exceed 1000 characters"
     }

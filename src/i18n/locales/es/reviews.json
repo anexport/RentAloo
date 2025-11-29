@@ -26,6 +26,7 @@
       "min_rating": "La calificación debe ser al menos 1 estrella",
       "max_rating": "La calificación no puede exceder 5 estrellas",
       "rating_required": "Por favor selecciona una calificación",
+      "rating_whole_number": "La calificación debe ser un número entero",
       "min_length": "La reseña debe tener al menos 10 caracteres",
       "max_length": "La reseña no puede exceder 1000 caracteres"
     }

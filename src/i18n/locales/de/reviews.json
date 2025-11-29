@@ -27,6 +27,7 @@
       "min_rating": "Die Bewertung muss mindestens 1 Stern sein",
       "max_rating": "Die Bewertung kann nicht mehr als 5 Sterne betragen",
       "rating_required": "Bitte wählen Sie eine Bewertung",
+      "rating_whole_number": "Die Bewertung muss eine ganze Zahl sein",
       "min_length": "Die Bewertung muss mindestens 10 Zeichen lang sein",
       "max_length": "Die Bewertung darf nicht mehr als 1000 Zeichen lang sein"
     }

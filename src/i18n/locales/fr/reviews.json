@@ -27,6 +27,7 @@
       "min_rating": "L'évaluation doit être au moins 1 étoile",
       "max_rating": "L'évaluation ne peut pas dépasser 5 étoiles",
       "rating_required": "Veuillez sélectionner une évaluation",
+      "rating_whole_number": "L'évaluation doit être un nombre entier",
       "min_length": "L'avis doit contenir au moins 10 caractères",
       "max_length": "L'avis ne peut pas dépasser 1000 caractères"
     }
