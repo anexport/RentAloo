@@ -36,7 +36,8 @@
   "aria": {
     "open_menu": "Menü öffnen",
     "expand_sidebar": "Seitenleiste erweitern",
-    "collapse_sidebar": "Seitenleiste minimieren"
+    "collapse_sidebar": "Seitenleiste minimieren",
+    "user_menu": "Benutzermenü"
   },
   "sidebar": {
     "main": "Haupt",

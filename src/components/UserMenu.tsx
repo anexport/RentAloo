@@ -44,11 +44,11 @@ const UserMenu = () => {
       console.error("Sign out error:", error);
       toast({
         variant: "destructive",
-        title: t("menu.sign_out"),
+        title: t("errors.signout_failed_title"),
         description:
           error instanceof Error
             ? error.message
-            : "Failed to sign out. Please try again.",
+            : t("errors.signout_failed_message"),
       });
       return;
     }
@@ -88,7 +88,7 @@ const UserMenu = () => {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger
         className="flex items-center space-x-2 focus:outline-none"
-        aria-label="User menu"
+        aria-label={t("aria.user_menu")}
       >
         {/* User Avatar with Initials */}
         <div className="flex items-center space-x-2 hover:opacity-90 transition-opacity">

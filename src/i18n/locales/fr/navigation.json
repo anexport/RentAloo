@@ -36,7 +36,8 @@
   "aria": {
     "open_menu": "Ouvrir le menu",
     "expand_sidebar": "Développer la barre latérale",
-    "collapse_sidebar": "Réduire la barre latérale"
+    "collapse_sidebar": "Réduire la barre latérale",
+    "user_menu": "Menu utilisateur"
   },
   "sidebar": {
     "main": "Principal",

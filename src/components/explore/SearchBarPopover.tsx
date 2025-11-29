@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -74,25 +75,27 @@ const POPULAR_LOCATIONS = [
 
 type SectionKey = "where" | "when" | "what";
 
-const MOBILE_SECTIONS: Array<{
-  key: SectionKey;
-  label: string;
-  icon: typeof MapPin;
-}> = [
-  { key: "where", label: "Where", icon: MapPin },
-  { key: "when", label: "When", icon: CalendarIcon },
-  { key: "what", label: "What", icon: Package },
-];
-
 const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   type Category = Database["public"]["Tables"]["categories"]["Row"];
 
+  const { t } = useTranslation("equipment");
   const isDesktop = useMediaQuery(createMinWidthQuery("md"));
   const [locationOpen, setLocationOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionKey>("where");
+
+  // Define mobile sections with translations
+  const MOBILE_SECTIONS: Array<{
+    key: SectionKey;
+    label: string;
+    icon: typeof MapPin;
+  }> = useMemo(() => [
+    { key: "where", label: t("search_popover.where_section_title"), icon: MapPin },
+    { key: "when", label: t("search_popover.when_section_title"), icon: CalendarIcon },
+    { key: "what", label: t("search_popover.what_section_title"), icon: Package },
+  ], [t]);
   const [isSelectingDates, setIsSelectingDates] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -140,25 +143,25 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
 
     return [
       {
-        label: "This weekend",
+        label: t("search_popover.this_weekend"),
         range: {
           from: thisWeekendStart,
           to: thisWeekendEnd,
         } satisfies DateRange,
       },
       {
-        label: "Next weekend",
+        label: t("search_popover.next_weekend"),
         range: {
           from: nextWeekendStart,
           to: nextWeekendEnd,
         } satisfies DateRange,
       },
       {
-        label: "Next week",
+        label: t("search_popover.next_week"),
         range: { from: nextWeekStart, to: nextWeekEnd } satisfies DateRange,
       },
     ];
-  }, []);
+  }, [t]);
 
   const equipmentOptions = useMemo(() => {
     return categories.length > 0
@@ -184,8 +187,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           if (!controller.signal.aborted) {
             console.error("Error loading categories", error);
             toast({
-              title: "Couldn't load categories",
-              description: "Please try again shortly.",
+              title: t("search_popover.categories_error_title"),
+              description: t("search_popover.categories_error_desc"),
               variant: "destructive",
             });
             setCategories([]);
@@ -252,16 +255,16 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       <CommandList aria-busy={addressAutocomplete.loading}>
         <CommandEmpty>
           {addressAutocomplete.loading
-            ? "Searching..."
+            ? t("search_popover.searching")
             : addressAutocomplete.query.trim().length === 0
-            ? "Start typing to search locations."
+            ? t("search_popover.start_typing")
             : addressAutocomplete.error
-            ? `Error: ${addressAutocomplete.error}`
-            : "No locations found."}
+            ? `${t("search_popover.error_prefix")} ${addressAutocomplete.error}`
+            : t("search_popover.no_locations_found")}
         </CommandEmpty>
         {addressAutocomplete.query.trim().length >= 2 &&
           addressAutocomplete.suggestions.length > 0 && (
-            <CommandGroup heading="Suggestions">
+            <CommandGroup heading={t("search_popover.suggestions")}>
               {addressAutocomplete.suggestions.map((s) => (
                 <CommandItem
                   key={s.id}
@@ -384,8 +387,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       handleLocationSelect(place);
 
       toast({
-        title: "Location set",
-        description: "Using your current location.",
+        title: t("search_popover.location_set_title"),
+        description: t("search_popover.location_set_desc"),
       });
     } catch (error) {
       const geolocationError = error as
@@ -408,34 +411,34 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       switch (errorCode) {
         case "denied":
           toast({
-            title: "Location permission denied",
+            title: t("search_popover.location_denied_title"),
             description:
               errorMessage ||
-              "You've previously denied location access. Click the location icon (📍) in your browser's address bar to allow access, then try again.",
+              t("search_popover.location_denied_desc"),
             variant: "destructive",
             action: (
               <ToastAction
-                altText="Try again"
+                altText={t("search_popover.try_again")}
                 onClick={handleLocationClick}
               >
-                Try Again
+                {t("search_popover.try_again")}
               </ToastAction>
             ),
           });
           break;
         case "timeout":
           toast({
-            title: "Location timeout",
+            title: t("search_popover.location_timeout_title"),
             description:
               errorMessage ||
-              "Couldn't get your location. Check signal and try again.",
+              t("search_popover.location_timeout_desc"),
             variant: "destructive",
             action: (
               <ToastAction
-                altText="Try again"
+                altText={t("search_popover.try_again")}
                 onClick={handleLocationClick}
               >
-                Try Again
+                {t("search_popover.try_again")}
               </ToastAction>
             ),
           });
@@ -443,7 +446,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         case "insecure_origin": {
           const geoSupport = checkGeolocationSupport();
           toast({
-            title: "Location unavailable",
+            title: t("search_popover.location_unavailable_title"),
             description: `Location requires HTTPS or localhost. Current: ${geoSupport.protocol}//${geoSupport.hostname}`,
             variant: "destructive",
           });
@@ -451,19 +454,19 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         }
         case "unavailable":
           toast({
-            title: "Location unavailable",
+            title: t("search_popover.location_unavailable_title"),
             description:
               errorMessage ||
-              "Location isn't available right now. Try entering a city.",
+              t("search_popover.location_unavailable_desc"),
             variant: "destructive",
           });
           break;
         default:
           toast({
-            title: "Location error",
+            title: t("search_popover.location_error_title"),
             description:
               errorMessage ||
-              "Something went wrong. Try entering a city manually.",
+              t("search_popover.location_error_desc"),
             variant: "destructive",
           });
       }
@@ -492,7 +495,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
       }
     }
     if (value.equipmentType) parts.push(value.equipmentType);
-    return parts.length > 0 ? parts.join(" · ") : "Search equipment";
+    return parts.length > 0 ? parts.join(" · ") : t("search_bar.title");
   };
 
   // Mobile version with Sheet
@@ -503,16 +506,16 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           <Button
             variant="outline"
             className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
-            aria-label="Search equipment"
+            aria-label={t("search_bar.search_equipment_aria")}
           >
             <div className="flex items-center gap-4 flex-1 min-w-0">
               <Search className="h-5 w-5 text-muted-foreground shrink-0" />
               <div className="flex flex-col min-w-0">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Search
+                  {t("search_bar.title")}
                 </span>
                 <span className="text-sm font-semibold text-foreground truncate">
-                  {value.location || "Where to?"}
+                  {value.location || t("search_bar.where_placeholder")}
                 </span>
                 <span className="text-xs text-muted-foreground truncate">
                   {getSearchSummary()}
@@ -535,10 +538,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           <div className="flex h-full flex-col">
             <SheetHeader className="px-6 pt-6 pb-4 text-left">
               <SheetTitle className="text-lg font-semibold">
-                Plan your next outing
+                {t("search_bar.plan_your_outing")}
               </SheetTitle>
               <p className="text-sm text-muted-foreground">
-                Browse gear by destination, dates, and activity.
+                {t("search_bar.browse_by_destination")}
               </p>
             </SheetHeader>
             <div className="px-6 pb-4">
@@ -573,10 +576,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <div className="space-y-5">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">
-                      Where do you need gear?
+                      {t("search_popover.where_section_title")}
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Search cities or choose a popular destination.
+                      {t("search_popover.where_section_desc")}
                     </p>
                   </div>
                   <Button
@@ -589,10 +592,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   >
                     <Crosshair className="mr-2 h-4 w-4" />
                     {isLocating
-                      ? "Detecting your location..."
-                      : "Use current location"}
+                      ? t("search_popover.detecting_location")
+                      : t("search_popover.use_current_location")}
                   </Button>
-                  {renderAutocompleteCommand("Try Yosemite National Park")}
+                  {renderAutocompleteCommand(t("search_popover.location_placeholder"))}
                   <div className="flex flex-wrap gap-2">
                     {POPULAR_LOCATIONS.map((loc) => (
                       <Button
@@ -622,7 +625,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         onClick={() => onChange({ ...value, location: "" })}
                         className="h-7 text-xs"
                       >
-                        Clear
+                        {t("search_popover.clear")}
                       </Button>
                     </div>
                   )}
@@ -633,10 +636,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <div className="space-y-5">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">
-                      When will you pick it up?
+                      {t("search_popover.when_section_title")}
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Add a flexible range to see availability.
+                      {t("search_popover.when_section_desc")}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -693,7 +696,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         }
                         className="h-7 text-xs"
                       >
-                        Clear
+                        {t("search_popover.clear")}
                       </Button>
                     </div>
                   )}
@@ -704,10 +707,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <div className="space-y-5">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">
-                      What are you planning?
+                      {t("search_popover.what_section_title")}
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Choose the gear category that fits your trip.
+                      {t("search_popover.what_section_desc")}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -753,7 +756,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     }
                     className="h-7 text-xs"
                   >
-                    Clear
+                    {t("search_popover.clear")}
                   </Button>
                 </div>
                   )}
@@ -766,10 +769,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 onClick={handleClearAll}
                 className="flex-1"
               >
-                Clear all
+                {t("search_popover.clear_all")}
               </Button>
               <Button onClick={handleSearch} className="flex-1">
-                Search
+                {t("search_popover.search")}
               </Button>
             </SheetFooter>
           </div>
@@ -799,7 +802,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold text-foreground">
-                    Where
+                    {t("search_popover.where_section_title")}
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
                     {value.location || "Search destinations"}
@@ -820,13 +823,13 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               >
                 <Crosshair className="mr-2 h-4 w-4" />
                 {isLocating
-                  ? "Detecting your location..."
-                  : "Use current location"}
+                  ? t("search_popover.detecting_location")
+                  : t("search_popover.use_current_location")}
               </Button>
             </div>
             {renderAutocompleteCommand("Search locations...", {
               className: undefined,
-              popularHeading: "Popular destinations",
+              popularHeading: t("search_popover.popular"),
             })}
           </PopoverContent>
         </Popover>
@@ -842,7 +845,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <CalendarIcon className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold text-foreground">
-                    When
+                    {t("search_popover.when_section_title")}
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
                     {value.dateRange?.from ? (
@@ -877,10 +880,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   size="sm"
                   onClick={() => onChange({ ...value, dateRange: undefined })}
                 >
-                  Clear dates
+                  {t("search_popover.clear_dates")}
                 </Button>
                 <Button size="sm" onClick={() => setDatesOpen(false)}>
-                  Apply
+                  {t("search_popover.apply")}
                 </Button>
               </div>
             </div>
@@ -898,10 +901,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <Package className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold text-foreground">
-                    What
+                    {t("search_popover.what_section_title")}
                   </div>
                   <div className="text-sm text-muted-foreground truncate">
-                    {value.equipmentType || "Any equipment"}
+                    {value.equipmentType || t("search_popover.any_equipment")}
                   </div>
                 </div>
               </div>
@@ -909,7 +912,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           </PopoverTrigger>
           <PopoverContent className="w-72 p-4" align="start">
             <div className="space-y-2">
-              <div className="text-sm font-semibold mb-3">Equipment type</div>
+              <div className="text-sm font-semibold mb-3">{t("search_popover.what_section_title")}</div>
               <div className="grid grid-cols-2 gap-2">
                 {categoriesLoading
                   ? Array.from({ length: 6 }).map((_, idx) => (
@@ -951,7 +954,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     })
                   }
                 >
-                  Clear
+                  {t("search_popover.clear")}
                 </Button>
               </div>
             </div>
@@ -964,7 +967,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             onClick={handleSearch}
             className="h-12 w-12 rounded-full"
             size="icon"
-            aria-label="Search"
+            aria-label={t("search_popover.search")}
           >
             <Search className="h-5 w-5" />
           </Button>
