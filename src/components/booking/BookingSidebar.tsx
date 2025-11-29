@@ -27,7 +27,7 @@ interface BookingSidebarProps {
   selectedInsurance: InsuranceType;
   onInsuranceChange: (type: InsuranceType) => void;
   onBooking: () => void;
-  isCreatingBooking: boolean;
+  isLoading: boolean;
   user: User | null;
   equipmentId?: string;
 }
@@ -48,7 +48,7 @@ const BookingSidebar = ({
   selectedInsurance,
   onInsuranceChange,
   onBooking,
-  isCreatingBooking,
+  isLoading,
   user,
   equipmentId,
 }: BookingSidebarProps) => {
@@ -58,93 +58,91 @@ const BookingSidebar = ({
 
   return (
     <aside
-      className="order-first lg:order-last lg:sticky lg:top-6 lg:max-h-[calc(100vh-4rem)] h-fit"
+      className="order-first lg:order-last lg:sticky lg:top-6 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto"
       aria-label="Booking information"
     >
-      <Card className="p-6 space-y-6">
-        <>
-            <section aria-labelledby="pricing-section">
-              <h3 id="pricing-section" className="sr-only">
-                Pricing
-              </h3>
-              <PricingHeader
-                dailyRate={listing.daily_rate}
-                avgRating={avgRating}
-                reviewCount={reviewCount}
-              />
-            </section>
+      {/* Card has built-in flex flex-col gap-6 py-6, so we use px-6 for horizontal padding */}
+      <Card className="px-6">
+        <section aria-labelledby="pricing-section">
+          <h3 id="pricing-section" className="sr-only">
+            Pricing
+          </h3>
+          <PricingHeader
+            dailyRate={listing.daily_rate}
+            avgRating={avgRating}
+            reviewCount={reviewCount}
+          />
+        </section>
 
+        <Separator />
+
+        <section aria-labelledby="location-section">
+          <h3 id="location-section" className="sr-only">
+            Location and Contact
+          </h3>
+          <LocationContact location={listing.location} />
+        </section>
+
+        <Separator />
+
+        <section aria-labelledby="dates-section">
+          <h3 id="dates-section" className="sr-only">
+            Dates
+          </h3>
+          <DateSelector
+            dateRange={dateRange}
+            onDateRangeChange={onDateRangeChange}
+            onStartDateSelect={onStartDateSelect}
+            onEndDateSelect={onEndDateSelect}
+            conflicts={conflicts}
+            loadingConflicts={loadingConflicts}
+            equipmentId={equipmentId}
+          />
+        </section>
+
+        <Separator />
+
+        <section aria-labelledby="pricing-breakdown-section">
+          <h3 id="pricing-breakdown-section" className="sr-only">
+            Pricing Breakdown
+          </h3>
+          <PricingBreakdown
+            calculation={calculation}
+            startDate={watchedStartDate}
+            endDate={watchedEndDate}
+            insuranceType={selectedInsurance}
+          />
+        </section>
+
+        {hasValidDates && calculation && (
+          <>
             <Separator />
 
-            <section aria-labelledby="location-section">
-              <h3 id="location-section" className="sr-only">
-                Location and Contact
+            <section aria-labelledby="insurance-section">
+              <h3 id="insurance-section" className="sr-only">
+                Insurance Options
               </h3>
-              <LocationContact location={listing.location} />
-            </section>
-
-            <Separator />
-
-            <section aria-labelledby="dates-section">
-              <h3 id="dates-section" className="sr-only">
-                Dates
-              </h3>
-              <DateSelector
-                dateRange={dateRange}
-                onDateRangeChange={onDateRangeChange}
-                onStartDateSelect={onStartDateSelect}
-                onEndDateSelect={onEndDateSelect}
-                conflicts={conflicts}
-                loadingConflicts={loadingConflicts}
-                equipmentId={equipmentId}
+              <InsuranceSelector
+                selectedInsurance={selectedInsurance}
+                onInsuranceChange={onInsuranceChange}
+                rentalSubtotal={calculation.subtotal}
               />
             </section>
+          </>
+        )}
 
-            <Separator />
-
-            <section aria-labelledby="pricing-breakdown-section">
-              <h3 id="pricing-breakdown-section" className="sr-only">
-                Pricing Breakdown
-              </h3>
-              <PricingBreakdown
-                calculation={calculation}
-                startDate={watchedStartDate}
-                endDate={watchedEndDate}
-                insuranceType={selectedInsurance}
-              />
-            </section>
-
-            {hasValidDates && calculation && (
-              <>
-                <Separator />
-
-                <section aria-labelledby="insurance-section">
-                  <h3 id="insurance-section" className="sr-only">
-                    Insurance Options
-                  </h3>
-                  <InsuranceSelector
-                    selectedInsurance={selectedInsurance}
-                    onInsuranceChange={onInsuranceChange}
-                    rentalSubtotal={calculation.subtotal}
-                  />
-                </section>
-              </>
-            )}
-
-            <BookingButton
-              user={user}
-              isOwner={isOwner}
-              hasValidDates={hasValidDates}
-              hasConflicts={hasConflicts}
-              isLoading={isCreatingBooking || loadingConflicts}
-              hasCalculation={!!calculation}
-              onBook={onBooking}
-            />
-        </>
+        <BookingButton
+          user={user}
+          isOwner={isOwner}
+          hasValidDates={hasValidDates}
+          hasConflicts={hasConflicts}
+          isLoading={isLoading}
+          hasCalculation={!!calculation}
+          onBook={onBooking}
+        />
       </Card>
     </aside>
   );
 };
 
 export default BookingSidebar;
-
