@@ -565,17 +565,7 @@ const EquipmentDetailDialog = ({
               </TabsList>
 
               <TabsContent value="overview" className="space-y-8 mt-6">
-                {/* Description Section */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-3">Description</h2>
-                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-                    {data.description}
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* Key Details Grid */}
+                {/* 1. Key Details Grid */}
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Key Details</h2>
                   <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -611,42 +601,7 @@ const EquipmentDetailDialog = ({
 
                 <Separator />
 
-                {/* Availability Section */}
-                <section>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    Availability
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select dates in the booking panel to check availability and pricing.
-                  </p>
-                  <AvailabilityCalendar
-                    equipmentId={data.id}
-                    defaultDailyRate={data.daily_rate}
-                    viewOnly={true}
-                  />
-                </section>
-
-                <Separator />
-
-                {/* Location Section */}
-                <section>
-                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    Pickup Location
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {data.location}
-                  </p>
-                  <EquipmentLocationMap
-                    location={data.location}
-                    latitude={data.latitude}
-                    longitude={data.longitude}
-                  />
-                </section>
-
-                <Separator />
-
-                {/* Owner Information */}
+                {/* 2. Owner Information */}
                 {data.owner && ownerProfile && (
                   <OwnerInformationCard
                     owner={{
@@ -664,6 +619,51 @@ const EquipmentDetailDialog = ({
                     }}
                   />
                 )}
+
+                <Separator />
+
+                {/* 3. Location Section */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Pickup Location
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {data.location}
+                  </p>
+                  <EquipmentLocationMap
+                    location={data.location}
+                    latitude={data.latitude}
+                    longitude={data.longitude}
+                  />
+                </section>
+
+                <Separator />
+
+                {/* 4. Availability Section */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    Availability
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select dates in the booking panel to check availability and pricing.
+                  </p>
+                  <AvailabilityCalendar
+                    equipmentId={data.id}
+                    defaultDailyRate={data.daily_rate}
+                    viewOnly={true}
+                  />
+                </section>
+
+                <Separator />
+
+                {/* 5. Description Section */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-3">Description</h2>
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+                    {data.description}
+                  </p>
+                </div>
               </TabsContent>
 
               <TabsContent value="reviews" className="mt-6">
