@@ -43,11 +43,14 @@ export const ConditionVisualization = ({
         </Badge>
       </div>
 
-      {lastInspectionDate && (
-        <p className="text-xs text-muted-foreground italic">
-          Last inspected: {formatDateForDisplay(lastInspectionDate)}
-        </p>
-      )}
+      {lastInspectionDate && (() => {
+        const formatted = formatDateForDisplay(lastInspectionDate);
+        return formatted !== "Invalid Date" ? (
+          <p className="text-xs text-muted-foreground italic">
+            Last inspected: {formatted}
+          </p>
+        ) : null;
+      })()}
 
       <p className="text-xs text-muted-foreground">
         Condition ratings are based on owner assessment and may vary. Inspect equipment before use.

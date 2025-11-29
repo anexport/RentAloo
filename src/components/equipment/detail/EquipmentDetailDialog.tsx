@@ -428,7 +428,6 @@ const EquipmentDetailDialog = ({
     toast,
     loadingConflicts,
     isCreatingBooking,
-    isMobile,
     selectedInsurance,
   ]);
 
@@ -598,8 +597,7 @@ const EquipmentDetailDialog = ({
                   <dl className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <dt className="text-muted-foreground mb-1">Condition</dt>
-                      <dd className="font-medium capitalize flex items-center gap-2">
-                        {data.condition}
+                      <dd className="font-medium flex items-center gap-2">
                         <ConditionVisualization
                           condition={data.condition}
                           lastInspectionDate={data.created_at}
