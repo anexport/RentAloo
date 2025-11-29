@@ -55,7 +55,7 @@ const ReviewCard = ({ review, showEquipment = false }: ReviewCardProps) => {
         {showEquipment && review.booking?.equipment && (
           <div className="mb-3 pb-3 border-b border-gray-200">
             <span className="text-sm text-gray-600">
-              {t("display.equipment_label")}:{" "}
+              {t("display.equipment_label")}
             </span>
             <span className="text-sm font-medium text-gray-900">
               {review.booking.equipment.title}

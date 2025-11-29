@@ -33,7 +33,7 @@
   },
   "display": {
     "verified_badge": "Verifiziert",
-    "equipment_label": "Equipment",
+    "equipment_label": "Equipment: ",
     "overall_rating": "Gesamtbewertung",
     "average_rating": "Durchschnittliche Bewertung",
     "rating_display": "{{rating}} / 5.0",
