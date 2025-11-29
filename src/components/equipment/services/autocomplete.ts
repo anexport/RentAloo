@@ -10,6 +10,8 @@ export type EquipmentSuggestion = {
   type: "category" | "equipment";
   categoryId?: string;
   categoryName?: string;
+  /** Number of available items (for categories: equipment count; for equipment: undefined) */
+  itemCount?: number;
 };
 
 type CacheEntry = {
@@ -69,62 +71,95 @@ export async function suggestEquipment(
   // Escape LIKE wildcards: %, _, and escape character \
   const sanitized = trimmed
     .replace(/\\/g, "\\\\") // Escape backslashes first
-    .replace(/%/g, "\\%")    // Escape % wildcard
-    .replace(/_/g, "\\_");   // Escape _ single-char wildcard
+    .replace(/%/g, "\\%") // Escape % wildcard
+    .replace(/_/g, "\\_"); // Escape _ single-char wildcard
 
   const categoryLimit = opts.categoryLimit ?? 5;
   const equipmentLimit = opts.equipmentLimit ?? 10;
 
   try {
-    // Query categories and equipment in parallel for better performance
-    const [categoriesResult, equipmentResult] = await Promise.all([
-      // Query categories
-      (async () => {
-        let categoryQuery = supabase
-          .from("categories")
-          .select("id, name")
-          .ilike("name", `%${sanitized}%`)
-          .limit(categoryLimit);
+    // Query categories, equipment counts (available only), and equipment items in parallel
+    // Note: We query categories separately from counts because .eq("equipment.is_available", true)
+    // on a joined relation acts as an INNER JOIN, excluding categories with 0 available items.
+    const [categoriesResult, availableCountsResult, equipmentResult] =
+      await Promise.all([
+        // Query 1: Get matching categories (without equipment filter to include all)
+        (async () => {
+          let categoryQuery = supabase
+            .from("categories")
+            .select("id, name")
+            .ilike("name", `%${sanitized}%`)
+            .limit(categoryLimit);
 
-        if (opts.signal) {
-          categoryQuery = categoryQuery.abortSignal(opts.signal);
-        }
+          if (opts.signal) {
+            categoryQuery = categoryQuery.abortSignal(opts.signal);
+          }
 
-        return categoryQuery;
-      })(),
+          return categoryQuery;
+        })(),
 
-      // Query equipment
-      (async () => {
-        let equipmentQuery = supabase
-          .from("equipment")
-          .select(
-            `
+        // Query 2: Get counts of available equipment per category
+        // This is a separate query to avoid the LEFT JOIN -> INNER JOIN issue
+        (async () => {
+          let countQuery = supabase
+            .from("equipment")
+            .select("category_id")
+            .eq("is_available", true);
+
+          if (opts.signal) {
+            countQuery = countQuery.abortSignal(opts.signal);
+          }
+
+          return countQuery;
+        })(),
+
+        // Query 3: Get matching equipment items
+        (async () => {
+          let equipmentQuery = supabase
+            .from("equipment")
+            .select(
+              `
             id,
             title,
             category_id,
             category:categories(name)
           `
-          )
-          .ilike("title", `%${sanitized}%`)
-          .eq("is_available", true)
-          .limit(equipmentLimit);
+            )
+            .ilike("title", `%${sanitized}%`)
+            .eq("is_available", true)
+            .limit(equipmentLimit);
 
-        if (opts.signal) {
-          equipmentQuery = equipmentQuery.abortSignal(opts.signal);
+          if (opts.signal) {
+            equipmentQuery = equipmentQuery.abortSignal(opts.signal);
+          }
+
+          return equipmentQuery;
+        })(),
+      ]);
+
+    // Build a map of category_id -> count of available equipment
+    const availableCountMap = new Map<string, number>();
+    if (availableCountsResult.data) {
+      availableCountsResult.data.forEach((item) => {
+        if (item.category_id) {
+          const currentCount = availableCountMap.get(item.category_id) ?? 0;
+          availableCountMap.set(item.category_id, currentCount + 1);
         }
+      });
+    }
 
-        return equipmentQuery;
-      })(),
-    ]);
-
-    // Handle category results
+    // Handle category results - merge with available counts
     const categories: EquipmentSuggestion[] = [];
     if (categoriesResult.data) {
-      categoriesResult.data.forEach((cat: CategoryRow) => {
+      categoriesResult.data.forEach((cat) => {
+        // Get count from our pre-computed map (defaults to 0 for categories with no available items)
+        const itemCount = availableCountMap.get(cat.id) ?? 0;
+
         categories.push({
           id: cat.id,
           label: cat.name,
           type: "category",
+          itemCount,
         });
       });
     }
@@ -134,6 +169,14 @@ export async function suggestEquipment(
       console.error(
         "[Equipment Autocomplete] Error fetching categories:",
         categoriesResult.error
+      );
+    }
+
+    // Log count errors but don't fail
+    if (availableCountsResult.error && !opts.signal?.aborted) {
+      console.error(
+        "[Equipment Autocomplete] Error fetching available counts:",
+        availableCountsResult.error
       );
     }
 
