@@ -12,6 +12,12 @@ import {
   Package,
   ArrowRight,
   CreditCard,
+  Heart,
+  LifeBuoy,
+  CalendarClock,
+  Plus,
+  Sparkles,
+  PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +49,15 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const [hasEquipment, setHasEquipment] = useState(false);
   const [pendingOwnerRequests, setPendingOwnerRequests] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [nextBooking, setNextBooking] = useState<{
+    startDate: string;
+    endDate: string;
+    totalAmount: number;
+    equipmentName?: string | null;
+  } | null>(null);
+  const [openSupportTickets, setOpenSupportTickets] = useState(0);
+  const [pendingPayouts, setPendingPayouts] = useState(0);
+  const [lastPayoutAt, setLastPayoutAt] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Check if user has equipment listings and pending requests
@@ -221,10 +236,113 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      setNextBooking(null);
+      setOpenSupportTickets(0);
+      setPendingPayouts(0);
+      setLastPayoutAt(null);
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const fetchNextBooking = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("booking_requests")
+          .select(
+            `
+              id,
+              start_date,
+              end_date,
+              total_amount,
+              status,
+              equipment:equipment_id (name)
+            `
+          )
+          .eq("renter_id", user.id)
+          .in("status", ["approved", "pending"])
+          .gte("start_date", today)
+          .order("start_date", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) {
+          setNextBooking(null);
+          return;
+        }
+
+        setNextBooking({
+          startDate: data.start_date,
+          endDate: data.end_date,
+          totalAmount: data.total_amount,
+          equipmentName: data.equipment?.name ?? "Upcoming rental",
+        });
+      } catch (err) {
+        console.error("Failed to fetch next booking:", err);
+        setNextBooking(null);
+      }
+    };
+
+    const fetchSupportTickets = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("damage_claims")
+          .select("*", { count: "exact", head: true })
+          .eq("filed_by", user.id)
+          .in("status", ["pending", "disputed", "escalated"]);
+
+        if (error) throw error;
+        setOpenSupportTickets(count || 0);
+      } catch (err) {
+        console.error("Failed to fetch support tickets:", err);
+        setOpenSupportTickets(0);
+      }
+    };
+
+    const fetchPayouts = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("payments")
+          .select("*", { count: "exact", head: true })
+          .eq("owner_id", user.id)
+          .or("payout_status.eq.pending,payout_status.is.null");
+
+        if (error) throw error;
+        setPendingPayouts(count || 0);
+
+        const { data: latestPayout, error: payoutError } = await supabase
+          .from("payments")
+          .select("payout_processed_at")
+          .eq("owner_id", user.id)
+          .not("payout_processed_at", "is", null)
+          .order("payout_processed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (payoutError) throw payoutError;
+        setLastPayoutAt(latestPayout?.payout_processed_at ?? null);
+      } catch (err) {
+        console.error("Failed to fetch payout info:", err);
+        setPendingPayouts(0);
+        setLastPayoutAt(null);
+      }
+    };
+
+    void fetchNextBooking();
+    void fetchSupportTickets();
+    if (hasEquipment) {
+      void fetchPayouts();
+    }
+  }, [user, hasEquipment]);
+
   // Navigation items grouped by section
   const mainNavItems: NavItem[] = [
     { label: "Dashboard", icon: Home, href: "/renter/dashboard" },
     { label: "Browse Equipment", icon: Search, href: "/equipment" },
+    { label: "Watchlist", icon: Heart, href: "/renter/dashboard?tab=saved" },
   ];
 
   const activityNavItems: NavItem[] = [
@@ -240,10 +358,25 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       ...(unreadMessages > 0 && { badge: unreadMessages }),
     },
     { label: "Payments", icon: CreditCard, href: "/renter/payments" },
+    {
+      label: "Support",
+      icon: LifeBuoy,
+      href: "/support",
+      ...(openSupportTickets > 0 && { badge: openSupportTickets }),
+    },
   ];
 
   const accountNavItems: NavItem[] = [
     { label: "Settings", icon: User, href: "/settings" },
+  ];
+
+  const ownerNavItems: NavItem[] = [
+    {
+      label: "Payouts",
+      icon: PiggyBank,
+      href: "/owner/dashboard?tab=payments",
+      ...(pendingPayouts > 0 && { badge: pendingPayouts }),
+    },
   ];
 
   const isActive = (href: string) => {
@@ -253,6 +386,32 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     return (
       location.pathname === href || location.pathname + location.search === href
     );
+  };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+  const formatDateRange = (start: string, end: string) => {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
+  };
+
+  const formatDateLabel = (dateValue: string | null) => {
+    if (!dateValue) return "No payouts yet";
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return formatter.format(new Date(dateValue));
   };
 
   return (
@@ -304,6 +463,53 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         </div>
 
         <Separator className="mb-4" />
+
+        {/* Owner quick action */}
+        <div className="px-2 pb-2">
+          {hasEquipment ? (
+            <Link
+              to="/owner/dashboard?tab=equipment"
+              className={cn(
+                "flex items-center gap-3 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/10",
+                collapsed ? "justify-center" : ""
+              )}
+              title={collapsed ? "Add new listing" : undefined}
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Add new listing</span>}
+              {!collapsed && (
+                <span className="ml-auto text-xs text-primary/80">
+                  Keep inventory fresh
+                </span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              to={
+                user
+                  ? profile?.role === "owner"
+                    ? "/owner/dashboard?tab=equipment"
+                    : "/owner/become-owner"
+                  : "/register/owner"
+              }
+              className={cn(
+                "flex items-center gap-3 rounded-lg border border-dashed border-muted px-3 py-2.5 text-sm font-medium transition hover:border-primary hover:bg-primary/5",
+                collapsed ? "justify-center" : ""
+              )}
+              title={collapsed ? "List your equipment" : undefined}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+              {!collapsed && (
+                <div className="flex flex-col">
+                  <span>List your equipment</span>
+                  <span className="text-xs text-muted-foreground">
+                    Earn when your gear is idle
+                  </span>
+                </div>
+              )}
+            </Link>
+          )}
+        </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-2">
@@ -387,6 +593,50 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             })}
           </div>
 
+          {/* Owner Section */}
+          {hasEquipment && (
+            <>
+              {!collapsed && (
+                <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                  Owner
+                </div>
+              )}
+              <div className="space-y-1 mb-6">
+                {ownerNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={cn(
+                        "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                      )}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon
+                        className={cn(
+                          "h-5 w-5 shrink-0 transition-transform duration-200",
+                          !active && "group-hover:scale-110"
+                        )}
+                      />
+                      {!collapsed && <span>{item.label}</span>}
+                      {!collapsed && item.badge && item.badge > 0 && (
+                        <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
           {/* Account Section */}
           {!collapsed && (
             <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -428,7 +678,77 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           </div>
         </nav>
 
+        {nextBooking && (
+          <div className="px-2 pb-4">
+            <div className="rounded-lg border bg-muted/60 p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                  {!collapsed && <span>Upcoming booking</span>}
+                </div>
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  {formatDateRange(nextBooking.startDate, nextBooking.endDate)}
+                </span>
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="mt-2 truncate text-sm font-semibold text-foreground">
+                    {nextBooking.equipmentName}
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Total</span>
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(nextBooking.totalAmount)}
+                    </span>
+                  </div>
+                  <Link
+                    to="/renter/dashboard?tab=bookings"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    View details <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <Separator className="my-4" />
+
+        {/* Owner payout glance */}
+        {hasEquipment && (
+          <div className="px-2 pb-2">
+            <div className="rounded-lg border bg-card/60 p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                  <PiggyBank className="h-4 w-4 text-primary" />
+                  {!collapsed && <span>Payouts</span>}
+                </div>
+                {pendingPayouts > 0 && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                    {pendingPayouts} pending
+                  </span>
+                )}
+              </div>
+              {!collapsed && (
+                <>
+                  <div className="mt-2 text-sm font-semibold text-foreground">
+                    Track your earnings
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Last payout: {formatDateLabel(lastPayoutAt)}
+                  </p>
+                  <Link
+                    to="/owner/dashboard?tab=payments"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    View payouts <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* My Equipment Listings - Above Trust Score */}
         {hasEquipment && (
@@ -465,6 +785,28 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         )}
 
         <Separator className="my-4" />
+
+        {/* Announcements */}
+        <div className="px-2 pb-4">
+          <Link
+            to="/explore"
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-accent",
+              collapsed ? "justify-center" : "justify-between"
+            )}
+            title={collapsed ? "What's new" : undefined}
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              {!collapsed && <span>What&apos;s new</span>}
+            </div>
+            {!collapsed && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                Updates
+              </span>
+            )}
+          </Link>
+        </div>
 
         {/* Verification Status */}
         {profile && (
