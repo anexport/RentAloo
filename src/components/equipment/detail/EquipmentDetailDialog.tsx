@@ -471,7 +471,7 @@ const EquipmentDetailDialog = ({
     if (isLoading) {
       return (
         <div className="py-12 text-center text-muted-foreground">
-          Loading...
+          {t("search.loading")}
         </div>
       );
     }
@@ -479,7 +479,7 @@ const EquipmentDetailDialog = ({
     if (!data) {
       return (
         <div className="py-12 text-center text-muted-foreground">
-          Equipment not found.
+          {t("errors.load_failed")}
         </div>
       );
     }

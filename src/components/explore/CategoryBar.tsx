@@ -115,7 +115,7 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     return () => {
       abortController.abort();
     };
-  }, []);
+  }, [t]);
 
   const CategoryPill = ({
     id,
