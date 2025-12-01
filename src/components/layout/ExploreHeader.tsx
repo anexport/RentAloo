@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelector from "@/components/LanguageSelector";
 import { toast } from "@/hooks/useToast";
 
 type Props = {
@@ -40,6 +42,7 @@ const ExploreHeader = ({
   onLoginClick,
   onSignupClick,
 }: Props) => {
+  const { t } = useTranslation("navigation");
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -64,8 +67,8 @@ const ExploreHeader = ({
       if (error) {
         console.error("Sign out error:", error);
         toast({
-          title: "Sign out failed",
-          description: error.message || "Failed to sign out. Please try again.",
+          title: t("errors.signout_failed_title"),
+          description: error.message || t("errors.signout_failed_message"),
           variant: "destructive",
         });
         return;
@@ -74,9 +77,9 @@ const ExploreHeader = ({
     } catch (err) {
       console.error("Unexpected sign out error:", err);
       const message =
-        err instanceof Error ? err.message : "An unexpected error occurred";
+        err instanceof Error ? err.message : t("errors.signout_failed_message");
       toast({
-        title: "Sign out failed",
+        title: t("errors.signout_failed_title"),
         description: message,
         variant: "destructive",
       });
@@ -106,7 +109,6 @@ const ExploreHeader = ({
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <ThemeToggle variant="icon" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -129,7 +131,7 @@ const ExploreHeader = ({
                         className="flex items-center cursor-pointer"
                       >
                         <Home className="mr-2 h-4 w-4" />
-                        Dashboard
+                        {t("menu.dashboard")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -138,7 +140,7 @@ const ExploreHeader = ({
                         className="flex items-center cursor-pointer"
                       >
                         <Package className="mr-2 h-4 w-4" />
-                        My Equipment
+                        {t("menu.my_listings")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -147,9 +149,12 @@ const ExploreHeader = ({
                         className="flex items-center cursor-pointer"
                       >
                         <Settings className="mr-2 h-4 w-4" />
-                        Settings
+                        {t("menu.settings")}
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <ThemeToggle variant="menu-item" />
+                    <LanguageSelector variant="menu-item" />
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
@@ -158,34 +163,47 @@ const ExploreHeader = ({
                       className="cursor-pointer"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
+                      {t("menu.sign_out")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
             ) : (
               <>
-                <ThemeToggle variant="icon" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("menu.settings")}
+                    >
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <ThemeToggle variant="menu-item" />
+                    <LanguageSelector variant="menu-item" />
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" onClick={() => onLoginClick?.()}>
-                  Sign In
+                  {t("auth.sign_in")}
                 </Button>
-                <Button onClick={() => onSignupClick?.()}>Get Started</Button>
+                <Button onClick={() => onSignupClick?.()}>{t("auth.get_started")}</Button>
               </>
             )}
           </div>
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center space-x-2">
-            <ThemeToggle variant="icon" />
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Button variant="ghost" size="icon" aria-label={t("aria.open_menu")}>
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">
                 <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
+                  <SheetTitle>{t("common:navigation.menu")}</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col space-y-4 mt-6">
                   {user ? (
@@ -202,22 +220,34 @@ const ExploreHeader = ({
                           <div className="font-medium">{user.email}</div>
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="justify-start">
+                            <Settings className="mr-2 h-4 w-4" />
+                            {t("common:language.select")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <ThemeToggle variant="menu-item" />
+                          <LanguageSelector variant="menu-item" />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button variant="ghost" className="justify-start" asChild>
                         <Link to="/renter/dashboard">
                           <User className="mr-2 h-4 w-4" />
-                          Dashboard
+                          {t("menu.dashboard")}
                         </Link>
                       </Button>
                       <Button variant="ghost" className="justify-start" asChild>
                         <Link to="/owner/dashboard">
                           <Package className="mr-2 h-4 w-4" />
-                          My Equipment
+                          {t("menu.my_listings")}
                         </Link>
                       </Button>
                       <Button variant="ghost" className="justify-start" asChild>
                         <Link to="/settings">
                           <Settings className="mr-2 h-4 w-4" />
-                          Settings
+                          {t("menu.settings")}
                         </Link>
                       </Button>
                       <Button
@@ -228,23 +258,35 @@ const ExploreHeader = ({
                         }}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
-                        Sign out
+                        {t("menu.sign_out")}
                       </Button>
                     </>
                   ) : (
                     <>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="justify-start">
+                            <Settings className="mr-2 h-4 w-4" />
+                            {t("common:language.select")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <ThemeToggle variant="menu-item" />
+                          <LanguageSelector variant="menu-item" />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="ghost"
                         className="justify-start"
                         onClick={() => onLoginClick?.()}
                       >
-                        Sign In
+                        {t("auth.sign_in")}
                       </Button>
                       <Button
                         className="justify-start"
                         onClick={() => onSignupClick?.()}
                       >
-                        Get Started
+                        {t("auth.get_started")}
                       </Button>
                     </>
                   )}
