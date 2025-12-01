@@ -778,9 +778,7 @@ const EquipmentDetailDialog = ({
           {data?.title || "Equipment Details"}
         </DialogTitle>
         <DialogDescription className="sr-only">
-          {data?.description 
-            ? `Details for ${data.title || "this equipment"}. ${data.description.substring(0, 150)}...`
-            : "View equipment details, availability, and booking information"}
+          {t("details_dialog.view_details_description")}
         </DialogDescription>
         {renderContent()}
       </DialogContent>
