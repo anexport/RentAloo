@@ -146,14 +146,14 @@ const customLanguageDetector = {
   },
 };
 
+// Create and configure LanguageDetector
+const languageDetector = new LanguageDetector();
+languageDetector.addDetector(customLanguageDetector);
+
 void i18n
-  .use(LanguageDetector)
-  .use(initReactI18next);
-
-// Add custom detector before init so it's available during initial detection
-i18n.services.languageDetector?.addDetector(customLanguageDetector);
-
-void i18n.init({
+  .use(languageDetector)
+  .use(initReactI18next)
+  .init({
     resources,
     fallbackLng: "en",
     defaultNS: "common",
