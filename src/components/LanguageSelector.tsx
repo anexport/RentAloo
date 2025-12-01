@@ -21,6 +21,7 @@ const languages: Language[] = [
   { code: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { code: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
   { code: "de", name: "German", nativeName: "Deutsch", flag: "🇩🇪" },
+  { code: "it", name: "Italian", nativeName: "Italiano", flag: "🇮🇹" },
 ];
 
 type LanguageSelectorProps = {
