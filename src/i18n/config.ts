@@ -150,7 +150,8 @@ const customLanguageDetector = {
 const languageDetector = new LanguageDetector();
 languageDetector.addDetector(customLanguageDetector);
 
-void i18n
+// Initialize i18n synchronously since all resources are preloaded
+i18n
   .use(languageDetector)
   .use(initReactI18next)
   .init({
@@ -182,6 +183,11 @@ void i18n
       ],
       caches: ["localStorage"],
       lookupLocalStorage: "userLanguagePreference",
+    },
+    // Initialize immediately and synchronously since resources are preloaded
+    initImmediate: false,
+    react: {
+      useSuspense: false, // Disable suspense to avoid render blocking
     },
   });
 
