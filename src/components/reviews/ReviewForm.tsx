@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation, type TFunction } from "react-i18next";
@@ -55,7 +55,7 @@ const ReviewForm = ({
   const [rating, setRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const reviewSchema = createReviewSchema(t);
+  const reviewSchema = useMemo(() => createReviewSchema(t), [t]);
 
   const {
     register,

@@ -123,8 +123,12 @@ const customLanguageDetector = {
 
 void i18n
   .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
+  .use(initReactI18next);
+
+// Add custom detector before init so it's available during initial detection
+i18n.services.languageDetector?.addDetector(customLanguageDetector);
+
+void i18n.init({
     resources,
     fallbackLng: "en",
     defaultNS: "common",
@@ -155,8 +159,5 @@ void i18n
       lookupLocalStorage: "userLanguagePreference",
     },
   });
-
-// Add custom detector
-i18n.services.languageDetector?.addDetector(customLanguageDetector);
 
 export default i18n;
