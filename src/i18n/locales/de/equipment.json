@@ -58,6 +58,8 @@
     "login_required_message": "Bitte melden Sie sich an, um dieses Equipment zu buchen.",
     "payment_success_title": "Zahlung Erfolgreich",
     "payment_success_message": "Ihre Buchung wurde bestätigt! Der Eigentümer wurde benachrichtigt.",
+    "price_not_calculated_title": "Preis Nicht Berechnet",
+    "price_not_calculated_message": "Bitte warten Sie, bis der Preis berechnet wird.",
     "availability_error": "Verfügbarkeit konnte nicht überprüft werden — bitte versuchen Sie es erneut"
   },
   "condition": {

@@ -58,6 +58,8 @@
     "login_required_message": "Please log in to book this equipment.",
     "payment_success_title": "Payment Successful",
     "payment_success_message": "Your booking has been confirmed! The owner has been notified.",
+    "price_not_calculated_title": "Price Not Calculated",
+    "price_not_calculated_message": "Please wait for the price to calculate.",
     "availability_error": "Could not verify availability — please try again"
   },
   "condition": {

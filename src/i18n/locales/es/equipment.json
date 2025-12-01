@@ -58,6 +58,8 @@
     "login_required_message": "Por favor, inicia sesión para reservar este equipamiento.",
     "payment_success_title": "Pago Exitoso",
     "payment_success_message": "¡Tu reserva ha sido confirmada! El propietario ha sido notificado.",
+    "price_not_calculated_title": "Precio No Calculado",
+    "price_not_calculated_message": "Por favor espera a que se calcule el precio.",
     "availability_error": "No se pudo verificar la disponibilidad — por favor, intenta de nuevo"
   },
   "condition": {

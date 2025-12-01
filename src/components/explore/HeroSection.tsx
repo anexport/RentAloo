@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import CountUp from "@/components/ui/count-up";
 import { TrendingUp, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -63,7 +64,7 @@ const HeroSection = ({ children }: Props) => {
         <div className="grid grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto">
           <div className="text-center">
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
-              {t("hero.stat_items_count")}
+              <CountUp end={15000} duration={2000} suffix="+" />
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">
               {t("hero.stat_items")}
@@ -71,7 +72,7 @@ const HeroSection = ({ children }: Props) => {
           </div>
           <div className="text-center border-x border-border">
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
-              {t("hero.stat_renters_count")}
+              <CountUp end={5000} duration={2000} suffix="+" />
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">
               {t("hero.stat_renters")}
@@ -79,7 +80,7 @@ const HeroSection = ({ children }: Props) => {
           </div>
           <div className="text-center">
             <div className="text-2xl sm:text-3xl font-bold text-foreground">
-              {t("hero.stat_cities_count")}
+              <CountUp end={50} duration={1500} suffix="+" />
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-1">
               {t("hero.stat_cities")}

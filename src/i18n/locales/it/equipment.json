@@ -58,6 +58,8 @@
     "login_required_message": "Effettua l'accesso per prenotare questa attrezzatura.",
     "payment_success_title": "Pagamento riuscito",
     "payment_success_message": "La tua prenotazione è stata confermata! Il proprietario è stato avvisato.",
+    "price_not_calculated_title": "Prezzo Non Calcolato",
+    "price_not_calculated_message": "Si prega di attendere il calcolo del prezzo.",
     "availability_error": "Impossibile verificare la disponibilità — riprova"
   },
   "condition": {

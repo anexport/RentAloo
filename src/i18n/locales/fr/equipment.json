@@ -58,6 +58,8 @@
     "login_required_message": "Veuillez vous connecter pour réserver ce matériel.",
     "payment_success_title": "Paiement Réussi",
     "payment_success_message": "Votre réservation a été confirmée ! Le propriétaire a été informé.",
+    "price_not_calculated_title": "Prix Non Calculé",
+    "price_not_calculated_message": "Veuillez attendre que le prix soit calculé.",
     "availability_error": "Impossible de vérifier la disponibilité — veuillez réessayer"
   },
   "condition": {
