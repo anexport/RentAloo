@@ -72,15 +72,15 @@
     "title": "Calificación General",
     "no_reviews": "Sin reseñas aún",
     "be_first": "¡Sé el primero en dejar una reseña!",
-    "based_on": "Basado en {{count}} reseña",
-    "based_on_plural": "Basado en {{count}} reseñas"
+    "based_on_one": "Basado en {{count}} reseña",
+    "based_on_other": "Basado en {{count}} reseñas"
   },
   "actions": {
     "load_more": "Cargar Más Reseñas"
   },
   "star_rating": {
-    "aria_rate": "Calificar {{starNumber}} estrella{{plural}}",
-    "aria_rate_single": "Calificar {{starNumber}} estrella"
+    "aria_rate_one": "Calificar {{starNumber}} estrella",
+    "aria_rate_other": "Calificar {{starNumber}} estrellas"
   },
   "errors": {
     "not_logged_in": "Debes iniciar sesión para enviar una reseña",

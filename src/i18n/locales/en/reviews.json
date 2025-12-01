@@ -69,15 +69,15 @@
     "title": "Overall Rating",
     "no_reviews": "No reviews yet",
     "be_first": "Be the first to leave a review!",
-    "based_on": "Based on {{count}} review",
-    "based_on_plural": "Based on {{count}} reviews"
+    "based_on_one": "Based on {{count}} review",
+    "based_on_other": "Based on {{count}} reviews"
   },
   "actions": {
     "load_more": "Load More Reviews"
   },
   "star_rating": {
-    "aria_rate": "Rate {{starNumber}} star{{plural}}",
-    "aria_rate_single": "Rate {{starNumber}} star"
+    "aria_rate_one": "Rate {{starNumber}} star",
+    "aria_rate_other": "Rate {{starNumber}} stars"
   },
   "errors": {
     "not_logged_in": "You must be logged in to submit a review",

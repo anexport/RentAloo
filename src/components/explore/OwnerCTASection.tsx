@@ -9,18 +9,22 @@ const OwnerCTASection = () => {
 
   const benefits = [
     {
+      id: "benefit_1",
       icon: DollarSign,
       text: t("owner_cta.benefit_1"),
     },
     {
+      id: "benefit_2",
       icon: Calendar,
       text: t("owner_cta.benefit_2"),
     },
     {
+      id: "benefit_3",
       icon: Shield,
       text: t("owner_cta.benefit_3"),
     },
     {
+      id: "benefit_4",
       icon: TrendingUp,
       text: t("owner_cta.benefit_4"),
     },
@@ -51,7 +55,7 @@ const OwnerCTASection = () => {
                 const Icon = benefit.icon;
                 return (
                   <div
-                    key={benefit.text}
+                    key={benefit.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border"
                   >
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

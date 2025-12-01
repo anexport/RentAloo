@@ -36,9 +36,7 @@ const ReviewSummary = ({ summary }: ReviewSummaryProps) => {
               </div>
               <StarRating rating={summary.averageRating} size="lg" />
               <p className="text-sm text-gray-600 mt-2">
-                {summary.totalReviews === 1
-                  ? t("summary.based_on", { count: summary.totalReviews })
-                  : t("summary.based_on_plural", { count: summary.totalReviews })}
+                {t("summary.based_on", { count: summary.totalReviews })}
               </p>
             </div>
 
@@ -85,4 +83,3 @@ const ReviewSummary = ({ summary }: ReviewSummaryProps) => {
 };
 
 export default ReviewSummary;
-

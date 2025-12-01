@@ -31,7 +31,7 @@ type Props = {
 };
 
 const SearchBar = ({ value, onChange, onSubmit }: Props) => {
-  const { t } = useTranslation("equipment");
+  const { t } = useTranslation<"equipment">("equipment");
   const [localValue, setLocalValue] = useState<BasicSearchFilters>(value);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const SearchBar = ({ value, onChange, onSubmit }: Props) => {
         <div className="relative border-t md:border-t-0 md:border-l border-border">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            aria-label="Location"
+            aria-label={t("search_bar.where_placeholder")}
             placeholder={t("search_bar.where_placeholder")}
             className="h-12 pl-9 rounded-none border-0 focus-visible:ring-0"
             value={localValue.location}

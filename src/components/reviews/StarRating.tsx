@@ -48,11 +48,10 @@ const StarRating = ({
             } disabled:opacity-50`}
             onClick={() => handleClick(starNumber)}
             disabled={!interactive}
-            aria-label={
-              starNumber > 1
-                ? t("star_rating.aria_rate", { starNumber, plural: "s" })
-                : t("star_rating.aria_rate_single", { starNumber })
-            }
+            aria-label={t("star_rating.aria_rate", {
+              count: starNumber,
+              starNumber,
+            })}
           >
             {isFilled ? (
               <Star
@@ -81,4 +80,3 @@ const StarRating = ({
 };
 
 export default StarRating;
-

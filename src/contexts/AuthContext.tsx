@@ -45,6 +45,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const syncLanguagePreference = (session: Session | null) => {
+    if (!session?.user?.user_metadata?.language_preference) return;
+
+    const userLang = session.user.user_metadata.language_preference;
+    if (typeof userLang !== "string") return;
+
+    if (i18n.language === userLang) return;
+
+    try {
+      void i18n.changeLanguage(userLang);
+      localStorage.setItem("userLanguagePreference", userLang);
+    } catch (error) {
+      console.error("Failed to sync language preference:", error);
+    }
+  };
+
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
@@ -63,14 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Sync language preference from user metadata
-        if (session?.user?.user_metadata?.language_preference) {
-          const userLang = session.user.user_metadata.language_preference as string;
-          if (i18n.language !== userLang) {
-            void i18n.changeLanguage(userLang);
-            localStorage.setItem("userLanguagePreference", userLang);
-          }
-        }
+        syncLanguagePreference(session);
 
         try {
           supabase.realtime.setAuth(session?.access_token ?? null);
@@ -95,14 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Sync language preference from user metadata
-      if (session?.user?.user_metadata?.language_preference) {
-        const userLang = session.user.user_metadata.language_preference as string;
-        if (i18n.language !== userLang) {
-          void i18n.changeLanguage(userLang);
-          localStorage.setItem("userLanguagePreference", userLang);
-        }
-      }
+      syncLanguagePreference(session);
 
       try {
         supabase.realtime.setAuth(session?.access_token ?? null);

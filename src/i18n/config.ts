@@ -132,11 +132,11 @@ const resources = {
   },
 } as const;
 
-// Custom language detector to check Supabase user metadata
+// Custom language detector to check locally stored user preference
 const customLanguageDetector = {
-  name: "supabaseUserMetadata",
+  name: "localStorageUserPreference",
   lookup() {
-    // Check if user has language preference in metadata (will be set after login)
+    // Check if user has language preference stored locally (synced from Supabase after login)
     const userLang = localStorage.getItem("userLanguagePreference");
     if (userLang) return userLang;
     return undefined;
@@ -176,7 +176,7 @@ i18n
     },
     detection: {
       order: [
-        "supabaseUserMetadata",
+        "localStorageUserPreference",
         "localStorage",
         "navigator",
         "htmlTag",

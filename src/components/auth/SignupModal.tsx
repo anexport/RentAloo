@@ -100,7 +100,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
                 type="button"
                 onClick={() => handleRoleSelect("renter")}
                 className="w-full text-left p-6 rounded-lg border-2 border-border hover:border-primary transition-colors hover:bg-accent/50"
-                aria-label="Sign up as a renter"
+                aria-label={t("signup.renter_option_title")}
               >
                 <div className="flex items-start gap-4">
                   <div className="rounded-full bg-primary/10 p-3">
@@ -122,7 +122,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
                 type="button"
                 onClick={() => handleRoleSelect("owner")}
                 className="w-full text-left p-6 rounded-lg border-2 border-border hover:border-primary transition-colors hover:bg-accent/50"
-                aria-label="Sign up as an owner"
+                aria-label={t("signup.owner_option_title")}
               >
                 <div className="flex items-start gap-4">
                   <div className="rounded-full bg-primary/10 p-3">
@@ -162,9 +162,9 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
         ) : selectedRole === "renter" ? (
           <>
             <DialogHeader className="sr-only">
-              <DialogTitle>Join as a Renter</DialogTitle>
+              <DialogTitle>{t("signup.renter.join_title")}</DialogTitle>
               <DialogDescription>
-                Create your account to start renting outdoor equipment
+                {t("signup.renter.join_subtitle")}
               </DialogDescription>
             </DialogHeader>
             <RenterSignupForm
@@ -177,9 +177,9 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
         ) : selectedRole === "owner" ? (
           <>
             <DialogHeader className="sr-only">
-              <DialogTitle>Join as an Owner</DialogTitle>
+              <DialogTitle>{t("signup.owner.join_title")}</DialogTitle>
               <DialogDescription>
-                Create your account to start listing your equipment
+                {t("signup.owner.join_subtitle")}
               </DialogDescription>
             </DialogHeader>
             <OwnerSignupForm

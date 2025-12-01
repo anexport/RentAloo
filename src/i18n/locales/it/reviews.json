@@ -69,15 +69,15 @@
     "title": "Valutazione Complessiva",
     "no_reviews": "Nessuna recensione ancora",
     "be_first": "Sii il primo a lasciare una recensione!",
-    "based_on": "Basato su {{count}} recensione",
-    "based_on_plural": "Basato su {{count}} recensioni"
+    "based_on_one": "Basato su {{count}} recensione",
+    "based_on_other": "Basato su {{count}} recensioni"
   },
   "actions": {
     "load_more": "Carica Altre Recensioni"
   },
   "star_rating": {
-    "aria_rate": "Valuta {{starNumber}} stella{{plural}}",
-    "aria_rate_single": "Valuta {{starNumber}} stella"
+    "aria_rate_one": "Valuta {{starNumber}} stella",
+    "aria_rate_other": "Valuta {{starNumber}} stelle"
   },
   "errors": {
     "not_logged_in": "Devi essere connesso per inviare una recensione",

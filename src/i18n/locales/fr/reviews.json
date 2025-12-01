@@ -73,15 +73,15 @@
     "title": "Évaluation générale",
     "no_reviews": "Aucun avis pour le moment",
     "be_first": "Soyez le premier à laisser un avis !",
-    "based_on": "Basé sur {{count}} avis",
-    "based_on_plural": "Basé sur {{count}} avis"
+    "based_on_one": "Basé sur {{count}} avis",
+    "based_on_other": "Basé sur {{count}} avis"
   },
   "actions": {
     "load_more": "Charger plus d'avis"
   },
   "star_rating": {
-    "aria_rate": "Évaluer {{starNumber}} étoile{{plural}}",
-    "aria_rate_single": "Évaluer {{starNumber}} étoile"
+    "aria_rate_one": "Évaluer {{starNumber}} étoile",
+    "aria_rate_other": "Évaluer {{starNumber}} étoiles"
   },
   "errors": {
     "not_logged_in": "Vous devez être connecté pour soumettre un avis",

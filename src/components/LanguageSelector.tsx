@@ -66,7 +66,10 @@ const LanguageSelector = ({ variant = "default" }: LanguageSelectorProps) => {
   if (variant === "menu-item") {
     return (
       <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="gap-3">
+        <DropdownMenuSubTrigger
+          className="gap-3"
+          aria-label={t("common:language.select")}
+        >
           <Globe className="h-4 w-4 text-gray-500" />
           <span className="text-sm">
             {currentLanguage.flag} {currentLanguage.nativeName}
@@ -97,7 +100,10 @@ const LanguageSelector = ({ variant = "default" }: LanguageSelectorProps) => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors">
+      <DropdownMenuTrigger
+        className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors"
+        aria-label={t("common:language.select")}
+      >
         <Globe className="h-4 w-4" />
         <span className="text-sm font-medium">
           {currentLanguage.flag} {currentLanguage.code.toUpperCase()}
