@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import VerificationBadge from "@/components/verification/VerificationBadge";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
@@ -29,6 +30,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/payment";
+import { formatDateLabel, formatDateRange } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 
 interface SidebarProps {
@@ -65,28 +67,25 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       if (countError) throw countError;
 
       const hasEquipment = (count || 0) > 0;
-      let pendingOwnerRequests = 0;
+      return { hasEquipment };
+    },
+    staleTime: 1000 * 60, // 1 minute
+  });
 
-      if (hasEquipment) {
-        const { data: equipment, error: equipmentError } = await supabase
-          .from("equipment")
-          .select("id")
-          .eq("owner_id", userId as string);
-        if (equipmentError) throw equipmentError;
-
-        const equipmentIds = equipment?.map((eq) => eq.id) || [];
-        if (equipmentIds.length > 0) {
-          const { count: pendingCount, error: pendingError } = await supabase
-            .from("booking_requests")
-            .select("*", { count: "exact", head: true })
-            .in("equipment_id", equipmentIds)
-            .eq("status", "pending");
-          if (pendingError) throw pendingError;
-          pendingOwnerRequests = pendingCount || 0;
-        }
-      }
-
-      return { hasEquipment, pendingOwnerRequests };
+  const { data: pendingOwnerRequestsData } = useQuery({
+    queryKey: ["sidebar", "pending-owner-requests", userId],
+    enabled: !!userId && !!equipmentStatus?.hasEquipment,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("booking_requests")
+        .select("id, equipment:equipment_id!inner(owner_id)", {
+          count: "exact",
+          head: true,
+        })
+        .eq("equipment.owner_id", userId as string)
+        .eq("status", "pending");
+      if (error) throw error;
+      return count || 0;
     },
     staleTime: 1000 * 60, // 1 minute
   });
@@ -102,7 +101,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         .from("conversation_participants")
         .select("conversation_id, last_read_at")
         .eq("profile_id", userId as string);
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error("Failed to fetch participants:", participantsError);
+        return 0;
+      }
       if (!participants || participants.length === 0) return 0;
 
       const results = await Promise.allSettled(
@@ -128,7 +130,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     staleTime: 1000 * 30, // 30 seconds
   });
 
-  const { data: nextBooking } = useQuery({
+  const { data: nextBooking, isLoading: isNextBookingLoading } = useQuery({
     queryKey: ["sidebar", "next-booking", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -179,7 +181,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   });
 
   const { data: payoutInfo } = useQuery({
-    queryKey: ["sidebar", "payout-info", userId, equipmentStatus?.hasEquipment],
+    queryKey: ["sidebar", "payout-info", userId],
     enabled: !!userId && !!equipmentStatus?.hasEquipment,
     queryFn: async () => {
       const { count, error } = await supabase
@@ -281,29 +283,8 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     );
   };
 
-  const formatDateRange = (start: string, end: string) => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-    const startDate = new Date(`${start}T00:00:00`);
-    const endDate = new Date(`${end}T00:00:00`);
-    return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
-  };
-
-  const formatDateLabel = (dateValue: string | null) => {
-    if (!dateValue) return "No payouts yet";
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    });
-    return formatter.format(new Date(`${dateValue}T00:00:00`));
-  };
-
   const hasEquipment = equipmentStatus?.hasEquipment ?? false;
-  const pendingOwnerRequests = equipmentStatus?.pendingOwnerRequests ?? 0;
+  const pendingOwnerRequests = pendingOwnerRequestsData ?? 0;
   const unreadMessages = unreadMessagesData ?? 0;
   const openSupportTickets = supportTickets ?? 0;
   const pendingPayouts = payoutInfo?.pendingPayouts ?? 0;
@@ -613,6 +594,30 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             })}
           </div>
         </nav>
+
+        {isNextBookingLoading && !nextBooking && (
+          <div className="px-2 pb-4">
+            <div className="rounded-lg border bg-muted/60 p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  {!collapsed && <Skeleton className="h-4 w-24" />}
+                </div>
+                <Skeleton className="h-5 w-24" />
+              </div>
+              {!collapsed && (
+                <>
+                  <Skeleton className="mt-2 h-5 w-40" />
+                  <div className="mt-2 flex items-center justify-between">
+                    <Skeleton className="h-4 w-10" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="mt-3 h-4 w-24" />
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {nextBooking && (
           <div className="px-2 pb-4">

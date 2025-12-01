@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -39,10 +40,10 @@ const ownerUpgradeSchema = z.object({
   businessDescription: z.string().optional(),
   location: z.string().min(2, "Location is required"),
   serviceArea: z.string().min(2, "Service area is required"),
-  yearsExperience: z
-    .string()
-    .min(1, "Years of experience is required")
-    .regex(/^\d+$/, "Must be a valid number"),
+  yearsExperience: z.coerce
+    .number({ invalid_type_error: "Must be a valid number" })
+    .int("Must be a whole number")
+    .nonnegative("Cannot be negative"),
   equipmentCategories: z.array(z.string()).min(1, "Select at least one category"),
   bankAccount: z.string().optional(),
 });
@@ -111,7 +112,7 @@ const OWNER_PERKS = [
 ];
 
 const OwnerUpgrade = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -134,36 +135,42 @@ const OwnerUpgrade = () => {
     },
   });
 
-  // Prefill if we already have owner profile data
-  useEffect(() => {
-    const fetchOwnerProfile = async () => {
-      if (!user) return;
-      const { data, error: fetchError } = await supabase
+  const { data: existingBusinessInfo } = useQuery({
+    queryKey: ["owner-profile", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("owner_profiles")
         .select("business_info")
-        .eq("profile_id", user.id)
+        .eq("profile_id", user!.id)
         .maybeSingle();
+      if (error) throw error;
+      return data?.business_info ?? null;
+    },
+  });
 
-      if (fetchError || !data?.business_info) return;
-      const info = data.business_info;
-      if (typeof info !== "object" || info === null || Array.isArray(info)) return;
-      if (info.name) setValue("businessName", String(info.name));
-      if (info.description) setValue("businessDescription", String(info.description));
-      if (info.location) setValue("location", String(info.location));
-      if (info.serviceArea) setValue("serviceArea", String(info.serviceArea));
-      if (info.yearsExperience) setValue("yearsExperience", String(info.yearsExperience));
-      if (info.bankAccount) setValue("bankAccount", String(info.bankAccount));
-      const categories = (info as { equipmentCategories?: unknown }).equipmentCategories;
-      if (Array.isArray(categories)) {
-        setValue(
-          "equipmentCategories",
-          categories.map(String)
-        );
+  useEffect(() => {
+    if (!existingBusinessInfo || typeof existingBusinessInfo !== "object" || Array.isArray(existingBusinessInfo)) return;
+    const info = existingBusinessInfo as Record<string, unknown>;
+    if (info.name) setValue("businessName", String(info.name));
+    if (info.description) setValue("businessDescription", String(info.description));
+    if (info.location) setValue("location", String(info.location));
+    if (info.serviceArea) setValue("serviceArea", String(info.serviceArea));
+    if (info.yearsExperience !== undefined && info.yearsExperience !== null) {
+      const parsedYears = Number(info.yearsExperience);
+      if (!Number.isNaN(parsedYears)) {
+        setValue("yearsExperience", parsedYears);
       }
-    };
-
-    void fetchOwnerProfile();
-  }, [user, setValue]);
+    }
+    if (info.bankAccount) setValue("bankAccount", String(info.bankAccount));
+    const categories = (info as { equipmentCategories?: unknown }).equipmentCategories;
+    if (Array.isArray(categories)) {
+      setValue(
+        "equipmentCategories",
+        categories.map(String)
+      );
+    }
+  }, [existingBusinessInfo, setValue]);
 
   useEffect(() => {
     return () => {
@@ -173,16 +180,14 @@ const OwnerUpgrade = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login?redirect=/owner/become-owner");
+    }
+  }, [loading, user, navigate]);
+
   if (!user) {
-    return (
-      <DashboardLayout>
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            Please sign in to become an owner.
-          </CardContent>
-        </Card>
-      </DashboardLayout>
-    );
+    return null;
   }
 
   const handleNextStep = async () => {
@@ -261,7 +266,11 @@ const OwnerUpgrade = () => {
 
       setSuccess(true);
       timeoutRef.current = setTimeout(() => {
-        void navigate("/owner/dashboard?tab=equipment");
+        try {
+          navigate("/owner/dashboard?tab=equipment");
+        } catch (navError) {
+          console.error("Navigation failed after owner upgrade:", navError);
+        }
       }, 1500);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to upgrade account.";
@@ -437,8 +446,12 @@ const OwnerUpgrade = () => {
                       </Label>
                       <Input
                         id="yearsExperience"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step={1}
                         placeholder="e.g., 5"
-                        {...register("yearsExperience")}
+                        {...register("yearsExperience", { valueAsNumber: true })}
                         className={errors.yearsExperience ? "border-destructive" : ""}
                       />
                       {errors.yearsExperience && (
