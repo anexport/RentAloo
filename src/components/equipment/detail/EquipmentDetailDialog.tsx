@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,7 @@ const EquipmentDetailDialog = ({
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("equipment");
   const [activeTab, setActiveTab] = useState("overview");
   const [calculation, setCalculation] = useState<BookingCalculation | null>(
     null
