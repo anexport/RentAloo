@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +39,10 @@ const ownerUpgradeSchema = z.object({
   businessDescription: z.string().optional(),
   location: z.string().min(2, "Location is required"),
   serviceArea: z.string().min(2, "Service area is required"),
-  yearsExperience: z.string().min(1, "Years of experience is required"),
+  yearsExperience: z
+    .string()
+    .min(1, "Years of experience is required")
+    .regex(/^\d+$/, "Must be a valid number"),
   equipmentCategories: z.array(z.string()).min(1, "Select at least one category"),
   bankAccount: z.string().optional(),
 });
@@ -114,6 +117,8 @@ const OwnerUpgrade = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [authWarning, setAuthWarning] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     register,
@@ -140,14 +145,15 @@ const OwnerUpgrade = () => {
         .maybeSingle();
 
       if (fetchError || !data?.business_info) return;
-      const info = data.business_info as Record<string, string | string[] | null>;
+      const info = data.business_info;
+      if (typeof info !== "object" || info === null || Array.isArray(info)) return;
       if (info.name) setValue("businessName", String(info.name));
       if (info.description) setValue("businessDescription", String(info.description));
       if (info.location) setValue("location", String(info.location));
       if (info.serviceArea) setValue("serviceArea", String(info.serviceArea));
       if (info.yearsExperience) setValue("yearsExperience", String(info.yearsExperience));
       if (info.bankAccount) setValue("bankAccount", String(info.bankAccount));
-      const categories = info.equipmentCategories;
+      const categories = (info as { equipmentCategories?: unknown }).equipmentCategories;
       if (Array.isArray(categories)) {
         setValue(
           "equipmentCategories",
@@ -158,6 +164,14 @@ const OwnerUpgrade = () => {
 
     void fetchOwnerProfile();
   }, [user, setValue]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -195,6 +209,7 @@ const OwnerUpgrade = () => {
     setSubmitting(true);
     setError(null);
     setSuccess(false);
+    setAuthWarning(null);
 
     const businessInfo = {
       name: formData.businessName || null,
@@ -207,7 +222,26 @@ const OwnerUpgrade = () => {
     };
 
     try {
-      // Update auth metadata for consistency
+      // Upsert owner profile first (single statement, avoids partial creation)
+      const { error: ownerUpsertError } = await supabase
+        .from("owner_profiles")
+        .upsert(
+          {
+            profile_id: user.id,
+            business_info: businessInfo,
+          },
+          { onConflict: "profile_id" }
+        );
+      if (ownerUpsertError) throw ownerUpsertError;
+
+      // Update profile role next (core source of truth for capabilities)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ role: "owner" })
+        .eq("id", user.id);
+      if (profileError) throw profileError;
+
+      // Update auth metadata last (non-blocking; warn if it fails)
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           role: "owner",
@@ -220,40 +254,13 @@ const OwnerUpgrade = () => {
           bankAccount: formData.bankAccount,
         },
       });
-      if (authError) throw authError;
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ role: "owner" })
-        .eq("id", user.id);
-      if (profileError) throw profileError;
-
-      // Upsert owner profile (manual upsert because profile_id is not unique)
-      const { data: existingOwner, error: ownerFetchError } = await supabase
-        .from("owner_profiles")
-        .select("id")
-        .eq("profile_id", user.id)
-        .maybeSingle();
-      if (ownerFetchError) throw ownerFetchError;
-
-      if (existingOwner?.id) {
-        const { error: updateOwnerError } = await supabase
-          .from("owner_profiles")
-          .update({ business_info: businessInfo })
-          .eq("id", existingOwner.id);
-        if (updateOwnerError) throw updateOwnerError;
-      } else {
-        const { error: insertOwnerError } = await supabase
-          .from("owner_profiles")
-          .insert({
-            profile_id: user.id,
-            business_info: businessInfo,
-          });
-        if (insertOwnerError) throw insertOwnerError;
+      if (authError) {
+        console.error("Auth metadata update failed:", authError);
+        setAuthWarning("Owner upgrade saved, but we couldn't sync your auth metadata. Sign out/in if navigation seems off.");
       }
 
       setSuccess(true);
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         void navigate("/owner/dashboard?tab=equipment");
       }, 1500);
     } catch (err) {

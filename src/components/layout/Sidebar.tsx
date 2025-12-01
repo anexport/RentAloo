@@ -26,8 +26,10 @@ import VerificationBadge from "@/components/verification/VerificationBadge";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { formatCurrency } from "@/lib/payment";
+import { useQuery } from "@tanstack/react-query";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -46,136 +48,180 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const { profile } = useVerification();
   const verificationProgress = profile ? getVerificationProgress(profile) : 0;
   const { user } = useAuth();
-  const [hasEquipment, setHasEquipment] = useState(false);
-  const [pendingOwnerRequests, setPendingOwnerRequests] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [nextBooking, setNextBooking] = useState<{
-    startDate: string;
-    endDate: string;
-    totalAmount: number;
-    equipmentName?: string | null;
-  } | null>(null);
-  const [openSupportTickets, setOpenSupportTickets] = useState(0);
-  const [pendingPayouts, setPendingPayouts] = useState(0);
-  const [lastPayoutAt, setLastPayoutAt] = useState<string | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Check if user has equipment listings and pending requests
-  useEffect(() => {
-    const checkEquipment = async () => {
-      if (!user) return;
+  const userId = user?.id;
 
-      try {
-        const { count, error: countError } = await supabase
+  const {
+    data: equipmentStatus,
+  } = useQuery({
+    queryKey: ["sidebar", "equipment-status", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { count, error: countError } = await supabase
+        .from("equipment")
+        .select("*", { count: "exact", head: true })
+        .eq("owner_id", userId as string);
+      if (countError) throw countError;
+
+      const hasEquipment = (count || 0) > 0;
+      let pendingOwnerRequests = 0;
+
+      if (hasEquipment) {
+        const { data: equipment, error: equipmentError } = await supabase
           .from("equipment")
-          .select("*", { count: "exact", head: true })
-          .eq("owner_id", user.id);
+          .select("id")
+          .eq("owner_id", userId as string);
+        if (equipmentError) throw equipmentError;
 
-        if (countError) throw countError;
-
-        setHasEquipment((count || 0) > 0);
-
-        // If they have equipment, check for pending requests
-        if (count && count > 0) {
-          const { data: equipment, error: equipmentError } = await supabase
-            .from("equipment")
-            .select("id")
-            .eq("owner_id", user.id);
-
-          if (equipmentError) throw equipmentError;
-
-          if (equipment && equipment.length > 0) {
-            const equipmentIds = equipment.map((eq) => eq.id);
-
-            const { count: pendingCount, error: pendingError } = await supabase
-              .from("booking_requests")
-              .select("*", { count: "exact", head: true })
-              .in("equipment_id", equipmentIds)
-              .eq("status", "pending");
-
-            if (pendingError) throw pendingError;
-
-            setPendingOwnerRequests(pendingCount || 0);
-          }
+        const equipmentIds = equipment?.map((eq) => eq.id) || [];
+        if (equipmentIds.length > 0) {
+          const { count: pendingCount, error: pendingError } = await supabase
+            .from("booking_requests")
+            .select("*", { count: "exact", head: true })
+            .in("equipment_id", equipmentIds)
+            .eq("status", "pending");
+          if (pendingError) throw pendingError;
+          pendingOwnerRequests = pendingCount || 0;
         }
-      } catch (err) {
-        console.error("Failed to check equipment:", err);
-        // Reset to safe defaults on error
-        setHasEquipment(false);
-        setPendingOwnerRequests(0);
       }
-    };
 
-    void checkEquipment();
-  }, [user]);
+      return { hasEquipment, pendingOwnerRequests };
+    },
+    staleTime: 1000 * 60, // 1 minute
+  });
 
-  // Check for unread messages
-  useEffect(() => {
-    if (!user) {
-      setUnreadMessages(0);
-      return;
-    }
+  const {
+    data: unreadMessagesData,
+    refetch: refetchUnreadMessages,
+  } = useQuery({
+    queryKey: ["sidebar", "unread-messages", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: participants, error: participantsError } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id, last_read_at")
+        .eq("profile_id", userId as string);
+      if (participantsError) throw participantsError;
+      if (!participants || participants.length === 0) return 0;
 
-    const checkUnreadMessages = async () => {
-      try {
-        // Get all conversations for the user
-        const { data: participants, error: participantsError } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id, last_read_at")
-          .eq("profile_id", user.id);
-
-        if (participantsError) throw participantsError;
-
-        if (!participants || participants.length === 0) {
-          setUnreadMessages(0);
-          return;
-        }
-
-        // For each conversation, check for unread messages (parallelized)
-        const queryPromises = participants.map((participant) =>
+      const results = await Promise.allSettled(
+        participants.map((participant) =>
           supabase
             .from("messages")
             .select("*", { count: "exact", head: true })
             .eq("conversation_id", participant.conversation_id)
-            .neq("sender_id", user.id)
+            .neq("sender_id", userId as string)
             .gt("created_at", participant.last_read_at || "1970-01-01")
-        );
+        )
+      );
 
-        const results = await Promise.allSettled(queryPromises);
-        let totalUnread = 0;
+      let totalUnread = 0;
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          const { count, error } = result.value;
+          if (!error) totalUnread += count || 0;
+        }
+      });
+      return totalUnread;
+    },
+    staleTime: 1000 * 30, // 30 seconds
+  });
 
-        results.forEach((result) => {
-          if (result.status === "rejected") {
-            console.error("Failed to count unread messages:", result.reason);
-            return;
-          }
+  const { data: nextBooking } = useQuery({
+    queryKey: ["sidebar", "next-booking", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data, error } = await supabase
+        .from("booking_requests")
+        .select(
+          `
+            id,
+            start_date,
+            end_date,
+            total_amount,
+            status,
+            equipment:equipment_id (title)
+          `
+        )
+        .eq("renter_id", userId as string)
+        .in("status", ["approved", "pending"])
+        .gte("start_date", today)
+        .order("start_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        startDate: data.start_date,
+        endDate: data.end_date,
+        totalAmount: Number(data.total_amount),
+        equipmentName: data.equipment?.title ?? "Upcoming rental",
+      };
+    },
+    staleTime: 1000 * 60, // 1 minute
+  });
 
-          const { count, error: countError } = result.value;
-          if (countError) {
-            console.error("Failed to count unread messages:", countError);
-            return;
-          }
+  const { data: supportTickets } = useQuery({
+    queryKey: ["sidebar", "support-tickets", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("damage_claims")
+        .select("*", { count: "exact", head: true })
+        .eq("filed_by", userId as string)
+        .in("status", ["pending", "disputed", "escalated"]);
+      if (error) throw error;
+      return count || 0;
+    },
+    staleTime: 1000 * 60, // 1 minute
+  });
 
-          totalUnread += count || 0;
-        });
+  const { data: payoutInfo } = useQuery({
+    queryKey: ["sidebar", "payout-info", userId, equipmentStatus?.hasEquipment],
+    enabled: !!userId && !!equipmentStatus?.hasEquipment,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("payments")
+        .select("*", { count: "exact", head: true })
+        .eq("owner_id", userId as string)
+        .or("payout_status.eq.pending,payout_status.is.null");
+      if (error) throw error;
 
-        setUnreadMessages(totalUnread);
-      } catch (err) {
-        console.error("Failed to check unread messages:", err);
-        setUnreadMessages(0);
+      const { data: latestPayout, error: payoutError } = await supabase
+        .from("payments")
+        .select("payout_processed_at")
+        .eq("owner_id", userId as string)
+        .not("payout_processed_at", "is", null)
+        .order("payout_processed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (payoutError) throw payoutError;
+
+      return {
+        pendingPayouts: count || 0,
+        lastPayoutAt: latestPayout?.payout_processed_at ?? null,
+      };
+    },
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Realtime subscription for unread messages to trigger refetch
+  useEffect(() => {
+    if (!userId) {
+      if (channelRef.current) {
+        void supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
-    };
+      return;
+    }
 
-    // Initial check
-    void checkUnreadMessages();
-
-    // Set up scoped realtime subscriptions for user's conversations
     const setupSubscriptions = async () => {
-      // Fetch user's conversation IDs
       const { data: participants, error: participantsError } = await supabase
         .from("conversation_participants")
         .select("conversation_id")
-        .eq("profile_id", user.id);
+        .eq("profile_id", userId);
 
       if (participantsError) {
         console.error("Failed to fetch conversations:", participantsError);
@@ -183,18 +229,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       }
 
       if (!participants || participants.length === 0) {
-        // No conversations to watch
         return null;
       }
 
       const conversationIds = participants.map((p) => p.conversation_id);
+      const channel = supabase.channel(`sidebar-messages-${userId}`);
 
-      // Create a channel with filtered subscriptions for each conversation
-      // This ensures we only listen to messages in the user's conversations
-      // Channel name includes user ID to ensure uniqueness
-      const channel = supabase.channel(`sidebar-messages-${user.id}`);
-
-      // Subscribe to each conversation individually for precise filtering
       conversationIds.forEach((conversationId) => {
         channel.on(
           "postgres_changes",
@@ -205,20 +245,16 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            if (payload.new?.sender_id === user.id) {
-              return;
-            }
-            void checkUnreadMessages();
+            if (payload.new?.sender_id === userId) return;
+            void refetchUnreadMessages();
           }
         );
       });
 
       channel.subscribe();
-
       return channel;
     };
 
-    // Clean up any existing channel before setting up new one
     if (channelRef.current) {
       void supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -234,109 +270,44 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         channelRef.current = null;
       }
     };
-  }, [user]);
+  }, [userId, refetchUnreadMessages]);
 
-  useEffect(() => {
-    if (!user) {
-      setNextBooking(null);
-      setOpenSupportTickets(0);
-      setPendingPayouts(0);
-      setLastPayoutAt(null);
-      return;
+  const isActive = (href: string) => {
+    if (href === "/renter/dashboard") {
+      return location.pathname === href && !location.search;
     }
+    return (
+      location.pathname === href || location.pathname + location.search === href
+    );
+  };
 
-    const today = new Date().toISOString().split("T")[0];
+  const formatDateRange = (start: string, end: string) => {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    const startDate = new Date(`${start}T00:00:00`);
+    const endDate = new Date(`${end}T00:00:00`);
+    return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
+  };
 
-    const fetchNextBooking = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("booking_requests")
-          .select(
-            `
-              id,
-              start_date,
-              end_date,
-              total_amount,
-              status,
-              equipment:equipment_id (name)
-            `
-          )
-          .eq("renter_id", user.id)
-          .in("status", ["approved", "pending"])
-          .gte("start_date", today)
-          .order("start_date", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+  const formatDateLabel = (dateValue: string | null) => {
+    if (!dateValue) return "No payouts yet";
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    return formatter.format(new Date(`${dateValue}T00:00:00`));
+  };
 
-        if (error) throw error;
-        if (!data) {
-          setNextBooking(null);
-          return;
-        }
-
-        setNextBooking({
-          startDate: data.start_date,
-          endDate: data.end_date,
-          totalAmount: data.total_amount,
-          equipmentName: data.equipment?.name ?? "Upcoming rental",
-        });
-      } catch (err) {
-        console.error("Failed to fetch next booking:", err);
-        setNextBooking(null);
-      }
-    };
-
-    const fetchSupportTickets = async () => {
-      try {
-        const { count, error } = await supabase
-          .from("damage_claims")
-          .select("*", { count: "exact", head: true })
-          .eq("filed_by", user.id)
-          .in("status", ["pending", "disputed", "escalated"]);
-
-        if (error) throw error;
-        setOpenSupportTickets(count || 0);
-      } catch (err) {
-        console.error("Failed to fetch support tickets:", err);
-        setOpenSupportTickets(0);
-      }
-    };
-
-    const fetchPayouts = async () => {
-      try {
-        const { count, error } = await supabase
-          .from("payments")
-          .select("*", { count: "exact", head: true })
-          .eq("owner_id", user.id)
-          .or("payout_status.eq.pending,payout_status.is.null");
-
-        if (error) throw error;
-        setPendingPayouts(count || 0);
-
-        const { data: latestPayout, error: payoutError } = await supabase
-          .from("payments")
-          .select("payout_processed_at")
-          .eq("owner_id", user.id)
-          .not("payout_processed_at", "is", null)
-          .order("payout_processed_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (payoutError) throw payoutError;
-        setLastPayoutAt(latestPayout?.payout_processed_at ?? null);
-      } catch (err) {
-        console.error("Failed to fetch payout info:", err);
-        setPendingPayouts(0);
-        setLastPayoutAt(null);
-      }
-    };
-
-    void fetchNextBooking();
-    void fetchSupportTickets();
-    if (hasEquipment) {
-      void fetchPayouts();
-    }
-  }, [user, hasEquipment]);
+  const hasEquipment = equipmentStatus?.hasEquipment ?? false;
+  const pendingOwnerRequests = equipmentStatus?.pendingOwnerRequests ?? 0;
+  const unreadMessages = unreadMessagesData ?? 0;
+  const openSupportTickets = supportTickets ?? 0;
+  const pendingPayouts = payoutInfo?.pendingPayouts ?? 0;
+  const lastPayoutAt = payoutInfo?.lastPayoutAt ?? null;
 
   // Navigation items grouped by section
   const mainNavItems: NavItem[] = [
@@ -378,41 +349,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       ...(pendingPayouts > 0 && { badge: pendingPayouts }),
     },
   ];
-
-  const isActive = (href: string) => {
-    if (href === "/renter/dashboard") {
-      return location.pathname === href && !location.search;
-    }
-    return (
-      location.pathname === href || location.pathname + location.search === href
-    );
-  };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
-
-  const formatDateRange = (start: string, end: string) => {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    return `${formatter.format(startDate)} - ${formatter.format(endDate)}`;
-  };
-
-  const formatDateLabel = (dateValue: string | null) => {
-    if (!dateValue) return "No payouts yet";
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    return formatter.format(new Date(dateValue));
-  };
 
   return (
     <aside
