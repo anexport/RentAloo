@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
  * exposed to the client, preventing credential leaks and unauthorized usage.
  *
  * @param equipmentId - The equipment ID
- * @param targetLang - Target language code (en, es, fr, de)
+ * @param targetLang - Target language code (en, es, fr, de, it)
  * @returns Translated equipment title and description
  */
 export async function translateEquipmentContent(
@@ -16,7 +16,7 @@ export async function translateEquipmentContent(
   targetLang: string
 ): Promise<{ title: string; description: string }> {
   // If target language is English or not supported, fetch original
-  if (targetLang === "en" || !["es", "fr", "de"].includes(targetLang)) {
+  if (targetLang === "en" || !["es", "fr", "de", "it"].includes(targetLang)) {
     const { data: equipment } = await supabase
       .from("equipment")
       .select("title, description")
