@@ -28,6 +28,9 @@
     "reviews": "Reseñas",
     "owner_info": "Acerca del Propietario",
     "condition": "Condición",
+    "category": "Categoría",
+    "total_rentals": "Alquileres Totales",
+    "key_details": "Detalles Clave",
     "daily_rate": "Tarifa Diaria",
     "book_now": "Reservar Ahora",
     "contact_owner": "Contactar Propietario"

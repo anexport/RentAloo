@@ -28,6 +28,9 @@
     "reviews": "Bewertungen",
     "owner_info": "Über den Eigentümer",
     "condition": "Zustand",
+    "category": "Kategorie",
+    "total_rentals": "Gesamtvermietungen",
+    "key_details": "Wichtige Details",
     "daily_rate": "Tägliches Mietentgelt",
     "book_now": "Jetzt buchen",
     "contact_owner": "Eigentümer kontaktieren"

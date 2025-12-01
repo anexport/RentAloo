@@ -28,6 +28,9 @@
     "reviews": "Avis",
     "owner_info": "À propos du propriétaire",
     "condition": "État",
+    "category": "Catégorie",
+    "total_rentals": "Locations Totales",
+    "key_details": "Détails Clés",
     "daily_rate": "Tarif quotidien",
     "book_now": "Réserver maintenant",
     "contact_owner": "Contacter le propriétaire"

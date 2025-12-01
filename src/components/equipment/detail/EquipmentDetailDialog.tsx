@@ -192,7 +192,7 @@ const EquipmentDetailDialog = ({
             setConflicts([
               {
                 type: "unavailable",
-                message: "Could not verify availability — please try again",
+                message: t("toasts.availability_error"),
               },
             ]);
           }
@@ -544,18 +544,18 @@ const EquipmentDetailDialog = ({
                 <TabsTrigger
                   value="overview"
                   className="flex items-center gap-2"
-                  aria-label="About this equipment"
+                  aria-label={t("details_dialog.aria_overview")}
                 >
                   <Info className="h-4 w-4" />
-                  <span>About</span>
+                  <span>{t("details_dialog.tab_overview")}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviews"
                   className="flex items-center gap-2"
-                  aria-label="Reviews - Owner ratings and feedback"
+                  aria-label={t("details_dialog.aria_reviews")}
                 >
                   <Star className="h-4 w-4" />
-                  <span>Reviews</span>
+                  <span>{t("details_dialog.tab_reviews")}</span>
                   {data.reviews && data.reviews.length > 0 && (
                     <Badge variant="secondary" className="ml-1 text-xs">
                       {data.reviews.length}
@@ -567,10 +567,10 @@ const EquipmentDetailDialog = ({
               <TabsContent value="overview" className="space-y-8 mt-6">
                 {/* 1. Key Details Grid */}
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Key Details</h2>
+                  <h2 className="text-xl font-semibold mb-4">{t("details.key_details")}</h2>
                   <dl className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <dt className="text-muted-foreground mb-1">Condition</dt>
+                      <dt className="text-muted-foreground mb-1">{t("details.condition")}</dt>
                       <dd className="font-medium flex items-center gap-2">
                         <ConditionVisualization
                           condition={data.condition}
@@ -581,17 +581,17 @@ const EquipmentDetailDialog = ({
                     </div>
                     {data.category && (
                       <div>
-                        <dt className="text-muted-foreground mb-1">Category</dt>
+                        <dt className="text-muted-foreground mb-1">{t("details.category")}</dt>
                         <dd className="font-medium">{data.category.name}</dd>
                       </div>
                     )}
                     <div>
-                      <dt className="text-muted-foreground mb-1">Daily Rate</dt>
+                      <dt className="text-muted-foreground mb-1">{t("details.daily_rate")}</dt>
                       <dd className="font-semibold text-lg">${data.daily_rate}</dd>
                     </div>
                     {rentalCountData !== undefined && rentalCountData > 0 && (
                       <div>
-                        <dt className="text-muted-foreground mb-1">Total Rentals</dt>
+                        <dt className="text-muted-foreground mb-1">{t("details.total_rentals")}</dt>
                         <dd className="font-medium">{rentalCountData}</dd>
                       </div>
                     )}
@@ -625,7 +625,7 @@ const EquipmentDetailDialog = ({
                 <section>
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
-                    Pickup Location
+                    {t("details.location")}
                   </h2>
                   <p className="text-sm text-muted-foreground mb-4">
                     {data.location}
@@ -643,7 +643,7 @@ const EquipmentDetailDialog = ({
                 {/* 4. Availability Section */}
                 <section>
                   <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    Availability
+                    {t("details.availability")}
                   </h2>
                   <AvailabilityCalendar
                     equipmentId={data.id}
@@ -658,7 +658,7 @@ const EquipmentDetailDialog = ({
 
                 {/* 5. Description Section */}
                 <div>
-                  <h2 className="text-xl font-semibold mb-3">Description</h2>
+                  <h2 className="text-xl font-semibold mb-3">{t("details.description")}</h2>
                   <p className="text-foreground leading-relaxed whitespace-pre-wrap">
                     {data.description}
                   </p>
@@ -676,10 +676,10 @@ const EquipmentDetailDialog = ({
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Star className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">
-                      No Reviews Yet
+                      {t("details_dialog.no_reviews_title")}
                     </h3>
                     <p className="text-muted-foreground max-w-md">
-                      This owner hasn't received any reviews yet. Be the first to rent and share your experience!
+                      {t("details_dialog.no_reviews_message")}
                     </p>
                   </div>
                 )}

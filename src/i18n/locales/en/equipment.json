@@ -28,7 +28,10 @@
     "reviews": "Reviews",
     "owner_info": "About the Owner",
     "condition": "Condition",
+    "category": "Category",
     "daily_rate": "Daily Rate",
+    "total_rentals": "Total Rentals",
+    "key_details": "Key Details",
     "book_now": "Book Now",
     "contact_owner": "Contact Owner"
   },
