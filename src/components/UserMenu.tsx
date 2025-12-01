@@ -148,13 +148,9 @@ const UserMenu = () => {
           <span>{t("menu.settings")}</span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem>
-          <ThemeToggle variant="menu-item" />
-        </DropdownMenuItem>
+        <ThemeToggle variant="menu-item" />
 
-        <DropdownMenuItem>
-          <LanguageSelector variant="menu-item" />
-        </DropdownMenuItem>
+        <LanguageSelector variant="menu-item" />
 
         <DropdownMenuSeparator />
 

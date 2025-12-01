@@ -5,6 +5,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
@@ -62,16 +65,14 @@ const LanguageSelector = ({ variant = "default" }: LanguageSelectorProps) => {
 
   if (variant === "menu-item") {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger className="w-full">
-          <div className="flex items-center gap-3 px-2 py-1.5 w-full hover:bg-accent rounded-sm cursor-pointer">
-            <Globe className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">
-              {currentLanguage.flag} {currentLanguage.nativeName}
-            </span>
-          </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="gap-3">
+          <Globe className="h-4 w-4 text-gray-500" />
+          <span className="text-sm">
+            {currentLanguage.flag} {currentLanguage.nativeName}
+          </span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent align="end" className="w-48">
           {languages.map((language) => (
             <DropdownMenuItem
               key={language.code}
@@ -89,8 +90,8 @@ const LanguageSelector = ({ variant = "default" }: LanguageSelectorProps) => {
               )}
             </DropdownMenuItem>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
     );
   }
 

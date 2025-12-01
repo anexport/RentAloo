@@ -94,9 +94,6 @@
     "review_deleted": "Avis supprimé avec succès"
   },
   "messages": {
-    "already_reviewed": "Vous avez déjà évalué cette réservation",
-    "review_submitted": "Avis soumis avec succès",
-    "review_updated": "Avis mis à jour avec succès",
-    "review_deleted": "Avis supprimé avec succès"
+    "already_reviewed": "Vous avez déjà évalué cette réservation"
   }
 }

@@ -94,9 +94,6 @@
     "review_deleted": "Bewertung erfolgreich gelöscht"
   },
   "messages": {
-    "already_reviewed": "Sie haben diese Buchung bereits bewertet",
-    "review_submitted": "Bewertung erfolgreich abgesendet",
-    "review_updated": "Bewertung erfolgreich aktualisiert",
-    "review_deleted": "Bewertung erfolgreich gelöscht"
+    "already_reviewed": "Sie haben diese Buchung bereits bewertet"
   }
 }

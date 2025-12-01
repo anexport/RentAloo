@@ -109,8 +109,6 @@ const ExploreHeader = ({
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <ThemeToggle variant="icon" />
-                <LanguageSelector variant="default" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -155,6 +153,9 @@ const ExploreHeader = ({
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <ThemeToggle variant="menu-item" />
+                    <LanguageSelector variant="menu-item" />
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => {
                         void handleSignOut();
@@ -169,8 +170,21 @@ const ExploreHeader = ({
               </>
             ) : (
               <>
-                <ThemeToggle variant="icon" />
-                <LanguageSelector variant="default" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("menu.settings")}
+                    >
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <ThemeToggle variant="menu-item" />
+                    <LanguageSelector variant="menu-item" />
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="ghost" onClick={() => onLoginClick?.()}>
                   {t("auth.sign_in")}
                 </Button>
@@ -181,8 +195,6 @@ const ExploreHeader = ({
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center space-x-2">
-            <ThemeToggle variant="icon" />
-            <LanguageSelector variant="default" />
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label={t("aria.open_menu")}>
@@ -208,6 +220,18 @@ const ExploreHeader = ({
                           <div className="font-medium">{user.email}</div>
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="justify-start">
+                            <Settings className="mr-2 h-4 w-4" />
+                            {t("common:language.select")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <ThemeToggle variant="menu-item" />
+                          <LanguageSelector variant="menu-item" />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button variant="ghost" className="justify-start" asChild>
                         <Link to="/renter/dashboard">
                           <User className="mr-2 h-4 w-4" />
@@ -239,6 +263,18 @@ const ExploreHeader = ({
                     </>
                   ) : (
                     <>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="justify-start">
+                            <Settings className="mr-2 h-4 w-4" />
+                            {t("common:language.select")}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <ThemeToggle variant="menu-item" />
+                          <LanguageSelector variant="menu-item" />
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         variant="ghost"
                         className="justify-start"

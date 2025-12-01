@@ -90,9 +90,6 @@
     "review_deleted": "Recensione eliminata con successo"
   },
   "messages": {
-    "already_reviewed": "Hai già recensito questa prenotazione",
-    "review_submitted": "Recensione inviata con successo",
-    "review_updated": "Recensione aggiornata con successo",
-    "review_deleted": "Recensione eliminata con successo"
+    "already_reviewed": "Hai già recensito questa prenotazione"
   }
 }

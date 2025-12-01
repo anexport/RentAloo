@@ -93,9 +93,6 @@
     "review_deleted": "Reseña eliminada exitosamente"
   },
   "messages": {
-    "already_reviewed": "Ya has reseñado esta reserva",
-    "review_submitted": "Reseña enviada exitosamente",
-    "review_updated": "Reseña actualizada exitosamente",
-    "review_deleted": "Reseña eliminada exitosamente"
+    "already_reviewed": "Ya has reseñado esta reserva"
   }
 }

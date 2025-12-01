@@ -90,9 +90,6 @@
     "review_deleted": "Review deleted successfully"
   },
   "messages": {
-    "already_reviewed": "You have already reviewed this booking",
-    "review_submitted": "Review submitted successfully",
-    "review_updated": "Review updated successfully",
-    "review_deleted": "Review deleted successfully"
+    "already_reviewed": "You have already reviewed this booking"
   }
 }
