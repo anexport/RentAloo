@@ -58,7 +58,9 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized - Missing authorization header" }),
+        JSON.stringify({
+          error: "Unauthorized - Missing authorization header",
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -66,7 +68,18 @@ serve(async (req) => {
       );
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({
+          error: "Unauthorized - Invalid authorization format",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    const token = authHeader.slice(7); // "Bearer ".length
 
     // Create authenticated client with user's JWT
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
@@ -78,7 +91,10 @@ serve(async (req) => {
     });
 
     // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(
@@ -101,7 +117,7 @@ serve(async (req) => {
     if (equipmentError || !equipment) {
       return new Response(
         JSON.stringify({
-          error: "Equipment not found or you don't have access to it"
+          error: "Equipment not found or you don't have access to it",
         }),
         {
           status: 403,
@@ -122,7 +138,9 @@ serve(async (req) => {
       .eq("target_lang", targetLang)
       .in("field_name", ["title", "description"]);
 
-    const cachedTitle = cachedTranslations?.find((t) => t.field_name === "title");
+    const cachedTitle = cachedTranslations?.find(
+      (t) => t.field_name === "title"
+    );
     const cachedDescription = cachedTranslations?.find(
       (t) => t.field_name === "description"
     );
@@ -237,13 +255,10 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Translation error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
@@ -284,8 +299,9 @@ async function translateText(
       return null;
     }
 
-    const translations = (data as { data?: { translations?: Array<{ translatedText?: unknown }> } }).data
-      ?.translations;
+    const translations = (
+      data as { data?: { translations?: Array<{ translatedText?: unknown }> } }
+    ).data?.translations;
 
     if (
       !translations ||

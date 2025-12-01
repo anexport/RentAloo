@@ -9,6 +9,7 @@
     "no_conversations": "Aucun message pour le moment",
     "start_conversation": "Commencez une conversation en réservant du matériel",
     "unread_count": "{{count}} non lu",
+    "unread_count_plural": "{{count}} non lus",
     "search_placeholder": "Rechercher dans les conversations...",
     "filter_placeholder": "Filtrer",
     "unknown_user": "Utilisateur Inconnu",

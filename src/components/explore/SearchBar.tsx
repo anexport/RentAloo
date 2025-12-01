@@ -84,11 +84,21 @@ const SearchBar = ({ value, onChange, onSubmit }: Props) => {
               <SelectValue placeholder={t("filters_sheet.condition")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t("condition.all", { defaultValue: "All conditions" })}</SelectItem>
-              <SelectItem value="new">{t("condition.new")}</SelectItem>
-              <SelectItem value="excellent">{t("condition.excellent")}</SelectItem>
-              <SelectItem value="good">{t("condition.good")}</SelectItem>
-              <SelectItem value="fair">{t("condition.fair")}</SelectItem>
+              <SelectItem value="all">
+                {t("condition.all", { defaultValue: "All conditions" })}
+              </SelectItem>
+              <SelectItem value="new">
+                {t("condition.new", { defaultValue: "New" })}
+              </SelectItem>
+              <SelectItem value="excellent">
+                {t("condition.excellent", { defaultValue: "Excellent" })}
+              </SelectItem>
+              <SelectItem value="good">
+                {t("condition.good", { defaultValue: "Good" })}
+              </SelectItem>
+              <SelectItem value="fair">
+                {t("condition.fair", { defaultValue: "Fair" })}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -106,15 +116,21 @@ const SearchBar = ({ value, onChange, onSubmit }: Props) => {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>{t("search_bar.select_dates_title")}</DialogTitle>
+                  <DialogTitle>
+                    {t("search_bar.select_dates_title")}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="text-sm text-muted-foreground">
                   {t("search_bar.date_picker_placeholder")}
                 </div>
               </DialogContent>
             </Dialog>
-            <Button onClick={handleApply} aria-label={t("search_popover.search")} className="h-9">
-              {t("search_popover.search")}
+            <Button
+              onClick={handleApply}
+              aria-label={t("search_bar.search")}
+              className="h-9"
+            >
+              {t("search_bar.search")}
             </Button>
           </div>
         </div>

@@ -56,9 +56,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
 
   const userId = user?.id;
 
-  const {
-    data: equipmentStatus,
-  } = useQuery({
+  const { data: equipmentStatus } = useQuery({
     queryKey: ["sidebar", "equipment-status", userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -92,45 +90,44 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  const {
-    data: unreadMessagesData,
-    refetch: refetchUnreadMessages,
-  } = useQuery({
-    queryKey: ["sidebar", "unread-messages", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data: participants, error: participantsError } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id, last_read_at")
-        .eq("profile_id", userId as string);
-      if (participantsError) {
-        console.error("Failed to fetch participants:", participantsError);
-        return 0;
-      }
-      if (!participants || participants.length === 0) return 0;
-
-      const results = await Promise.allSettled(
-        participants.map((participant) =>
-          supabase
-            .from("messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", participant.conversation_id)
-            .neq("sender_id", userId as string)
-            .gt("created_at", participant.last_read_at || "1970-01-01")
-        )
-      );
-
-      let totalUnread = 0;
-      results.forEach((result) => {
-        if (result.status === "fulfilled") {
-          const { count, error } = result.value;
-          if (!error) totalUnread += count || 0;
+  const { data: unreadMessagesData, refetch: refetchUnreadMessages } = useQuery(
+    {
+      queryKey: ["sidebar", "unread-messages", userId],
+      enabled: !!userId,
+      queryFn: async () => {
+        const { data: participants, error: participantsError } = await supabase
+          .from("conversation_participants")
+          .select("conversation_id, last_read_at")
+          .eq("profile_id", userId as string);
+        if (participantsError) {
+          console.error("Failed to fetch participants:", participantsError);
+          return 0;
         }
-      });
-      return totalUnread;
-    },
-    staleTime: 1000 * 30, // 30 seconds
-  });
+        if (!participants || participants.length === 0) return 0;
+
+        const results = await Promise.allSettled(
+          participants.map((participant) =>
+            supabase
+              .from("messages")
+              .select("*", { count: "exact", head: true })
+              .eq("conversation_id", participant.conversation_id)
+              .neq("sender_id", userId as string)
+              .gt("created_at", participant.last_read_at || "1970-01-01")
+          )
+        );
+
+        let totalUnread = 0;
+        results.forEach((result) => {
+          if (result.status === "fulfilled") {
+            const { count, error } = result.value;
+            if (!error) totalUnread += count || 0;
+          }
+        });
+        return totalUnread;
+      },
+      staleTime: 1000 * 30, // 30 seconds
+    }
+  );
 
   const { data: nextBooking, isLoading: isNextBookingLoading } = useQuery({
     queryKey: ["sidebar", "next-booking", userId],
@@ -161,7 +158,8 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         startDate: data.start_date,
         endDate: data.end_date,
         totalAmount: Number(data.total_amount),
-        equipmentName: data.equipment?.title ?? "Upcoming rental",
+        equipmentName:
+          data.equipment?.title ?? t("sidebar.upcoming_rental_fallback"),
       };
     },
     staleTime: 1000 * 60, // 1 minute
@@ -296,7 +294,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const mainNavItems: NavItem[] = [
     { label: t("sidebar.dashboard"), icon: Home, href: "/renter/dashboard" },
     { label: t("sidebar.browse_equipment"), icon: Search, href: "/equipment" },
-    { label: t("sidebar.watchlist"), icon: Heart, href: "/renter/dashboard?tab=saved" },
+    {
+      label: t("sidebar.watchlist"),
+      icon: Heart,
+      href: "/renter/dashboard?tab=saved",
+    },
   ];
 
   const activityNavItems: NavItem[] = [
@@ -311,7 +313,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       href: "/messages",
       ...(unreadMessages > 0 && { badge: unreadMessages }),
     },
-    { label: t("sidebar.payments"), icon: CreditCard, href: "/renter/payments" },
+    {
+      label: t("sidebar.payments"),
+      icon: CreditCard,
+      href: "/renter/payments",
+    },
     {
       label: t("sidebar.support"),
       icon: LifeBuoy,
@@ -371,7 +377,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             size="icon"
             onClick={onToggle}
             className="h-8 w-8"
-            aria-label={collapsed ? t("aria.expand_sidebar") : t("aria.collapse_sidebar")}
+            aria-label={
+              collapsed ? t("aria.expand_sidebar") : t("aria.collapse_sidebar")
+            }
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -648,7 +656,8 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                     to="/renter/dashboard?tab=bookings"
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    {t("sidebar.view_details")} <ArrowRight className="h-3 w-3" />
+                    {t("sidebar.view_details")}{" "}
+                    <ArrowRight className="h-3 w-3" />
                   </Link>
                 </>
               )}
@@ -665,11 +674,15 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                   <PiggyBank className="h-4 w-4 text-primary" />
-                  {!collapsed && <span>{t("sidebar.payout_glance_title")}</span>}
+                  {!collapsed && (
+                    <span>{t("sidebar.payout_glance_title")}</span>
+                  )}
                 </div>
                 {pendingPayouts > 0 && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                    {t("sidebar.payout_glance_pending", { count: pendingPayouts })}
+                    {t("sidebar.payout_glance_pending", {
+                      count: pendingPayouts,
+                    })}
                   </span>
                 )}
               </div>
@@ -679,13 +692,16 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                     {t("sidebar.track_earnings")}
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {t("sidebar.last_payout", { date: formatDateLabel(lastPayoutAt) })}
+                    {t("sidebar.last_payout", {
+                      date: formatDateLabel(lastPayoutAt),
+                    })}
                   </p>
                   <Link
                     to="/owner/dashboard?tab=payments"
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    {t("sidebar.view_payouts")} <ArrowRight className="h-3 w-3" />
+                    {t("sidebar.view_payouts")}{" "}
+                    <ArrowRight className="h-3 w-3" />
                   </Link>
                 </>
               )}

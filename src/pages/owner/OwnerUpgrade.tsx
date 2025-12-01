@@ -7,7 +7,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -32,6 +38,8 @@ import {
   Package,
   Star,
   Zap,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +52,9 @@ const ownerUpgradeSchema = z.object({
     .number({ invalid_type_error: "Must be a valid number" })
     .int("Must be a whole number")
     .nonnegative("Cannot be negative"),
-  equipmentCategories: z.array(z.string()).min(1, "Select at least one category"),
+  equipmentCategories: z
+    .array(z.string())
+    .min(1, "Select at least one category"),
   bankAccount: z.string().optional(),
 });
 
@@ -75,14 +85,16 @@ const BENEFITS = [
   {
     icon: DollarSign,
     title: "Earn Passive Income",
-    description: "Turn idle gear into revenue. Owners earn an average of $200-500/month.",
+    description:
+      "Turn idle gear into revenue. Owners earn an average of $200-500/month.",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
   },
   {
     icon: Users,
     title: "Join a Community",
-    description: "Connect with outdoor enthusiasts and help them experience adventures.",
+    description:
+      "Connect with outdoor enthusiasts and help them experience adventures.",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
   },
@@ -96,7 +108,8 @@ const BENEFITS = [
   {
     icon: ShieldCheck,
     title: "Protected Rentals",
-    description: "Every booking includes damage protection and secure payments.",
+    description:
+      "Every booking includes damage protection and secure payments.",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
   },
@@ -150,10 +163,16 @@ const OwnerUpgrade = () => {
   });
 
   useEffect(() => {
-    if (!existingBusinessInfo || typeof existingBusinessInfo !== "object" || Array.isArray(existingBusinessInfo)) return;
+    if (
+      !existingBusinessInfo ||
+      typeof existingBusinessInfo !== "object" ||
+      Array.isArray(existingBusinessInfo)
+    )
+      return;
     const info = existingBusinessInfo as Record<string, unknown>;
     if (info.name) setValue("businessName", String(info.name));
-    if (info.description) setValue("businessDescription", String(info.description));
+    if (info.description)
+      setValue("businessDescription", String(info.description));
     if (info.location) setValue("location", String(info.location));
     if (info.serviceArea) setValue("serviceArea", String(info.serviceArea));
     if (info.yearsExperience !== undefined && info.yearsExperience !== null) {
@@ -163,12 +182,10 @@ const OwnerUpgrade = () => {
       }
     }
     if (info.bankAccount) setValue("bankAccount", String(info.bankAccount));
-    const categories = (info as { equipmentCategories?: unknown }).equipmentCategories;
+    const categories = (info as { equipmentCategories?: unknown })
+      .equipmentCategories;
     if (Array.isArray(categories)) {
-      setValue(
-        "equipmentCategories",
-        categories.map(String)
-      );
+      setValue("equipmentCategories", categories.map(String));
     }
   }, [existingBusinessInfo, setValue]);
 
@@ -261,7 +278,9 @@ const OwnerUpgrade = () => {
       });
       if (authError) {
         console.error("Auth metadata update failed:", authError);
-        setAuthWarning("Owner upgrade saved, but we couldn't sync your auth metadata. Sign out/in if navigation seems off.");
+        setAuthWarning(
+          "Owner upgrade saved, but we couldn't sync your auth metadata. Sign out/in if navigation seems off."
+        );
       }
 
       setSuccess(true);
@@ -273,7 +292,8 @@ const OwnerUpgrade = () => {
         }
       }, 1500);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to upgrade account.";
+      const message =
+        err instanceof Error ? err.message : "Failed to upgrade account.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -300,12 +320,14 @@ const OwnerUpgrade = () => {
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {["Verified Owner", "Secure Payouts", "Protected Listings"].map((perk) => (
-                <Badge key={perk} variant="secondary" className="gap-1">
-                  <Check className="h-3 w-3" />
-                  {perk}
-                </Badge>
-              ))}
+              {["Verified Owner", "Secure Payouts", "Protected Listings"].map(
+                (perk) => (
+                  <Badge key={perk} variant="secondary" className="gap-1">
+                    <Check className="h-3 w-3" />
+                    {perk}
+                  </Badge>
+                )
+              )}
             </div>
             <p className="text-sm text-muted-foreground animate-pulse">
               Redirecting to your owner dashboard...
@@ -323,13 +345,16 @@ const OwnerUpgrade = () => {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 px-4 py-1.5">
             <Sparkles className="mr-2 h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Upgrade Your Account</span>
+            <span className="text-sm font-medium text-primary">
+              Upgrade Your Account
+            </span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Become an Equipment Owner
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Turn your outdoor gear into income. List equipment, connect with renters, and start earning.
+            Turn your outdoor gear into income. List equipment, connect with
+            renters, and start earning.
           </p>
         </div>
 
@@ -341,6 +366,31 @@ const OwnerUpgrade = () => {
           <Alert variant="destructive">
             <AlertTitle>Something went wrong</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Auth Warning Alert */}
+        {authWarning && (
+          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500">
+            <AlertTriangle className="h-4 w-4" />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <AlertTitle className="text-amber-900 dark:text-amber-100">
+                  Warning
+                </AlertTitle>
+                <AlertDescription className="text-amber-800 dark:text-amber-200">
+                  {authWarning}
+                </AlertDescription>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuthWarning(null)}
+                className="shrink-0 rounded-md p-1 text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                aria-label="Dismiss warning"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </Alert>
         )}
 
@@ -358,9 +408,17 @@ const OwnerUpgrade = () => {
                 {BENEFITS.map((benefit) => {
                   const Icon = benefit.icon;
                   return (
-                    <Card key={benefit.title} className="border-border/50 hover:border-primary/30 transition-colors">
+                    <Card
+                      key={benefit.title}
+                      className="border-border/50 hover:border-primary/30 transition-colors"
+                    >
                       <CardContent className="flex items-start gap-4 p-5">
-                        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", benefit.bg)}>
+                        <div
+                          className={cn(
+                            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                            benefit.bg
+                          )}
+                        >
                           <Icon className={cn("h-5 w-5", benefit.color)} />
                         </div>
                         <div className="space-y-1">
@@ -386,7 +444,10 @@ const OwnerUpgrade = () => {
                 <CardContent>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {OWNER_PERKS.map((perk) => (
-                      <div key={perk} className="flex items-center gap-2 text-sm">
+                      <div
+                        key={perk}
+                        className="flex items-center gap-2 text-sm"
+                      >
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
                           <Check className="h-3 w-3 text-primary" />
                         </div>
@@ -432,7 +493,10 @@ const OwnerUpgrade = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="businessName">
-                        Business name <span className="text-muted-foreground">(optional)</span>
+                        Business name{" "}
+                        <span className="text-muted-foreground">
+                          (optional)
+                        </span>
                       </Label>
                       <Input
                         id="businessName"
@@ -442,7 +506,8 @@ const OwnerUpgrade = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="yearsExperience">
-                        Years of experience <span className="text-destructive">*</span>
+                        Years of experience{" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="yearsExperience"
@@ -451,11 +516,17 @@ const OwnerUpgrade = () => {
                         min={0}
                         step={1}
                         placeholder="e.g., 5"
-                        {...register("yearsExperience", { valueAsNumber: true })}
-                        className={errors.yearsExperience ? "border-destructive" : ""}
+                        {...register("yearsExperience", {
+                          valueAsNumber: true,
+                        })}
+                        className={
+                          errors.yearsExperience ? "border-destructive" : ""
+                        }
                       />
                       {errors.yearsExperience && (
-                        <p className="text-sm text-destructive">{errors.yearsExperience.message}</p>
+                        <p className="text-sm text-destructive">
+                          {errors.yearsExperience.message}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -463,7 +534,8 @@ const OwnerUpgrade = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="location">
-                        Base location <span className="text-destructive">*</span>
+                        Base location{" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="location"
@@ -472,7 +544,9 @@ const OwnerUpgrade = () => {
                         className={errors.location ? "border-destructive" : ""}
                       />
                       {errors.location && (
-                        <p className="text-sm text-destructive">{errors.location.message}</p>
+                        <p className="text-sm text-destructive">
+                          {errors.location.message}
+                        </p>
                       )}
                     </div>
                     <div className="space-y-2">
@@ -483,17 +557,22 @@ const OwnerUpgrade = () => {
                         id="serviceArea"
                         placeholder="e.g., Front Range, CO"
                         {...register("serviceArea")}
-                        className={errors.serviceArea ? "border-destructive" : ""}
+                        className={
+                          errors.serviceArea ? "border-destructive" : ""
+                        }
                       />
                       {errors.serviceArea && (
-                        <p className="text-sm text-destructive">{errors.serviceArea.message}</p>
+                        <p className="text-sm text-destructive">
+                          {errors.serviceArea.message}
+                        </p>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="businessDescription">
-                      About your rentals <span className="text-muted-foreground">(optional)</span>
+                      About your rentals{" "}
+                      <span className="text-muted-foreground">(optional)</span>
                     </Label>
                     <Textarea
                       id="businessDescription"
@@ -517,7 +596,8 @@ const OwnerUpgrade = () => {
                     What will you rent out?
                   </CardTitle>
                   <CardDescription>
-                    Select the categories that match your equipment. Choose at least one.
+                    Select the categories that match your equipment. Choose at
+                    least one.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -525,14 +605,20 @@ const OwnerUpgrade = () => {
                     <p className="text-sm text-muted-foreground">
                       Pick categories that match your gear
                     </p>
-                    <Badge variant={selectedCategories.length > 0 ? "default" : "secondary"}>
+                    <Badge
+                      variant={
+                        selectedCategories.length > 0 ? "default" : "secondary"
+                      }
+                    >
                       {selectedCategories.length} selected
                     </Badge>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     {EQUIPMENT_CATEGORY_OPTIONS.map((option) => {
-                      const isSelected = selectedCategories.includes(option.value);
+                      const isSelected = selectedCategories.includes(
+                        option.value
+                      );
                       return (
                         <label
                           key={option.value}
@@ -552,15 +638,28 @@ const OwnerUpgrade = () => {
                               } else {
                                 current.delete(option.value);
                               }
-                              setValue("equipmentCategories", Array.from(current), {
-                                shouldValidate: true,
-                              });
+                              setValue(
+                                "equipmentCategories",
+                                Array.from(current),
+                                {
+                                  shouldValidate: true,
+                                }
+                              );
                             }}
                           />
-                          <span className="text-xl" role="img" aria-hidden="true">
+                          <span
+                            className="text-xl"
+                            role="img"
+                            aria-hidden="true"
+                          >
                             {option.icon}
                           </span>
-                          <span className={cn("text-sm font-medium", isSelected && "text-primary")}>
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              isSelected && "text-primary"
+                            )}
+                          >
                             {option.value}
                           </span>
                         </label>
@@ -569,7 +668,9 @@ const OwnerUpgrade = () => {
                   </div>
 
                   {errors.equipmentCategories && (
-                    <p className="text-sm text-destructive">{errors.equipmentCategories.message}</p>
+                    <p className="text-sm text-destructive">
+                      {errors.equipmentCategories.message}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -586,7 +687,8 @@ const OwnerUpgrade = () => {
                     How should we pay you?
                   </CardTitle>
                   <CardDescription>
-                    Add your payout details to receive earnings. You can always update this later.
+                    Add your payout details to receive earnings. You can always
+                    update this later.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -598,8 +700,9 @@ const OwnerUpgrade = () => {
                       <div className="space-y-1">
                         <p className="font-medium text-sm">Secure Payments</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          We use bank-level encryption and hold funds in escrow until rentals are complete.
-                          Your earnings are always protected.
+                          We use bank-level encryption and hold funds in escrow
+                          until rentals are complete. Your earnings are always
+                          protected.
                         </p>
                       </div>
                     </div>
@@ -607,7 +710,8 @@ const OwnerUpgrade = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="bankAccount">
-                      Payment details <span className="text-muted-foreground">(optional)</span>
+                      Payment details{" "}
+                      <span className="text-muted-foreground">(optional)</span>
                     </Label>
                     <Input
                       id="bankAccount"
@@ -623,7 +727,9 @@ const OwnerUpgrade = () => {
                     <div className="flex items-center gap-3">
                       <TrendingUp className="h-5 w-5 text-emerald-500" />
                       <div>
-                        <p className="text-sm font-medium">Ready to start earning?</p>
+                        <p className="text-sm font-medium">
+                          Ready to start earning?
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Complete your profile and list your first item today.
                         </p>
@@ -662,7 +768,11 @@ const OwnerUpgrade = () => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={submitting} className="gap-2 ml-auto">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="gap-2 ml-auto"
+              >
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />

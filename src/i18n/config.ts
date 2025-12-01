@@ -136,13 +136,21 @@ const resources = {
 const customLanguageDetector = {
   name: "localStorageUserPreference",
   lookup() {
-    // Check if user has language preference stored locally (synced from Supabase after login)
-    const userLang = localStorage.getItem("userLanguagePreference");
-    if (userLang) return userLang;
+    try {
+      // Check if user has language preference stored locally (synced from Supabase after login)
+      const userLang = localStorage.getItem("userLanguagePreference");
+      if (userLang) return userLang;
+    } catch {
+      // localStorage may be unavailable (private browsing, disabled, etc.)
+    }
     return undefined;
   },
   cacheUserLanguage(lng: string) {
-    localStorage.setItem("userLanguagePreference", lng);
+    try {
+      localStorage.setItem("userLanguagePreference", lng);
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
   },
 };
 

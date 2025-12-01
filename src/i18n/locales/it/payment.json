@@ -37,7 +37,7 @@
     "amount": "Importo",
     "status": "Stato",
     "download_receipt": "Scarica Ricevuta",
-    "no_payments": "Nessuno storico pagamenti ancora"
+    "no_payments": "Ancora nessun pagamento nel tuo storico"
   },
   "errors": {
     "payment_failed": "Pagamento fallito. Riprova.",

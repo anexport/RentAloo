@@ -148,8 +148,8 @@
     "search_equipment_aria": "Search equipment",
     "set_dates_aria": "Set dates",
     "dates": "Dates",
-    "select_dates_title": "Select dates (placeholder)",
-    "date_picker_placeholder": "Date picker integration can be added later."
+    "select_dates_title": "Select dates",
+    "date_picker_placeholder": "Select your rental dates"
   },
   "search_popover": {
     "where_section_title": "Where do you need gear?",
@@ -160,7 +160,7 @@
     "what_section_desc": "Choose the gear category that fits your trip.",
     "use_current_location": "Use current location",
     "detecting_location": "Detecting your location...",
-    "location_placeholder": "Try Yosemite National Park",
+    "location_placeholder": "Enter a city or region",
     "clear": "Clear",
     "clear_all": "Clear all",
     "search": "Search",

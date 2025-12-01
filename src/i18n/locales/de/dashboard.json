@@ -20,7 +20,7 @@
       "loading": "Mietverträge werden geladen...",
       "empty_state": {
         "title": "Noch keine Mietverträge",
-        "description": "Beginne mit dem Durchsuchen verfügbarer Ausrüstung und tätigen deiner ersten Miete",
+        "description": "Beginne mit dem Durchsuchen verfügbarer Ausrüstung und tätige deine erste Miete",
         "button": "Ausrüstung durchsuchen"
       }
     },

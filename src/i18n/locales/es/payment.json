@@ -8,7 +8,7 @@
     "billing_address": "Dirección de Facturación",
     "pay_now": "Pagar Ahora",
     "processing": "Procesando Pago...",
-    "secure_payment": "Pago seguro powered by Stripe"
+    "secure_payment": "Pago seguro impulsado por Stripe"
   },
   "confirmation": {
     "title": "Pago Exitoso",

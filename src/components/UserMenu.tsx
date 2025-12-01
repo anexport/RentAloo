@@ -39,21 +39,34 @@ const UserMenu = () => {
   }, [user]);
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      console.error("Sign out error:", error);
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        toast({
+          variant: "destructive",
+          title: t("errors.signout_failed_title"),
+          description:
+            error instanceof Error
+              ? error.message
+              : t("errors.signout_failed_message"),
+        });
+        return;
+      }
+      setIsOpen(false);
+      void navigate("/");
+    } catch (error) {
+      console.error("Unexpected sign out error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("errors.signout_failed_message");
       toast({
         variant: "destructive",
         title: t("errors.signout_failed_title"),
-        description:
-          error instanceof Error
-            ? error.message
-            : t("errors.signout_failed_message"),
+        description: message,
       });
-      return;
     }
-    setIsOpen(false);
-    void navigate("/");
   };
 
   const handleNavigation = (path: string) => {

@@ -6,6 +6,20 @@
 DROP POLICY IF EXISTS "Authenticated users can insert translations" ON content_translations;
 DROP POLICY IF EXISTS "Authenticated users can update translations" ON content_translations;
 
+-- Policy 1: Users can select translations for equipment they own
+CREATE POLICY "Users can select translations for own equipment"
+ON content_translations
+FOR SELECT
+TO authenticated
+USING (
+  content_type = 'equipment' AND
+  EXISTS (
+    SELECT 1 FROM equipment
+    WHERE equipment.id = content_translations.content_id
+    AND equipment.owner_id = auth.uid()
+  )
+);
+
 -- Policy 1: Users can only insert translations for equipment they own
 CREATE POLICY "Users can insert translations for own equipment"
 ON content_translations

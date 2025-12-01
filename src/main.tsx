@@ -43,5 +43,30 @@ const renderApp = () => {
 if (i18n.isInitialized) {
   renderApp();
 } else {
-  i18n.on("initialized", renderApp);
+  let hasRendered = false;
+  const safeRender = () => {
+    if (hasRendered) return;
+    hasRendered = true;
+    renderApp();
+  };
+
+  // Set a timeout to prevent infinite waiting
+  const timeout = setTimeout(() => {
+    console.error("i18n initialization timeout - rendering anyway");
+    safeRender();
+  }, 10000); // 10 seconds
+
+  i18n.on("initialized", () => {
+    clearTimeout(timeout);
+    safeRender();
+  });
+
+  // Handle initialization errors if the library supports it
+  if (typeof i18n.on === "function") {
+    i18n.on("failedLoading", (lng: string, ns: string, msg: string) => {
+      console.error(`i18n failed to load ${lng}/${ns}: ${msg}`);
+      clearTimeout(timeout);
+      safeRender(); // Render anyway with fallback language
+    });
+  }
 }

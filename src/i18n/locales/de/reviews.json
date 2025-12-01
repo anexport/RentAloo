@@ -51,7 +51,7 @@
     "no_reviews": "Noch keine Bewertungen",
     "be_first": "Seien Sie der Erste, der eine Bewertung hinterlässt!",
     "no_matching_filter": "Keine Bewertungen entsprechen Ihrem Filter",
-    "reviews_count_single": "Bewertungen ({{count}})",
+    "reviews_count_single": "Bewertung ({{count}})",
     "reviews_count_plural": "Bewertungen ({{count}})"
   },
   "filters": {
