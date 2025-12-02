@@ -165,9 +165,16 @@ const RecommendationsSection = () => {
         }
 
         // Load recently viewed (from localStorage for now)
-        const recentlyViewedIds = JSON.parse(
-          localStorage.getItem("recentlyViewedEquipment") || "[]"
-        ) as string[];
+        let recentlyViewedIds: string[] = [];
+        try {
+          const stored = localStorage.getItem("recentlyViewedEquipment");
+          recentlyViewedIds = stored ? JSON.parse(stored) : [];
+          if (!Array.isArray(recentlyViewedIds)) {
+            recentlyViewedIds = [];
+          }
+        } catch (error) {
+          console.error("Failed to parse recently viewed equipment:", error);
+        }
 
         if (recentlyViewedIds.length > 0) {
           try {

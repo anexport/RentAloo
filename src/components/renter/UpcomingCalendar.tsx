@@ -5,7 +5,7 @@ import { formatDateForStorage } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
-import { format, isToday, isSameDay, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from "date-fns";
+import { format, isToday, isSameDay, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -78,11 +78,11 @@ const UpcomingCalendar = () => {
 
   // Get bookings for a specific date
   const getBookingsForDate = (date: Date) => {
-    const dateStr = format(date, "yyyy-MM-dd");
+    const checkDate = startOfDay(date);
     return bookings.filter((booking) => {
-      const start = new Date(booking.start_date);
-      const end = new Date(booking.end_date);
-      return date >= start && date <= end;
+      const startDate = startOfDay(new Date(booking.start_date));
+      const endDate = endOfDay(new Date(booking.end_date));
+      return checkDate >= startDate && checkDate <= endDate;
     });
   };
 
@@ -239,9 +239,7 @@ const UpcomingCalendar = () => {
             <p className="text-sm font-semibold">Next Rentals</p>
             {upcomingBookings.map((booking) => {
               const startDate = new Date(booking.start_date);
-              const daysUntil = Math.ceil(
-                (startDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-              );
+              const daysUntil = differenceInDays(startDate, new Date());
 
               return (
                 <Link

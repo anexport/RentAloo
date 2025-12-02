@@ -2,6 +2,11 @@ import { useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import type { Database } from "@/lib/database.types";
+
+type UserFavoriteInsert = Database["public"]["Tables"]["user_favorites"]["Insert"];
+type UserFavoriteRow = Database["public"]["Tables"]["user_favorites"]["Row"];
 
 // Fetch favorites function
 const fetchFavorites = async (userId: string): Promise<string[]> => {
@@ -16,38 +21,31 @@ const fetchFavorites = async (userId: string): Promise<string[]> => {
 };
 
 // Add favorite function
-const addFavorite = async ({
-  userId,
-  equipmentId,
-}: {
-  userId: string;
-  equipmentId: string;
-}) => {
+const addFavorite = async (params: Pick<UserFavoriteInsert, "user_id" | "equipment_id">) => {
   const { error } = await supabase.from("user_favorites").insert({
-    user_id: userId,
-    equipment_id: equipmentId,
+    user_id: params.user_id,
+    equipment_id: params.equipment_id,
   });
 
   if (error) throw error;
 };
 
 // Remove favorite function
-const removeFavorite = async ({
-  userId,
-  equipmentId,
-}: {
-  userId: string;
-  equipmentId: string;
-}) => {
+const removeFavorite = async (params: Pick<UserFavoriteInsert, "user_id" | "equipment_id">) => {
   const { error } = await supabase
     .from("user_favorites")
     .delete()
-    .eq("user_id", userId)
-    .eq("equipment_id", equipmentId);
+    .eq("user_id", params.user_id)
+    .eq("equipment_id", params.equipment_id);
 
   if (error) throw error;
 };
 
+/**
+ * Hook for managing user favorites with optimistic updates and real-time synchronization.
+ *
+ * @returns Object containing favorites data, toggle function, and loading state
+ */
 export const useFavorites = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -108,6 +106,14 @@ export const useFavorites = () => {
         );
       }
       console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorite", {
+        description: "Please try again",
+      });
+    },
+    onSuccess: (data) => {
+      toast.success(
+        data.isFavorited ? "Removed from favorites" : "Added to favorites"
+      );
     },
     onSettled: () => {
       // Refetch to ensure consistency
@@ -126,7 +132,12 @@ export const useFavorites = () => {
   // Toggle favorite wrapper
   const toggleFavorite = useCallback(
     async (equipmentId: string) => {
-      await toggleMutation.mutateAsync(equipmentId);
+      try {
+        await toggleMutation.mutateAsync(equipmentId);
+      } catch (error) {
+        // Error already handled by mutation onError callback
+        // Swallow error to prevent unhandled promise rejection
+      }
     },
     [toggleMutation]
   );
@@ -145,14 +156,22 @@ export const useFavorites = () => {
           table: "user_favorites",
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          // Invalidate query cache on real-time changes
-          void queryClient.invalidateQueries({
-            queryKey: ["favorites", user.id],
-          });
+        (payload) => {
+          try {
+            // Invalidate query cache on real-time changes
+            void queryClient.invalidateQueries({
+              queryKey: ["favorites", user.id],
+            });
+          } catch (error) {
+            console.error("Error handling real-time update:", error);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIPTION_ERROR") {
+          console.error("Subscription error for user favorites");
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

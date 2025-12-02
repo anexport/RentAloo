@@ -357,8 +357,8 @@ const BookingRequestCard = ({
 
   // Progress indicator for active bookings
   const getProgressPercentage = () => {
-    if (!isActive) return 0;
-    const elapsed = differenceInDays(today, startDate);
+    if (!isActive || totalDays <= 0) return 0;
+    const elapsed = Math.max(differenceInDays(today, startDate), 0);
     return Math.min((elapsed / totalDays) * 100, 100);
   };
 
@@ -389,11 +389,11 @@ const BookingRequestCard = ({
       <div className="flex flex-col md:flex-row">
         {/* Equipment Image */}
         {equipmentImage && (
-          <div className="md:w-48 h-48 md:h-auto flex-shrink-0 relative overflow-hidden bg-muted">
+          <div className="w-full md:w-48 aspect-[4/3] md:aspect-auto md:min-h-[200px] flex-shrink-0 relative overflow-hidden bg-muted">
             <img
               src={equipmentImage}
               alt={bookingRequest.equipment.title}
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
             {bookingRequest.equipment.category && (
               <div className="absolute top-2 left-2">

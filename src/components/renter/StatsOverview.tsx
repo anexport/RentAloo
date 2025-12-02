@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Stats {
   activeBookings: number;
@@ -392,6 +393,9 @@ const StatsOverview = () => {
         });
       } catch (error) {
         console.error("Error fetching stats:", error);
+        toast.error("Failed to load statistics", {
+          description: "Please try again",
+        });
       } finally {
         setLoading(false);
       }

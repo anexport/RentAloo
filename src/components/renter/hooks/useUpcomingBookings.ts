@@ -1,8 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { formatDateForStorage } from "@/lib/utils";
+import type { Database } from "@/lib/database.types";
 
-export const useUpcomingBookings = (userId?: string) => {
+type BookingRequest = Database["public"]["Tables"]["booking_requests"]["Row"];
+
+interface UpcomingBookingsResult {
+  count: number;
+  nextDate: BookingRequest["start_date"] | null;
+}
+
+export const useUpcomingBookings = (userId?: string): UseQueryResult<UpcomingBookingsResult> => {
   return useQuery({
     queryKey: ["upcoming-bookings", userId],
     queryFn: async () => {
