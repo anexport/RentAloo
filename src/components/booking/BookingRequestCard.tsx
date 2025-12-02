@@ -76,7 +76,6 @@ const BookingRequestCard = ({
   const [pickupInspectionId, setPickupInspectionId] = useState<string | null>(null);
   const [returnInspectionId, setReturnInspectionId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showLifecycleStepper, setShowLifecycleStepper] = useState(false);
 
   // Check if inspections exist for this booking
   useEffect(() => {
@@ -415,42 +414,15 @@ const BookingRequestCard = ({
           <CardContent className="space-y-4 pb-2">
             {/* Desktop: Compact Lifecycle Stepper */}
             {!isMobile && hasPayment && bookingRequest.status !== "cancelled" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <BookingLifecycleStepper
-                    hasPayment={hasPayment}
-                    hasPickupInspection={!!pickupInspectionId}
-                    hasReturnInspection={!!returnInspectionId}
-                    startDate={startDate}
-                    endDate={endDate}
-                    bookingStatus={bookingRequest.status || "pending"}
-                    compact={true}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7 px-2"
-                    onClick={() => setShowLifecycleStepper(!showLifecycleStepper)}
-                  >
-                    {showLifecycleStepper ? "Hide" : "Details"}
-                  </Button>
-                </div>
-                
-                {/* Expanded Lifecycle Stepper */}
-                {showLifecycleStepper && (
-                  <div className="bg-muted/30 rounded-lg p-4 mt-2">
-                    <BookingLifecycleStepper
-                      hasPayment={hasPayment}
-                      hasPickupInspection={!!pickupInspectionId}
-                      hasReturnInspection={!!returnInspectionId}
-                      startDate={startDate}
-                      endDate={endDate}
-                      bookingStatus={bookingRequest.status || "pending"}
-                      compact={false}
-                    />
-                  </div>
-                )}
-              </div>
+              <BookingLifecycleStepper
+                hasPayment={hasPayment}
+                hasPickupInspection={!!pickupInspectionId}
+                hasReturnInspection={!!returnInspectionId}
+                startDate={startDate}
+                endDate={endDate}
+                bookingStatus={bookingRequest.status || "pending"}
+                compact={true}
+              />
             )}
 
             {/* INSPECTION FLOW - Responsive display */}
