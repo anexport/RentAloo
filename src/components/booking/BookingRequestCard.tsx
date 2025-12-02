@@ -385,7 +385,7 @@ const BookingRequestCard = ({
   const statusSteps = getStatusSteps();
 
   return (
-    <Card className="w-full overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="w-full overflow-hidden hover:shadow-lg transition-shadow !p-0">
       <div className="flex flex-col md:flex-row">
         {/* Equipment Image */}
         {equipmentImage && (
@@ -395,16 +395,18 @@ const BookingRequestCard = ({
               alt={bookingRequest.equipment.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-2 left-2">
-              <Badge variant="secondary" className="text-xs">
-                {bookingRequest.equipment.category.name}
-              </Badge>
-            </div>
+            {bookingRequest.equipment.category && (
+              <div className="absolute top-2 left-2">
+                <Badge variant="secondary" className="text-xs">
+                  {bookingRequest.equipment.category.name}
+                </Badge>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="flex-1">
-          <CardHeader className="pb-3">
+        <div className="flex-1 py-4">
+          <CardHeader className="pb-3 pt-0">
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg md:text-xl mb-1 line-clamp-1">
@@ -438,59 +440,59 @@ const BookingRequestCard = ({
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pb-2">
             {/* Status Timeline */}
             {bookingRequest.status !== "cancelled" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                  {statusSteps.map((step, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "flex-1 flex items-center",
-                        index < statusSteps.length - 1 && "mr-2"
-                      )}
-                    >
-                      <div className="flex items-center flex-1">
-                        <div
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-colors",
-                            step.completed
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-muted text-muted-foreground border-muted-foreground/20"
-                          )}
-                        >
-                          {step.completed ? (
-                            <CheckCircle className="h-3 w-3" />
-                          ) : (
-                            index + 1
-                          )}
-                        </div>
-                        {index < statusSteps.length - 1 && (
-                          <div
-                            className={cn(
-                              "flex-1 h-0.5 mx-1 transition-colors",
-                              step.completed ? "bg-primary" : "bg-muted"
-                            )}
-                          />
+              <div className="flex items-start">
+                {statusSteps.map((step, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center">
+                    {/* Circle and connecting lines row */}
+                    <div className="flex items-center w-full">
+                      {/* Line before circle (except first step) */}
+                      <div
+                        className={cn(
+                          "flex-1 h-0.5 transition-colors",
+                          index === 0 ? "bg-transparent" : step.completed ? "bg-primary" : "bg-muted"
+                        )}
+                      />
+                      {/* Circle */}
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-colors shrink-0",
+                          step.completed
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted text-muted-foreground border-muted-foreground/20"
+                        )}
+                      >
+                        {step.completed ? (
+                          <CheckCircle className="h-3 w-3" />
+                        ) : (
+                          index + 1
                         )}
                       </div>
+                      {/* Line after circle (except last step) */}
+                      <div
+                        className={cn(
+                          "flex-1 h-0.5 transition-colors",
+                          index === statusSteps.length - 1
+                            ? "bg-transparent"
+                            : step.completed
+                            ? "bg-primary"
+                            : "bg-muted"
+                        )}
+                      />
                     </div>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  {statusSteps.map((step, index) => (
+                    {/* Label */}
                     <span
-                      key={index}
                       className={cn(
-                        "text-center",
+                        "text-xs mt-1.5 text-center px-1",
                         step.completed ? "text-foreground font-medium" : "text-muted-foreground"
                       )}
                     >
                       {step.label}
                     </span>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -593,12 +595,22 @@ const BookingRequestCard = ({
 
                 {/* Timestamps */}
                 <div className="text-xs text-muted-foreground pt-2 border-t space-y-1">
-                  <div>
-                    Requested: {format(new Date(bookingRequest.created_at || ""), "MMM d, yyyy 'at' h:mm a")}
-                  </div>
-                  {bookingRequest.updated_at !== bookingRequest.created_at && (
+                  {bookingRequest.created_at && (
                     <div>
-                      Updated: {format(new Date(bookingRequest.updated_at || ""), "MMM d, yyyy 'at' h:mm a")}
+                      Requested:{" "}
+                      {(() => {
+                        const date = new Date(bookingRequest.created_at);
+                        return !isNaN(date.getTime()) ? format(date, "MMM d, yyyy 'at' h:mm a") : "Invalid date";
+                      })()}
+                    </div>
+                  )}
+                  {bookingRequest.updated_at && bookingRequest.updated_at !== bookingRequest.created_at && (
+                    <div>
+                      Updated:{" "}
+                      {(() => {
+                        const date = new Date(bookingRequest.updated_at);
+                        return !isNaN(date.getTime()) ? format(date, "MMM d, yyyy 'at' h:mm a") : "Invalid date";
+                      })()}
                     </div>
                   )}
                 </div>

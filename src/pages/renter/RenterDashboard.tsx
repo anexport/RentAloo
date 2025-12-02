@@ -137,23 +137,15 @@ const RenterDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* My Rental Bookings Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                    {t("renter.bookings.section_title")}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {t("renter.bookings.section_description")}
-                  </p>
-                </div>
-                {renterBookings.length > 3 && activeTab !== "bookings" && (
+              {renterBookings.length > 3 && activeTab !== "bookings" && (
+                <div className="flex justify-end">
                   <Link to="/renter/dashboard?tab=bookings">
                     <Button variant="outline" size="sm">
                       {t("renter.bookings.view_all")}
                     </Button>
                   </Link>
-                )}
-              </div>
+                </div>
+              )}
               {renterLoading ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -163,8 +155,8 @@ const RenterDashboard = () => {
                   </CardContent>
                 </Card>
               ) : renterBookings.length === 0 ? (
-                <Card className="border-dashed">
-                  <CardContent className="text-center py-12">
+                <Card className="border-dashed h-full">
+                  <CardContent className="text-center py-12 h-full flex items-center justify-center">
                     <div className="flex flex-col items-center">
                       <div className="rounded-full bg-muted p-4 mb-4">
                         <Calendar className="h-8 w-8 text-muted-foreground" />

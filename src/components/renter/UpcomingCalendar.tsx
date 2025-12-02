@@ -5,10 +5,11 @@ import { formatDateForStorage } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
-import { format, isToday, isSameDay, addDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from "date-fns";
+import { format, isToday, isSameDay, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
 const UpcomingCalendar = () => {
@@ -34,10 +35,10 @@ const UpcomingCalendar = () => {
             equipment:equipment(
               *,
               category:categories(*),
-              photos:equipment_photos(*)
+              photos:equipment_photos(*),
+              owner:profiles!equipment_owner_id_fkey(*)
             ),
-            renter:profiles!booking_requests_renter_id_fkey(*),
-            owner:profiles!equipment!owner_id(*)
+            renter:profiles!booking_requests_renter_id_fkey(*)
           `)
           .eq("renter_id", user.id)
           .eq("status", "approved")
@@ -47,10 +48,10 @@ const UpcomingCalendar = () => {
 
         if (error) throw error;
 
-        // Type assertion - the query should return the correct structure
         setBookings((data || []) as BookingRequestWithDetails[]);
       } catch (error) {
         console.error("Error fetching upcoming bookings:", error);
+        toast.error("Failed to load upcoming bookings");
       } finally {
         setLoading(false);
       }
@@ -115,14 +116,14 @@ const UpcomingCalendar = () => {
   const upcomingBookings = bookings.slice(0, 3);
 
   return (
-    <Card className="h-fit">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarIcon className="h-5 w-5 text-primary" />
           Upcoming Rentals
         </CardTitle>
         <CardDescription>
-          Your approved bookings for the next 30 days
+          Your upcoming approved bookings
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -133,7 +134,7 @@ const UpcomingCalendar = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setCurrentMonth(addDays(currentMonth, -30))}
+              onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
             >
               ←
             </Button>
@@ -143,19 +144,20 @@ const UpcomingCalendar = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setCurrentMonth(addDays(currentMonth, 30))}
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
             >
               →
             </Button>
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Calendar">
             {/* Week day headers */}
             {weekDays.map((day) => (
               <div
                 key={day}
                 className="text-center text-xs font-medium text-muted-foreground py-1"
+                role="columnheader"
               >
                 {day}
               </div>
@@ -168,6 +170,7 @@ const UpcomingCalendar = () => {
               const hasBooking = bookingDates.has(dayStr);
               const isSelected = selectedDate && isSameDay(day, selectedDate);
               const dayBookings = getBookingsForDate(day);
+              const bookingCount = dayBookings.length;
 
               return (
                 <button
@@ -186,6 +189,9 @@ const UpcomingCalendar = () => {
                     !hasBooking && isCurrentMonth && "hover:bg-muted"
                   )}
                   disabled={!hasBooking}
+                  role="gridcell"
+                  aria-label={`${format(day, "MMMM d, yyyy")}${hasBooking ? `, ${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : ''}`}
+                  aria-pressed={isSelected}
                 >
                   <span className={cn(
                     "block",

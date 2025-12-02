@@ -53,12 +53,17 @@ const RecommendationsSection = () => {
 
       try {
         // Fetch user's booking history to get categories they've rented
-        const { data: bookings } = await supabase
+        const { data: bookings, error: bookingsError } = await supabase
           .from("booking_requests")
           .select("equipment:equipment(category_id)")
           .eq("renter_id", user.id)
           .eq("status", "approved")
           .limit(10);
+
+        if (bookingsError) {
+          console.error("Error fetching booking history:", bookingsError);
+          // Continue with empty bookings to allow other sections to load
+        }
 
         // Get unique category IDs
         const categoryIds = [
@@ -70,13 +75,18 @@ const RecommendationsSection = () => {
         ] as string[];
 
         // Get user's location from profile or recent bookings
-        const { data: recentBooking } = await supabase
+        const { data: recentBooking, error: locationError } = await supabase
           .from("booking_requests")
           .select("equipment:equipment(location)")
           .eq("renter_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
+
+        if (locationError && locationError.code !== "PGRST116") {
+          // PGRST116 = no rows returned, which is expected for new users
+          console.error("Error fetching user location:", locationError);
+        }
 
         const userLocation =
           (recentBooking?.equipment as { location?: string })?.location || null;
@@ -105,14 +115,23 @@ const RecommendationsSection = () => {
           }
         } else {
           // If no category history, show popular items
-          const popularListings = await fetchListings({ limit: 6 });
-          setSections((prev) =>
-            prev.map((s) =>
-              s.type === "category"
-                ? { ...s, listings: popularListings, loading: false }
-                : s
-            )
-          );
+          try {
+            const popularListings = await fetchListings({ limit: 6 });
+            setSections((prev) =>
+              prev.map((s) =>
+                s.type === "category"
+                  ? { ...s, listings: popularListings, loading: false }
+                  : s
+              )
+            );
+          } catch (error) {
+            console.error("Error loading popular listings:", error);
+            setSections((prev) =>
+              prev.map((s) =>
+                s.type === "category" ? { ...s, loading: false } : s
+              )
+            );
+          }
         }
 
         // Load location-based recommendations
@@ -152,37 +171,42 @@ const RecommendationsSection = () => {
 
         if (recentlyViewedIds.length > 0) {
           try {
-            const recentListings: Listing[] = [];
-            for (const id of recentlyViewedIds.slice(0, 6)) {
-              try {
-                const { data } = await supabase
-                  .from("equipment")
-                  .select(
-                    `*,
-                     category:categories(*),
-                     photos:equipment_photos(*),
-                     owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
-                    `
-                  )
-                  .eq("id", id)
-                  .eq("is_available", true)
-                  .single();
-
-                if (data) {
-                  recentListings.push(data as Listing);
-                }
-              } catch (error) {
-                // Skip invalid IDs
-                continue;
-              }
-            }
-            setSections((prev) =>
-              prev.map((s) =>
-                s.type === "recent"
-                  ? { ...s, listings: recentListings, loading: false }
-                  : s
+            const idsToFetch = recentlyViewedIds.slice(0, 6);
+            const { data, error } = await supabase
+              .from("equipment")
+              .select(
+                `*,
+                 category:categories(*),
+                 photos:equipment_photos(*),
+                 owner:profiles!equipment_owner_id_fkey(id,email,identity_verified)
+                `
               )
-            );
+              .in("id", idsToFetch)
+              .eq("is_available", true);
+
+            if (error) {
+              console.error("Error loading recent recommendations:", error);
+              setSections((prev) =>
+                prev.map((s) =>
+                  s.type === "recent" ? { ...s, loading: false } : s
+                )
+              );
+            } else if (data) {
+              // Preserve original viewing order
+              const dataMap = new Map(data.map((d) => [d.id, d]));
+              const recentListings: Listing[] = [];
+              for (const id of idsToFetch) {
+                const item = dataMap.get(id);
+                if (item) recentListings.push(item as Listing);
+              }
+              setSections((prev) =>
+                prev.map((s) =>
+                  s.type === "recent"
+                    ? { ...s, listings: recentListings, loading: false }
+                    : s
+                )
+              );
+            }
           } catch (error) {
             console.error("Error loading recent recommendations:", error);
             setSections((prev) =>

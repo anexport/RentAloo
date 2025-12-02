@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { Calendar, DollarSign, Package, Star, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  Calendar,
+  DollarSign,
+  Heart,
+  Star,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 interface Stats {
   activeBookings: number;
-  pendingRequests: number;
+  savedItems: number;
   totalSpent: number;
   averageRating: number;
 }
@@ -37,7 +44,7 @@ interface StatCardData {
 const useAnimatedCounter = (target: number, duration = 1000) => {
   const [count, setCount] = useState(0);
   const startTimeRef = useRef<number | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (target === 0) {
@@ -57,7 +64,9 @@ const useAnimatedCounter = (target: number, duration = 1000) => {
 
       // Easing function (ease-out)
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentValue = Math.floor(startValue + (target - startValue) * easeOut);
+      const currentValue = Math.floor(
+        startValue + (target - startValue) * easeOut
+      );
 
       setCount(currentValue);
 
@@ -81,7 +90,13 @@ const useAnimatedCounter = (target: number, duration = 1000) => {
 };
 
 // Simple sparkline component
-const Sparkline = ({ data, className }: { data: number[]; className?: string }) => {
+const Sparkline = ({
+  data,
+  className,
+}: {
+  data: number[];
+  className?: string;
+}) => {
   if (!data || data.length === 0) return null;
 
   const max = Math.max(...data);
@@ -91,11 +106,15 @@ const Sparkline = ({ data, className }: { data: number[]; className?: string }) 
   const height = 20;
   const padding = 2;
 
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1 || 1)) * (width - padding * 2) + padding;
-    const y = height - ((value - min) / range) * (height - padding * 2) - padding;
-    return `${x},${y}`;
-  }).join(" ");
+  const points = data
+    .map((value, index) => {
+      const x =
+        (index / (data.length - 1 || 1)) * (width - padding * 2) + padding;
+      const y =
+        height - ((value - min) / range) * (height - padding * 2) - padding;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   return (
     <svg
@@ -120,28 +139,28 @@ const StatsOverview = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>({
     activeBookings: 0,
-    pendingRequests: 0,
+    savedItems: 0,
     totalSpent: 0,
     averageRating: 0,
   });
   const [trends, setTrends] = useState<{
     activeBookings: TrendData;
-    pendingRequests: TrendData;
+    savedItems: TrendData;
     totalSpent: TrendData;
     averageRating: TrendData;
   }>({
     activeBookings: { current: 0, previous: 0, trend: 0 },
-    pendingRequests: { current: 0, previous: 0, trend: 0 },
+    savedItems: { current: 0, previous: 0, trend: 0 },
     totalSpent: { current: 0, previous: 0, trend: 0 },
     averageRating: { current: 0, previous: 0, trend: 0 },
   });
   const [sparklines, setSparklines] = useState<{
     activeBookings: number[];
-    pendingRequests: number[];
+    savedItems: number[];
     totalSpent: number[];
   }>({
     activeBookings: [],
-    pendingRequests: [],
+    savedItems: [],
     totalSpent: [],
   });
   const [loading, setLoading] = useState(true);
@@ -154,46 +173,51 @@ const StatsOverview = () => {
         setLoading(true);
 
         const now = new Date();
-        const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1
+        );
 
-        // Fetch current month stats
+        // Fetch all-time stats
         const [
           activeCountResult,
-          pendingCountResult,
+          favoritesCountResult,
           paymentsResult,
           reviewsResult,
         ] = await Promise.all([
-          // Active bookings (current month)
+          // Active bookings (all-time)
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
             .eq("status", "approved"),
-          // Pending requests (current month)
+          // Saved items (favorites, all-time)
           supabase
-            .from("booking_requests")
+            .from("user_favorites")
             .select("*", { count: "exact", head: true })
-            .eq("renter_id", user.id)
-            .eq("status", "pending"),
-          // Total spent
+            .eq("user_id", user.id),
+          // Total spent (all-time)
           supabase
             .from("payments")
             .select("total_amount")
             .eq("renter_id", user.id)
             .eq("payment_status", "succeeded"),
-          // Average rating (reviews received as renter)
-          supabase
-            .from("reviews")
-            .select("rating")
-            .eq("reviewee_id", user.id),
+          // Average rating (reviews received as renter, all-time)
+          supabase.from("reviews").select("rating").eq("reviewee_id", user.id),
         ]);
+
+        // Check for errors in queries
+        if (activeCountResult.error) throw activeCountResult.error;
+        if (favoritesCountResult.error) throw favoritesCountResult.error;
+        if (paymentsResult.error) throw paymentsResult.error;
+        if (reviewsResult.error) throw reviewsResult.error;
 
         // Fetch previous month stats for trends
         const [
           prevActiveCountResult,
-          prevPendingCountResult,
+          prevFavoritesCountResult,
           prevPaymentsResult,
           prevReviewsResult,
         ] = await Promise.all([
@@ -205,10 +229,9 @@ const StatsOverview = () => {
             .lt("created_at", currentMonthStart.toISOString())
             .gte("created_at", oneMonthAgo.toISOString()),
           supabase
-            .from("booking_requests")
+            .from("user_favorites")
             .select("*", { count: "exact", head: true })
-            .eq("renter_id", user.id)
-            .eq("status", "pending")
+            .eq("user_id", user.id)
             .lt("created_at", currentMonthStart.toISOString())
             .gte("created_at", oneMonthAgo.toISOString()),
           supabase
@@ -226,9 +249,16 @@ const StatsOverview = () => {
             .gte("created_at", oneMonthAgo.toISOString()),
         ]);
 
+        // Check for errors in previous month queries
+        if (prevActiveCountResult.error) throw prevActiveCountResult.error;
+        if (prevFavoritesCountResult.error)
+          throw prevFavoritesCountResult.error;
+        if (prevPaymentsResult.error) throw prevPaymentsResult.error;
+        if (prevReviewsResult.error) throw prevReviewsResult.error;
+
         // Calculate current stats
         const activeCount = activeCountResult.count || 0;
-        const pendingCount = pendingCountResult.count || 0;
+        const savedItemsCount = favoritesCountResult.count || 0;
         const totalSpent =
           paymentsResult.data?.reduce(
             (sum, p) => sum + Number(p.total_amount ?? 0),
@@ -244,7 +274,7 @@ const StatsOverview = () => {
 
         // Calculate previous month stats
         const prevActiveCount = prevActiveCountResult.count || 0;
-        const prevPendingCount = prevPendingCountResult.count || 0;
+        const prevSavedItemsCount = prevFavoritesCountResult.count || 0;
         const prevTotalSpent =
           prevPaymentsResult.data?.reduce(
             (sum, p) => sum + Number(p.total_amount ?? 0),
@@ -268,10 +298,10 @@ const StatsOverview = () => {
             previous: prevActiveCount,
             trend: calculateTrend(activeCount, prevActiveCount),
           },
-          pendingRequests: {
-            current: pendingCount,
-            previous: prevPendingCount,
-            trend: calculateTrend(pendingCount, prevPendingCount),
+          savedItems: {
+            current: savedItemsCount,
+            previous: prevSavedItemsCount,
+            trend: calculateTrend(savedItemsCount, prevSavedItemsCount),
           },
           totalSpent: {
             current: totalSpent,
@@ -307,36 +337,38 @@ const StatsOverview = () => {
           return data;
         };
 
-        const [activeSparkline, pendingSparkline, spentSparkline] =
+        const [activeSparkline, savedItemsSparkline, spentSparkline] =
           await Promise.all([
             generateSparkline(async (start, end) => {
-              const { count } = await supabase
+              const { count, error } = await supabase
                 .from("booking_requests")
                 .select("*", { count: "exact", head: true })
                 .eq("renter_id", user.id)
                 .eq("status", "approved")
                 .gte("created_at", start.toISOString())
                 .lt("created_at", end.toISOString());
+              if (error) throw error;
               return count || 0;
             }),
             generateSparkline(async (start, end) => {
-              const { count } = await supabase
-                .from("booking_requests")
+              const { count, error } = await supabase
+                .from("user_favorites")
                 .select("*", { count: "exact", head: true })
-                .eq("renter_id", user.id)
-                .eq("status", "pending")
+                .eq("user_id", user.id)
                 .gte("created_at", start.toISOString())
                 .lt("created_at", end.toISOString());
+              if (error) throw error;
               return count || 0;
             }),
             generateSparkline(async (start, end) => {
-              const { data } = await supabase
+              const { data, error } = await supabase
                 .from("payments")
                 .select("total_amount")
                 .eq("renter_id", user.id)
                 .eq("payment_status", "succeeded")
                 .gte("created_at", start.toISOString())
                 .lt("created_at", end.toISOString());
+              if (error) throw error;
               return (
                 data?.reduce(
                   (sum, p) => sum + Number(p.total_amount ?? 0),
@@ -348,13 +380,13 @@ const StatsOverview = () => {
 
         setSparklines({
           activeBookings: activeSparkline,
-          pendingRequests: pendingSparkline,
+          savedItems: savedItemsSparkline,
           totalSpent: spentSparkline,
         });
 
         setStats({
           activeBookings: activeCount,
-          pendingRequests: pendingCount,
+          savedItems: savedItemsCount,
           totalSpent,
           averageRating,
         });
@@ -370,9 +402,10 @@ const StatsOverview = () => {
 
   // Animated counters
   const animatedActive = useAnimatedCounter(stats.activeBookings);
-  const animatedPending = useAnimatedCounter(stats.pendingRequests);
+  const animatedSaved = useAnimatedCounter(stats.savedItems);
   const animatedSpent = useAnimatedCounter(Math.round(stats.totalSpent));
-  const animatedRating = useAnimatedCounter(Math.round(stats.averageRating * 10)) / 10;
+  const animatedRating =
+    useAnimatedCounter(Math.round(stats.averageRating * 10)) / 10;
 
   if (loading) {
     return (
@@ -413,15 +446,15 @@ const StatsOverview = () => {
       sparkline: sparklines.activeBookings,
     },
     {
-      title: "Pending Requests",
-      value: animatedPending,
-      icon: Package,
-      description: "Awaiting payment",
-      badge: stats.pendingRequests > 0 ? "Pending" : undefined,
+      title: "Saved Items",
+      value: animatedSaved,
+      icon: Heart,
+      description: "Equipment saved",
+      badge: stats.savedItems > 0 ? "Saved" : undefined,
       badgeVariant: "secondary",
-      href: "/renter/dashboard?tab=bookings",
-      trend: trends.pendingRequests,
-      sparkline: sparklines.pendingRequests,
+      href: "/equipment?favorites=true",
+      trend: trends.savedItems,
+      sparkline: sparklines.savedItems,
     },
     {
       title: "Total Spent",

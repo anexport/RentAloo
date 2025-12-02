@@ -1,20 +1,18 @@
-import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useVerification } from "@/hooks/useVerification";
-import { supabase } from "@/lib/supabase";
-import { formatDateForStorage } from "@/lib/utils";
+import { useUpcomingBookings } from "@/components/renter/hooks/useUpcomingBookings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const WelcomeHero = () => {
   const { user } = useAuth();
   const { profile } = useVerification();
-  const [upcomingCount, setUpcomingCount] = useState(0);
-  const [nextRentalDate, setNextRentalDate] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useUpcomingBookings(user?.id);
+
+  const upcomingCount = data?.count || 0;
+  const nextRentalDate = data?.nextDate;
 
   // Get personalized greeting based on time of day
   const getGreeting = () => {
@@ -31,47 +29,6 @@ const WelcomeHero = () => {
     // Capitalize first letter
     return emailName.charAt(0).toUpperCase() + emailName.slice(1).split(".")[0];
   };
-
-  useEffect(() => {
-    const fetchUpcomingBookings = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const today = formatDateForStorage(new Date());
-
-        // Fetch approved bookings starting today or in the future
-        const { data, error } = await supabase
-          .from("booking_requests")
-          .select("start_date")
-          .eq("renter_id", user.id)
-          .eq("status", "approved")
-          .gte("start_date", today)
-          .order("start_date", { ascending: true })
-          .limit(1);
-
-        if (error) throw error;
-
-        const { count } = await supabase
-          .from("booking_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("renter_id", user.id)
-          .eq("status", "approved")
-          .gte("start_date", today);
-
-        setUpcomingCount(count || 0);
-        if (data && data.length > 0) {
-          setNextRentalDate(data[0].start_date);
-        }
-      } catch (error) {
-        console.error("Error fetching upcoming bookings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void fetchUpcomingBookings();
-  }, [user]);
 
   const firstName = getFirstName();
   const greeting = getGreeting();
@@ -109,7 +66,7 @@ const WelcomeHero = () => {
             </div>
 
             {/* Activity Summary */}
-            {!loading && (
+            {!isLoading && (
               <div className="space-y-2 pl-0 md:pl-24">
                 {upcomingCount > 0 && nextRentalDate ? (
                   <div className="flex items-center gap-2 text-muted-foreground">
