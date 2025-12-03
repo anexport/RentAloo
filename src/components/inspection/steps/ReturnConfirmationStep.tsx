@@ -141,7 +141,7 @@ export default function ReturnConfirmationStep({
   const [error, setError] = useState("");
   const [isComplete, setIsComplete] = useState(false);
   const isMountedRef = useRef(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {

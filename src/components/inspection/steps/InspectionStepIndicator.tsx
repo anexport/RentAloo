@@ -47,6 +47,7 @@ export function InspectionStepIndicator({
                         "border-muted-foreground/30 bg-muted text-muted-foreground"
                     )}
                     aria-current={isCurrent ? "step" : undefined}
+                    aria-label={`${step.title}${isCompleted ? " (completed)" : isCurrent ? " (current)" : " (upcoming)"}`}
                   >
                     {isCompleted ? (
                       <Check className="h-5 w-5" strokeWidth={3} />

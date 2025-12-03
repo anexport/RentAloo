@@ -27,21 +27,41 @@ export default function RentalCountdown({
     return null;
   }
 
-  const [countdown, setCountdown] = useState<RentalCountdownData>(() =>
-    calculateRentalCountdown(startDate, endDate)
-  );
+  const [countdown, setCountdown] = useState<RentalCountdownData | null>(() => {
+    try {
+      return calculateRentalCountdown(startDate, endDate);
+    } catch (error) {
+      console.error("Error calculating rental countdown:", error);
+      return null;
+    }
+  });
 
   // Update countdown every minute
   useEffect(() => {
     // Update immediately when props change
-    setCountdown(calculateRentalCountdown(startDate, endDate));
+    try {
+      setCountdown(calculateRentalCountdown(startDate, endDate));
+    } catch (error) {
+      console.error("Error updating countdown:", error);
+      setCountdown(null);
+    }
 
     const interval = setInterval(() => {
-      setCountdown(calculateRentalCountdown(startDate, endDate));
+      try {
+        setCountdown(calculateRentalCountdown(startDate, endDate));
+      } catch (error) {
+        console.error("Error updating countdown:", error);
+        setCountdown(null);
+      }
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
   }, [startDate, endDate]);
+
+  // Return null if countdown calculation failed
+  if (!countdown) {
+    return null;
+  }
 
   // Determine urgency styling
   const getUrgencyStyles = () => {

@@ -95,9 +95,15 @@ export default function InspectionWizard({
         .select("*")
         .eq("booking_id", bookingId)
         .eq("inspection_type", "pickup")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+
+      if (!data) {
+        throw new Error(
+          "No pickup inspection found for this booking. Please complete the pickup inspection first."
+        );
+      }
 
       return {
         photos: (data.photos as string[]) || [],

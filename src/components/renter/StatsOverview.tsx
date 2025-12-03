@@ -222,14 +222,15 @@ const StatsOverview = () => {
           prevPaymentsResult,
           prevReviewsResult,
         ] = await Promise.all([
-          // Count bookings that were active during the previous month
+          // Count bookings that became active during the previous month
+          // Uses activated_at timestamp to track when rentals actually started
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .eq("status", "active")
-            .lt("created_at", currentMonthStart.toISOString())
-            .gte("created_at", oneMonthAgo.toISOString()),
+            .not("activated_at", "is", null)
+            .lt("activated_at", currentMonthStart.toISOString())
+            .gte("activated_at", oneMonthAgo.toISOString()),
           supabase
             .from("user_favorites")
             .select("*", { count: "exact", head: true })
