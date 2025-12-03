@@ -107,7 +107,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
 
   return (
     <TooltipProvider>
-      <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow flex flex-col", className)}>
+      <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full", className)}>
         <div
           className="aspect-video bg-muted relative overflow-hidden cursor-pointer group flex-shrink-0"
           onClick={handleOpen}

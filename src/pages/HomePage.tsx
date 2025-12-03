@@ -11,6 +11,7 @@ import HowItWorksSection from "@/components/explore/HowItWorksSection";
 import OwnerCTASection from "@/components/explore/OwnerCTASection";
 import SocialProofSection from "@/components/explore/SocialProofSection";
 import FeaturedListingsSection from "@/components/explore/FeaturedListingsSection";
+import RecommendationsSection from "@/components/renter/RecommendationsSection";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import CategoryBar from "@/components/explore/CategoryBar";
 import CategoryBarSkeleton from "@/components/explore/CategoryBarSkeleton";
@@ -323,6 +324,9 @@ export default function HomePage() {
 
       {/* Featured Listings */}
       <FeaturedListingsSection onOpenListing={handleOpenListing} />
+
+      {/* Personalized Recommendations (only shows for logged-in users) */}
+      <RecommendationsSection onOpenListing={handleOpenListing} />
 
       {/* Browse All Equipment Section */}
       <section className="py-16 sm:py-20">

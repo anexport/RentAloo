@@ -28,6 +28,10 @@
       "card_title": "Mis Reseñas",
       "card_description": "Reseñas que has escrito para los propietarios de equipos"
     },
+    "active_rentals": {
+      "title": "Alquileres Activos",
+      "description": "Tus alquileres de equipos actualmente activos"
+    },
     "tabs": {
       "overview": "Descripción General",
       "bookings": "Alquileres"

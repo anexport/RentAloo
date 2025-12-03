@@ -28,6 +28,10 @@
       "card_title": "Mes Avis",
       "card_description": "Avis que vous avez écrits pour les propriétaires d'équipements"
     },
+    "active_rentals": {
+      "title": "Locations Actives",
+      "description": "Vos locations d'équipements actuellement actives"
+    },
     "tabs": {
       "overview": "Aperçu",
       "bookings": "Réservations"

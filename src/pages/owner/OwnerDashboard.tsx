@@ -36,7 +36,7 @@ const OwnerDashboard = () => {
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
   const [stats, setStats] = useState({
     totalListings: 0,
-    pendingRequests: 0,
+    activeBookings: 0,
     totalEarnings: 0,
     averageRating: 0,
   });
@@ -100,14 +100,14 @@ const OwnerDashboard = () => {
   }, [user, fetchStats]);
 
   useEffect(() => {
-    // Always update pendingRequests based on bookingRequests, even when empty
-    const pendingCount = bookingRequests.filter(
-      (r) => r.status === "pending"
+    // Count active bookings (approved and in progress)
+    const activeCount = bookingRequests.filter(
+      (r) => r.status === "approved" || r.status === "active"
     ).length;
 
     setStats((prev) => ({
       ...prev,
-      pendingRequests: pendingCount,
+      activeBookings: activeCount,
     }));
   }, [bookingRequests]);
 
@@ -156,7 +156,7 @@ const OwnerDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingRequests}</div>
+              <div className="text-2xl font-bold">{stats.activeBookings}</div>
               <p className="text-xs text-muted-foreground">{t("owner.stats.pending_requests.description")}</p>
             </CardContent>
           </Card>
@@ -222,9 +222,9 @@ const OwnerDashboard = () => {
               }`}
             >
               {t("owner.tabs.bookings")}
-              {stats.pendingRequests > 0 && (
+              {stats.activeBookings > 0 && (
                 <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                  {stats.pendingRequests}
+                  {stats.activeBookings}
                 </span>
               )}
             </button>

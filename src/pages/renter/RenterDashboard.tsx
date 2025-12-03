@@ -1,9 +1,11 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, AlertTriangle } from "lucide-react";
+import { Calendar, AlertTriangle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useCallback, useMemo, useState } from "react";
@@ -15,7 +17,6 @@ import StatsOverview from "@/components/renter/StatsOverview";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
 import WelcomeHero from "@/components/renter/WelcomeHero";
 import UpcomingCalendar from "@/components/renter/UpcomingCalendar";
-import RecommendationsSection from "@/components/renter/RecommendationsSection";
 import SavedEquipmentTab from "@/components/renter/SavedEquipmentTab";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
@@ -26,6 +27,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/lib/supabase";
 import { differenceInDays, isPast, isFuture } from "date-fns";
 import type { BookingRequestWithDetails } from "@/types/booking";
+import { useActiveRentals } from "@/hooks/useActiveRental";
+import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
 
 interface InspectionStatus {
   bookingId: string;
@@ -57,6 +60,13 @@ const RenterDashboard = () => {
     error: renterError,
     fetchBookingRequests: fetchRenterBookings,
   } = useBookingRequests("renter");
+
+  // Fetch active rentals (only where user is renter)
+  const {
+    rentals: activeRentals,
+    isLoading: activeRentalsLoading,
+    error: activeRentalsError,
+  } = useActiveRentals("renter");
 
   const { toast } = useToast();
 
@@ -207,7 +217,14 @@ const RenterDashboard = () => {
         description: renterError,
       });
     }
-  }, [renterError, toast]);
+    if (activeRentalsError) {
+      toast({
+        variant: "destructive",
+        title: "Failed to load active rentals",
+        description: activeRentalsError,
+      });
+    }
+  }, [renterError, activeRentalsError, toast]);
 
   const progress = profile ? getVerificationProgress(profile) : 0;
 
@@ -273,6 +290,34 @@ const RenterDashboard = () => {
           <PendingClaimsList />
         </div>
 
+        {/* Active Rentals Section */}
+        {!activeRentalsLoading && activeRentals.length > 0 && (
+          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-175">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <Package className="h-6 w-6 text-emerald-500" />
+                  {t("renter.active_rentals.title")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("renter.active_rentals.description")}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeRentals.map((rental, index) => (
+                <div
+                  key={rental.id}
+                  className="animate-in slide-in-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${175 + index * 50}ms` }}
+                >
+                  <ActiveRentalCard booking={rental} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats Overview Section */}
         <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-200">
           <div>
@@ -292,15 +337,6 @@ const RenterDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* My Rental Bookings Section */}
             <div className="space-y-4">
-              {renterBookings.length > 3 && activeTab !== "bookings" && (
-                <div className="flex justify-end">
-                  <Link to="/renter/dashboard?tab=bookings">
-                    <Button variant="outline" size="sm">
-                      {t("renter.bookings.view_all")}
-                    </Button>
-                  </Link>
-                </div>
-              )}
               {renterLoading ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -361,12 +397,6 @@ const RenterDashboard = () => {
           )}
         </div>
 
-        {/* Recommendations Section */}
-        {activeTab !== "bookings" && (
-          <div className="animate-in slide-in-from-bottom-4 duration-500 delay-400">
-            <RecommendationsSection />
-          </div>
-        )}
       </div>
 
       {/* Mobile Inspection CTA - Sticky bottom bar */}

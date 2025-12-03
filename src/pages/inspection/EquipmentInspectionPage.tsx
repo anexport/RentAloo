@@ -13,6 +13,9 @@ interface BookingDetails {
   equipment_id: string;
   renter_id: string;
   status: string;
+  start_date: string;
+  end_date: string;
+  damage_deposit_amount: number | null;
   equipment: {
     id: string;
     title: string;
@@ -57,6 +60,9 @@ export default function EquipmentInspectionPage() {
             equipment_id,
             renter_id,
             status,
+            start_date,
+            end_date,
+            damage_deposit_amount,
             equipment:equipment(
               id,
               title,
@@ -87,9 +93,20 @@ export default function EquipmentInspectionPage() {
           return;
         }
 
-        // Check booking status
-        if (data.status !== "approved" && data.status !== "completed") {
-          setError("Booking must be approved before inspection");
+        // Check booking status based on inspection type
+        // Pickup inspection: booking must be 'approved'
+        // Return inspection: booking must be 'active'
+        const validPickupStatuses = ["approved"];
+        const validReturnStatuses = ["active"];
+
+        if (inspectionType === "pickup" && !validPickupStatuses.includes(data.status)) {
+          setError("Booking must be approved before pickup inspection");
+          setLoading(false);
+          return;
+        }
+
+        if (inspectionType === "return" && !validReturnStatuses.includes(data.status)) {
+          setError("Rental must be active before return inspection");
           setLoading(false);
           return;
         }
@@ -107,7 +124,7 @@ export default function EquipmentInspectionPage() {
     };
 
     fetchBooking();
-  }, [bookingId, user]);
+  }, [bookingId, user, inspectionType]);
 
   const handleSuccess = () => {
     // Navigate back to appropriate dashboard
@@ -117,6 +134,15 @@ export default function EquipmentInspectionPage() {
 
   const handleCancel = () => {
     navigate(-1);
+  };
+
+  const handleReviewClick = () => {
+    // Navigate to review flow after rental completion
+    // For now, navigate back to dashboard where review prompt will appear
+    const isOwner = booking?.equipment?.owner_id === user?.id;
+    navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard", {
+      state: { showReviewPrompt: true, bookingId: booking?.id },
+    });
   };
 
   if (loading) {
@@ -151,6 +177,13 @@ export default function EquipmentInspectionPage() {
 
   const isOwner = booking.equipment?.owner_id === user?.id;
 
+  // Prepare booking info for the wizard
+  const bookingInfo = {
+    startDate: booking.start_date,
+    endDate: booking.end_date,
+    depositAmount: booking.damage_deposit_amount ?? undefined,
+  };
+
   return (
     <InspectionWizard
       bookingId={booking.id}
@@ -158,8 +191,10 @@ export default function EquipmentInspectionPage() {
       categorySlug={booking.equipment?.category?.sport_type}
       inspectionType={inspectionType}
       isOwner={isOwner}
+      bookingInfo={bookingInfo}
       onSuccess={handleSuccess}
       onCancel={handleCancel}
+      onReviewClick={inspectionType === "return" ? handleReviewClick : undefined}
     />
   );
 }

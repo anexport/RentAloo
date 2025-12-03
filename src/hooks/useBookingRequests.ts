@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 import type {
   BookingRequestWithDetails,
   BookingStatus,
-  InsuranceType,
 } from "../types/booking";
 import type { Database } from "@/lib/database.types";
 
@@ -155,40 +154,6 @@ export const useBookingRequests = (userRole?: "renter" | "owner") => {
     }
   }, [user, userRole]);
 
-  const createBookingRequest = async (bookingData: {
-    equipment_id: string;
-    start_date: string;
-    end_date: string;
-    total_amount: number;
-    message?: string;
-    insurance_type?: InsuranceType;
-    insurance_cost?: number;
-    damage_deposit_amount?: number;
-  }) => {
-    if (!user) throw new Error("User not authenticated");
-
-    try {
-      const { data, error } = await supabase
-        .from("booking_requests")
-        .insert({
-          ...bookingData,
-          renter_id: user.id,
-          status: "pending",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Refresh the list
-      await fetchBookingRequests();
-      return data;
-    } catch (err) {
-      console.error("Error creating booking request:", err);
-      throw err;
-    }
-  };
-
   const updateBookingStatus = async (
     bookingId: string,
     status: BookingStatus
@@ -215,8 +180,8 @@ export const useBookingRequests = (userRole?: "renter" | "owner") => {
   const getBookingStats = () => {
     const stats = {
       total: bookingRequests.length,
-      pending: bookingRequests.filter((r) => r.status === "pending").length,
       approved: bookingRequests.filter((r) => r.status === "approved").length,
+      active: bookingRequests.filter((r) => r.status === "active").length,
       cancelled: bookingRequests.filter((r) => r.status === "cancelled").length,
       completed: bookingRequests.filter((r) => r.status === "completed").length,
     };
@@ -235,7 +200,6 @@ export const useBookingRequests = (userRole?: "renter" | "owner") => {
     loading,
     error,
     fetchBookingRequests,
-    createBookingRequest,
     updateBookingStatus,
     getBookingStats,
   };

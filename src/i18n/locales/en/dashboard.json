@@ -28,6 +28,10 @@
       "card_title": "My Reviews",
       "card_description": "Reviews you've written for equipment owners"
     },
+    "active_rentals": {
+      "title": "Active Rentals",
+      "description": "Your currently active equipment rentals"
+    },
     "tabs": {
       "overview": "Overview",
       "bookings": "Bookings"

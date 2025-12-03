@@ -28,6 +28,10 @@
       "card_title": "Le Mie Recensioni",
       "card_description": "Recensioni che hai scritto per i proprietari di attrezzatura"
     },
+    "active_rentals": {
+      "title": "Noleggi Attivi",
+      "description": "I tuoi noleggi di attrezzatura attualmente attivi"
+    },
     "tabs": {
       "overview": "Panoramica",
       "bookings": "Prenotazioni"

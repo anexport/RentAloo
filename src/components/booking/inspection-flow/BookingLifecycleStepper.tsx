@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, Clock, Camera, Package, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isPast, isFuture } from "date-fns";
+import { isPast, isFuture, differenceInHours } from "date-fns";
 
 export interface BookingLifecycleStep {
   id: string;
@@ -31,9 +31,17 @@ export default function BookingLifecycleStepper({
   className,
   compact = false,
 }: BookingLifecycleStepperProps) {
-  const isActive = isPast(startDate) && isFuture(endDate);
-  const isCompleted = isPast(endDate);
+  const now = new Date();
+  
+  // Use booking status from database if available, otherwise infer from dates
+  const isActive = bookingStatus === "active" || (isPast(startDate) && isFuture(endDate));
+  const isCompleted = bookingStatus === "completed";
   const isCancelled = bookingStatus === "cancelled";
+  const rentalEnded = isPast(endDate);
+  
+  // Return inspection becomes "current" when rental is near end (within 24h) or has ended
+  const hoursUntilEnd = differenceInHours(endDate, now);
+  const isReturnTime = hoursUntilEnd <= 24 || rentalEnded;
 
   // Define all lifecycle steps
   const getSteps = (): BookingLifecycleStep[] => {
@@ -50,33 +58,50 @@ export default function BookingLifecycleStepper({
       pickupStatus = "blocked";
     }
     
-    // Active rental step
+    // Active rental step - "complete" once pickup is done and rental has started
     let activeStatus: BookingLifecycleStep["status"] = "upcoming";
-    if (hasPickupInspection && isActive) {
-      activeStatus = "current";
-    } else if (hasPickupInspection && (isCompleted || hasReturnInspection)) {
-      activeStatus = "complete";
-    } else if (isCancelled) {
+    if (isCancelled) {
       activeStatus = "blocked";
+    } else if (hasPickupInspection && isActive) {
+      // Rental is active - mark as complete to show progress
+      activeStatus = "complete";
+    } else if (hasPickupInspection && (isCompleted || hasReturnInspection || rentalEnded)) {
+      // Rental completed or return inspection done or rental period ended
+      activeStatus = "complete";
     }
     
-    // Return inspection step
+    // Return inspection step - "current" when it's time for return (near end or ended)
     let returnStatus: BookingLifecycleStep["status"] = "upcoming";
-    if (hasReturnInspection) {
-      returnStatus = "complete";
-    } else if (hasPickupInspection && (isCompleted || isActive)) {
-      returnStatus = "current";
-    } else if (isCancelled) {
+    if (isCancelled) {
       returnStatus = "blocked";
+    } else if (hasReturnInspection) {
+      returnStatus = "complete";
+    } else if (hasPickupInspection && isReturnTime) {
+      // It's return time (within 24h of end or past end)
+      returnStatus = "current";
+    } else if (hasPickupInspection && isActive) {
+      // Rental is active but not yet return time - show as ready/upcoming
+      returnStatus = "upcoming";
     }
     
     // Complete step
     let completeStatus: BookingLifecycleStep["status"] = "upcoming";
-    if (hasPickupInspection && hasReturnInspection) {
+    if (isCompleted && hasPickupInspection && hasReturnInspection) {
       completeStatus = "complete";
+    } else if (hasReturnInspection && !isCompleted) {
+      // Return done but not yet marked complete
+      completeStatus = "current";
     } else if (isCancelled) {
       completeStatus = "blocked";
     }
+
+    // Descriptions
+    const getActiveDescription = () => {
+      if (bookingStatus === "active" && !isReturnTime) return "Rental in progress";
+      if (isReturnTime && !hasReturnInspection) return "Return due";
+      if (hasReturnInspection || isCompleted) return "Completed";
+      return "Upcoming";
+    };
 
     return [
       {
@@ -96,14 +121,14 @@ export default function BookingLifecycleStepper({
       {
         id: "active",
         label: "Active",
-        description: isActive ? "In progress" : (hasPickupInspection ? "Completed" : "Upcoming"),
+        description: getActiveDescription(),
         status: activeStatus,
         icon: <Package className="h-4 w-4" />,
       },
       {
         id: "return",
         label: "Return",
-        description: hasReturnInspection ? "Documented" : "Inspection required",
+        description: hasReturnInspection ? "Documented" : (isReturnTime ? "Due now" : "Inspection required"),
         status: returnStatus,
         icon: <Camera className="h-4 w-4" />,
       },
