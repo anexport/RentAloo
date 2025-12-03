@@ -58,15 +58,15 @@ export default function BookingLifecycleStepper({
       pickupStatus = "blocked";
     }
     
-    // Active rental step - "current" when rental is active and not yet time for return
+    // Active rental step - "complete" once pickup is done and rental has started
     let activeStatus: BookingLifecycleStep["status"] = "upcoming";
     if (isCancelled) {
       activeStatus = "blocked";
-    } else if (hasPickupInspection && isActive && !isReturnTime && !hasReturnInspection) {
-      // Rental is active and not yet near end - Active is current
-      activeStatus = "current";
-    } else if (hasPickupInspection && (isCompleted || hasReturnInspection || isReturnTime)) {
-      // Rental completed or return inspection done or near end
+    } else if (hasPickupInspection && isActive) {
+      // Rental is active - mark as complete to show progress
+      activeStatus = "complete";
+    } else if (hasPickupInspection && (isCompleted || hasReturnInspection || rentalEnded)) {
+      // Rental completed or return inspection done or rental period ended
       activeStatus = "complete";
     }
     
