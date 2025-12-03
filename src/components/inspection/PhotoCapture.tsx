@@ -82,7 +82,7 @@ export default function PhotoCapture({
               className="w-full h-full object-cover"
               loading="lazy"
             />
-            {/* Always visible delete button on mobile */}
+            {/* Delete button kept visible for quick edits */}
             <Button
               variant="destructive"
               size="icon"

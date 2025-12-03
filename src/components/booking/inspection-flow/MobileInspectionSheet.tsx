@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +51,16 @@ export default function MobileInspectionSheet({
   onOpenChange,
 }: MobileInspectionSheetProps) {
   const navigate = useNavigate();
+  // Guard against invalid dates so date-fns helpers don't throw.
+  if (
+    !startDate ||
+    Number.isNaN(startDate.getTime()) ||
+    !endDate ||
+    Number.isNaN(endDate.getTime())
+  ) {
+    console.error("Invalid dates provided to MobileInspectionSheet");
+    return null;
+  }
   const today = new Date();
 
   // Determine the current phase

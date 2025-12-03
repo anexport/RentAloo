@@ -77,7 +77,9 @@ export default function InspectionFlowBanner({
   // Determine urgency level
   const getUrgency = (): "critical" | "warning" | "info" | "success" => {
     if (phase === "all_complete") return "success";
-    if (phase === "pickup_inspection_complete" && !isEndingSoon) return "info";
+    if (phase === "pickup_inspection_complete") {
+      return isEndingSoon ? "warning" : "info";
+    }
     
     if (phase === "awaiting_pickup_inspection") {
       if (isPast(startDate) || isStartToday) return "critical";
@@ -197,7 +199,10 @@ export default function InspectionFlowBanner({
   const handleInspectionClick = () => {
     if (phase === "awaiting_pickup_inspection") {
       navigate(`/inspection/${bookingId}/pickup`);
-    } else if (phase === "awaiting_return_inspection") {
+    } else if (
+      phase === "awaiting_return_inspection" ||
+      (phase === "pickup_inspection_complete" && isEndingSoon)
+    ) {
       navigate(`/inspection/${bookingId}/return`);
     }
   };
@@ -212,10 +217,13 @@ export default function InspectionFlowBanner({
 
   const getTitle = () => {
     if (phase === "awaiting_pickup_inspection") {
-      return urgency === "critical" ? "⚠️ Pickup Inspection Required Now!" : "Pickup Inspection Required";
+      return urgency === "critical" ? "Pickup Inspection Required Now!" : "Pickup Inspection Required";
     }
     if (phase === "awaiting_return_inspection") {
-      return urgency === "critical" ? "⚠️ Return Inspection Required Now!" : "Return Inspection Required";
+      return urgency === "critical" ? "Return Inspection Required Now!" : "Return Inspection Required";
+    }
+    if (phase === "pickup_inspection_complete" && isEndingSoon) {
+      return "Return Inspection Coming Up";
     }
     return "Inspection Required";
   };
@@ -228,6 +236,9 @@ export default function InspectionFlowBanner({
     }
     if (phase === "awaiting_return_inspection") {
       return `As the ${role}, you must document the equipment condition upon return. This is required to complete the rental and release the security deposit.`;
+    }
+    if (phase === "pickup_inspection_complete" && isEndingSoon) {
+      return `Pickup inspection is done. As the ${role}, be ready to document the return condition once the rental ends.`;
     }
     return "";
   };

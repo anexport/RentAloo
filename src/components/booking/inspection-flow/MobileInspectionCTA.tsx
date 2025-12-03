@@ -37,15 +37,27 @@ export default function MobileInspectionCTA({
 }: MobileInspectionCTAProps) {
   const navigate = useNavigate();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  if (
+    !startDate ||
+    Number.isNaN(startDate.getTime()) ||
+    !endDate ||
+    Number.isNaN(endDate.getTime())
+  ) {
+    console.error("Invalid dates provided to MobileInspectionCTA");
+    return null;
+  }
   const today = new Date();
 
   // Determine what inspection is needed
-  const needsPickup = !hasPickupInspection;
+  const isPickupNeeded = !hasPickupInspection;
   const daysUntilEnd = differenceInDays(endDate, today);
-  const needsReturn = hasPickupInspection && !hasReturnInspection && (daysUntilEnd <= 2 || isPast(endDate));
+  const isReturnNeeded =
+    hasPickupInspection &&
+    !hasReturnInspection &&
+    (daysUntilEnd <= 2 || isPast(endDate));
 
   // Don't show if no inspection needed
-  if (!needsPickup && !needsReturn) {
+  if (!isPickupNeeded && !isReturnNeeded) {
     return null;
   }
 
@@ -56,11 +68,11 @@ export default function MobileInspectionCTA({
 
   // Determine urgency
   const getUrgency = (): "critical" | "warning" | "normal" => {
-    if (needsPickup) {
+    if (isPickupNeeded) {
       if (isPast(startDate) || isToday(startDate)) return "critical";
       if (daysUntilStart <= 2) return "warning";
     }
-    if (needsReturn) {
+    if (isReturnNeeded) {
       if (isPast(endDate) || isToday(endDate)) return "critical";
       if (daysUntilEnd <= 2) return "warning";
     }
@@ -71,14 +83,14 @@ export default function MobileInspectionCTA({
 
   // Get timing text
   const getTimingText = (): string => {
-    if (needsPickup) {
+    if (isPickupNeeded) {
       if (isPast(startDate)) return "Overdue";
       if (isToday(startDate)) return "Today";
       if (hoursUntilStart < 24) return `${hoursUntilStart}h`;
       if (daysUntilStart === 1) return "Tomorrow";
       return `${daysUntilStart}d`;
     }
-    if (needsReturn) {
+    if (isReturnNeeded) {
       if (isPast(endDate)) return "Overdue";
       if (isToday(endDate)) return "Today";
       if (hoursUntilEnd < 24) return `${hoursUntilEnd}h`;
@@ -89,9 +101,9 @@ export default function MobileInspectionCTA({
   };
 
   const handlePrimaryAction = () => {
-    if (needsPickup) {
+    if (isPickupNeeded) {
       navigate(`/inspection/${bookingId}/pickup`);
-    } else if (needsReturn) {
+    } else if (isReturnNeeded) {
       navigate(`/inspection/${bookingId}/return`);
     }
   };
@@ -149,7 +161,7 @@ export default function MobileInspectionCTA({
           >
             <div className="flex items-center gap-2">
               <span className={cn("font-semibold text-sm truncate", styles.text)}>
-                {needsPickup ? "Pickup Inspection" : "Return Inspection"}
+                {isPickupNeeded ? "Pickup Inspection" : "Return Inspection"}
               </span>
               <Badge className={cn("text-xs shrink-0", styles.badge)}>
                 {getTimingText()}
@@ -176,7 +188,7 @@ export default function MobileInspectionCTA({
             size="sm"
             className={cn("shrink-0 font-semibold", styles.button)}
             onClick={handlePrimaryAction}
-            aria-label={`Start ${needsPickup ? 'pickup' : 'return'} inspection`}
+            aria-label={`Start ${isPickupNeeded ? "pickup" : "return"} inspection`}
           >
             Start
             <ArrowRight className="h-4 w-4 ml-1" />

@@ -63,12 +63,15 @@ export default function InspectionReviewStep({
   className,
 }: InspectionReviewStepProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const safePhotos = photos ?? [];
+  const safePhotoPreviews = photoPreviews ?? [];
+  const safeChecklistItems = checklistItems ?? [];
 
   const role = isOwner ? "owner" : "renter";
   const isPickup = inspectionType === "pickup";
 
   // Count statuses
-  const statusCounts = checklistItems.reduce(
+  const statusCounts = safeChecklistItems.reduce(
     (acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
       return acc;
@@ -106,16 +109,16 @@ export default function InspectionReviewStep({
                 <div>
                   <p className="font-medium">Photos</p>
                   <p className="text-sm text-muted-foreground">
-                    {photos.length} photo{photos.length !== 1 ? "s" : ""} captured
+                    {safePhotos.length} photo{safePhotos.length !== 1 ? "s" : ""} captured
                   </p>
                 </div>
               </div>
 
               {/* Photo thumbnails */}
               <div className="flex gap-2 overflow-x-auto pb-2">
-                {photoPreviews.slice(0, 6).map((preview, index) => (
+                {safePhotoPreviews.slice(0, 6).map((preview, index) => (
                   <div
-                    key={index}
+                    key={`${preview}-${index}`}
                     className="h-16 w-16 rounded-lg overflow-hidden shrink-0 border"
                   >
                     <img
@@ -125,10 +128,10 @@ export default function InspectionReviewStep({
                     />
                   </div>
                 ))}
-                {photos.length > 6 && (
+                {safePhotos.length > 6 && (
                   <div className="h-16 w-16 rounded-lg border flex items-center justify-center bg-muted shrink-0">
                     <span className="text-sm font-medium text-muted-foreground">
-                      +{photos.length - 6}
+                      +{safePhotos.length - 6}
                     </span>
                   </div>
                 )}
@@ -146,7 +149,7 @@ export default function InspectionReviewStep({
                 <div>
                   <p className="font-medium">Condition Checklist</p>
                   <p className="text-sm text-muted-foreground">
-                    {checklistItems.length} items reviewed
+                    {safeChecklistItems.length} items reviewed
                   </p>
                 </div>
               </div>
@@ -181,14 +184,14 @@ export default function InspectionReviewStep({
                   <p className="text-sm font-medium text-muted-foreground">
                     Items requiring attention:
                   </p>
-                  {checklistItems
+                  {safeChecklistItems
                     .filter((item) => item.status !== "good")
                     .map((item, index) => {
                       const config = STATUS_CONFIG[item.status];
                       const Icon = config.icon;
                       return (
                         <div
-                          key={index}
+                          key={`${item.item}-${index}`}
                           className={cn(
                             "flex items-start gap-2 p-2 rounded-lg",
                             config.bgColor
@@ -308,4 +311,3 @@ export default function InspectionReviewStep({
     </div>
   );
 }
-

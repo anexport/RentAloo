@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import InspectionStepIndicator from "@/components/inspection/steps/InspectionStepIndicator";
+import { InspectionStepIndicator } from "@/components/inspection/steps/InspectionStepIndicator";
 import InspectionIntroStep from "@/components/inspection/steps/InspectionIntroStep";
 import InspectionPhotoStep from "@/components/inspection/steps/InspectionPhotoStep";
 import InspectionChecklistStep from "@/components/inspection/steps/InspectionChecklistStep";
@@ -37,6 +37,7 @@ export default function InspectionWizard({
   inspectionType,
   isOwner,
   onSuccess,
+  onCancel,
   className,
 }: InspectionWizardProps) {
   const { user } = useAuth();
@@ -60,7 +61,13 @@ export default function InspectionWizard({
   };
 
   const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
+    setCurrentStep((prev) => {
+      if (prev === 0) {
+        onCancel?.();
+        return 0;
+      }
+      return Math.max(prev - 1, 0);
+    });
   };
 
   const handleSubmit = async () => {
@@ -265,4 +272,3 @@ export default function InspectionWizard({
     </div>
   );
 }
-

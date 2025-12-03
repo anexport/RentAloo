@@ -104,6 +104,17 @@ export default function InspectionView() {
     void fetchInspection();
   }, [bookingId, inspectionType]);
 
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedPhoto(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPhoto]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("en-US", {
       weekday: "short",
@@ -124,12 +135,35 @@ export default function InspectionView() {
     });
   };
 
+  const formatLocation = (location: unknown) => {
+    if (!location || typeof location !== "object") return "Location recorded";
+    if ("lat" in location && "lng" in location) {
+      const { lat, lng } = location as { lat: number; lng: number };
+      if (typeof lat === "number" && typeof lng === "number") {
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    }
+    if ("latitude" in location && "longitude" in location) {
+      const { latitude, longitude } = location as { latitude: number; longitude: number };
+      if (typeof latitude === "number" && typeof longitude === "number") {
+        return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      }
+    }
+    return "Location recorded";
+  };
+
   // Parse checklist items with proper typing
   const getChecklistItems = (): ChecklistItemData[] => {
     if (!inspection?.checklist_items || !Array.isArray(inspection.checklist_items)) {
       return [];
     }
-    return inspection.checklist_items as ChecklistItemData[];
+    return inspection.checklist_items
+      .filter((item): item is Partial<ChecklistItemData> => typeof item === "object" && item !== null)
+      .map((item) => ({
+        item: typeof item.item === "string" ? item.item : "Item",
+        status: item.status === "fair" || item.status === "damaged" ? item.status : "good",
+        notes: typeof item.notes === "string" ? item.notes : undefined,
+      }));
   };
 
   // Count statuses
@@ -318,17 +352,7 @@ export default function InspectionView() {
               <div className="flex items-center gap-3 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-muted-foreground">
-                  {typeof inspection.location === "object" &&
-                  inspection.location !== null &&
-                  "lat" in inspection.location &&
-                  "lng" in inspection.location
-                    ? `${(inspection.location as { lat: number; lng: number }).lat.toFixed(4)}, ${(inspection.location as { lat: number; lng: number }).lng.toFixed(4)}`
-                    : typeof inspection.location === "object" &&
-                      inspection.location !== null &&
-                      "latitude" in inspection.location &&
-                      "longitude" in inspection.location
-                    ? `${(inspection.location as { latitude: number; longitude: number }).latitude.toFixed(4)}, ${(inspection.location as { latitude: number; longitude: number }).longitude.toFixed(4)}`
-                    : "Location recorded"}
+                  {formatLocation(inspection.location)}
                 </span>
               </div>
             )}

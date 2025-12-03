@@ -13,19 +13,20 @@ interface InspectionStepIndicatorProps {
   className?: string;
 }
 
-export default function InspectionStepIndicator({
+export function InspectionStepIndicator({
   steps,
   currentStep,
   className,
 }: InspectionStepIndicatorProps) {
+  const clampedStep = Math.min(Math.max(currentStep, 0), Math.max(steps.length - 1, 0));
   return (
     <div className={cn("w-full", className)}>
       {/* Mobile: Compact horizontal stepper */}
       <div className="flex items-center justify-between gap-2">
         {steps.map((step, index) => {
-          const isCompleted = index < currentStep;
-          const isCurrent = index === currentStep;
-          const isUpcoming = index > currentStep;
+          const isCompleted = index < clampedStep;
+          const isCurrent = index === clampedStep;
+          const isUpcoming = index > clampedStep;
 
           return (
             <div key={step.id} className="flex flex-1 items-center">
@@ -80,18 +81,17 @@ export default function InspectionStepIndicator({
       {/* Current step info - mobile */}
       <div className="mt-4 text-center sm:hidden">
         <p className="text-sm font-semibold text-primary">
-          Step {currentStep + 1} of {steps.length}
+          Step {clampedStep + 1} of {steps.length}
         </p>
         <p className="text-base font-medium mt-1">
-          {steps[currentStep]?.title}
+          {steps[clampedStep]?.title}
         </p>
-        {steps[currentStep]?.description && (
+        {steps[clampedStep]?.description && (
           <p className="text-sm text-muted-foreground mt-1">
-            {steps[currentStep].description}
+            {steps[clampedStep].description}
           </p>
         )}
       </div>
     </div>
   );
 }
-
