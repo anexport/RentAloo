@@ -188,14 +188,12 @@ const StatsOverview = () => {
           paymentsResult,
           reviewsResult,
         ] = await Promise.all([
-          // Active bookings (bookings active during current month period)
+          // Active bookings (bookings with status='active', including upcoming ones)
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .lt("start_date", now.toISOString())
-            .gte("end_date", currentMonthStart.toISOString())
-            .in("status", ["active", "completed"]),
+            .eq("status", "active"),
           // Saved items (favorites, all-time)
           supabase
             .from("user_favorites")
@@ -225,14 +223,13 @@ const StatsOverview = () => {
           prevReviewsResult,
         ] = await Promise.all([
           // Count bookings that were active during the previous month
-          // (rental period overlapped with the previous month)
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .lt("start_date", currentMonthStart.toISOString())
-            .gte("end_date", oneMonthAgo.toISOString())
-            .in("status", ["active", "completed"]),
+            .eq("status", "active")
+            .lt("created_at", currentMonthStart.toISOString())
+            .gte("created_at", oneMonthAgo.toISOString()),
           supabase
             .from("user_favorites")
             .select("*", { count: "exact", head: true })
@@ -345,15 +342,14 @@ const StatsOverview = () => {
         const [activeSparkline, savedItemsSparkline, spentSparkline] =
           await Promise.all([
             generateSparkline(async (start, end) => {
-              // Count bookings that were active during this period
-              // (rental period overlapped with this time period)
+              // Count bookings with status='active' created in this period
               const { count, error } = await supabase
                 .from("booking_requests")
                 .select("*", { count: "exact", head: true })
                 .eq("renter_id", user.id)
-                .lt("start_date", end.toISOString())
-                .gte("end_date", start.toISOString())
-                .in("status", ["active", "completed"]);
+                .eq("status", "active")
+                .gte("created_at", start.toISOString())
+                .lt("created_at", end.toISOString());
               if (error) throw error;
               return count || 0;
             }),
@@ -541,15 +537,15 @@ const StatsOverview = () => {
                       )}
                     >
                       {isPositive ? (
-                        <TrendingUp className="h-3 w-3 flex-shrink-0" />
+                        <TrendingUp className="h-3 w-3 shrink-0" />
                       ) : (
-                        <TrendingDown className="h-3 w-3 flex-shrink-0" />
+                        <TrendingDown className="h-3 w-3 shrink-0" />
                       )}
                       <span className="truncate">{formatTrend(trend.trend)} vs last month</span>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {stat.sparkline && stat.sparkline.length > 0 && (
                     <Sparkline data={stat.sparkline} className="hidden sm:block" />
                   )}

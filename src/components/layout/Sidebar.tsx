@@ -15,7 +15,6 @@ import {
   CreditCard,
   Heart,
   LifeBuoy,
-  CalendarClock,
   Plus,
   Sparkles,
   PiggyBank,
@@ -33,7 +32,7 @@ import { useRoleMode } from "@/contexts/RoleModeContext";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/payment";
-import { formatDateLabel, formatDateRange } from "@/lib/format";
+import { formatDateLabel } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import RoleSwitcher from "@/components/RoleSwitcher";
 
@@ -133,42 +132,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       staleTime: 1000 * 30, // 30 seconds
     }
   );
-
-  const { data: nextBooking, isLoading: isNextBookingLoading } = useQuery({
-    queryKey: ["sidebar", "next-booking", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("booking_requests")
-        .select(
-          `
-            id,
-            start_date,
-            end_date,
-            total_amount,
-            status,
-            equipment:equipment_id (title)
-          `
-        )
-        .eq("renter_id", userId as string)
-        .eq("status", "approved") // TODO: Add "active" after migration
-        .gte("start_date", today)
-        .order("start_date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      return {
-        startDate: data.start_date,
-        endDate: data.end_date,
-        totalAmount: Number(data.total_amount),
-        equipmentName:
-          data.equipment?.title ?? t("sidebar.upcoming_rental_fallback"),
-      };
-    },
-    staleTime: 1000 * 60, // 1 minute
-  });
 
   const { data: supportTickets } = useQuery({
     queryKey: ["sidebar", "support-tickets", userId],
@@ -604,76 +567,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             })}
           </div>
         </nav>
-
-        {isNextBookingLoading && !nextBooking && (
-          <div className="px-2 pb-4">
-            <div className="rounded-lg border bg-muted/60 p-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <Skeleton className="h-4 w-4 shrink-0 rounded-full" />
-                  {!collapsed && <Skeleton className="h-4 w-24" />}
-                </div>
-                {!collapsed && <Skeleton className="h-5 w-24 shrink-0" />}
-              </div>
-              {!collapsed && (
-                <>
-                  <Skeleton className="mt-2 h-5 w-40" />
-                  <div className="mt-2 flex items-center justify-between">
-                    <Skeleton className="h-4 w-10" />
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                  <Skeleton className="mt-3 h-4 w-24" />
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Next booking - only show in renter mode */}
-        {activeMode === "renter" && nextBooking && (
-          <div className="px-2 pb-4">
-            <div className="rounded-lg border bg-muted/60 p-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-2 text-xs font-semibold text-foreground">
-                  <CalendarClock className="h-4 w-4 shrink-0 text-primary" />
-                  {!collapsed && (
-                    <span className="truncate">
-                      {t("sidebar.upcoming_booking")}
-                    </span>
-                  )}
-                </div>
-                {!collapsed && (
-                  <span className="shrink-0 whitespace-nowrap rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                    {formatDateRange(
-                      nextBooking.startDate,
-                      nextBooking.endDate
-                    )}
-                  </span>
-                )}
-              </div>
-              {!collapsed && (
-                <>
-                  <div className="mt-2 truncate text-sm font-semibold text-foreground">
-                    {nextBooking.equipmentName}
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{t("sidebar.total")}</span>
-                    <span className="font-semibold text-foreground">
-                      {formatCurrency(nextBooking.totalAmount)}
-                    </span>
-                  </div>
-                  <Link
-                    to="/renter/dashboard?tab=bookings"
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  >
-                    {t("sidebar.view_details")}{" "}
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
         <Separator className="my-4" />
 
