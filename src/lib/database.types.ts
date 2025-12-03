@@ -2058,6 +2058,7 @@ export type Database = {
       booking_status:
         | "pending"
         | "approved"
+        | "active"
         | "declined"
         | "cancelled"
         | "completed"
@@ -2210,6 +2211,7 @@ export const Constants = {
       booking_status: [
         "pending",
         "approved",
+        "active",
         "declined",
         "cancelled",
         "completed",

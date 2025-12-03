@@ -321,9 +321,10 @@ const BookingRequestCard = ({
 
   const isOwner = user?.id === bookingRequest.owner.id;
   const isRenter = user?.id === bookingRequest.renter.id;
+  // Can cancel if approved (before rental starts) or active (during rental - early termination)
   const canCancel =
     (isOwner || isRenter) &&
-    bookingRequest.status === "approved";
+    (bookingRequest.status === "approved" || bookingRequest.status === "active");
 
   // Get equipment image
   const equipmentImage =
@@ -348,7 +349,9 @@ const BookingRequestCard = ({
   };
 
   // Determine if we should show the inspection flow banner prominently
-  const shouldShowInspectionBanner = hasPayment && bookingRequest.status === "approved";
+  // Show for approved (pickup inspection) and active (return inspection) bookings
+  const shouldShowInspectionBanner = hasPayment && 
+    (bookingRequest.status === "approved" || bookingRequest.status === "active");
 
   return (
     <Card className="w-full overflow-hidden hover:shadow-lg transition-shadow !p-0">
@@ -390,12 +393,16 @@ const BookingRequestCard = ({
               <Badge
                 className={cn(
                   "shrink-0",
-                  bookingRequest.status === "approved" && hasPayment
+                  bookingRequest.status === "active"
+                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                    : bookingRequest.status === "approved" && hasPayment
                     ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                     : getBookingStatusColor(bookingRequest.status || "approved")
                 )}
               >
-                {bookingRequest.status === "approved" && hasPayment
+                {bookingRequest.status === "active"
+                  ? "In Progress"
+                  : bookingRequest.status === "approved" && hasPayment
                   ? "Confirmed"
                   : getBookingStatusText(bookingRequest.status || "approved")}
               </Badge>

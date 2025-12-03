@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
@@ -9,8 +9,16 @@ import InspectionIntroStep from "@/components/inspection/steps/InspectionIntroSt
 import InspectionPhotoStep from "@/components/inspection/steps/InspectionPhotoStep";
 import InspectionChecklistStep from "@/components/inspection/steps/InspectionChecklistStep";
 import InspectionReviewStep from "@/components/inspection/steps/InspectionReviewStep";
+import PickupConfirmationStep from "@/components/inspection/steps/PickupConfirmationStep";
+import ReturnConfirmationStep from "@/components/inspection/steps/ReturnConfirmationStep";
 import type { InspectionType, ChecklistItem } from "@/types/inspection";
 import { cn } from "@/lib/utils";
+
+interface BookingInfo {
+  startDate: string;
+  endDate: string;
+  depositAmount?: number;
+}
 
 interface InspectionWizardProps {
   bookingId: string;
@@ -18,17 +26,29 @@ interface InspectionWizardProps {
   categorySlug?: string;
   inspectionType: InspectionType;
   isOwner: boolean;
+  bookingInfo?: BookingInfo;
   onSuccess: () => void;
   onCancel?: () => void;
+  onReviewClick?: () => void;
   className?: string;
 }
 
-const WIZARD_STEPS = [
-  { id: "intro", title: "Introduction", description: "What to expect" },
-  { id: "photos", title: "Photos", description: "Document equipment" },
-  { id: "checklist", title: "Checklist", description: "Review condition" },
-  { id: "review", title: "Confirm", description: "Submit inspection" },
-];
+const getWizardSteps = (inspectionType: InspectionType) => {
+  const baseSteps = [
+    { id: "intro", title: "Introduction", description: "What to expect" },
+    { id: "photos", title: "Photos", description: "Document equipment" },
+    { id: "checklist", title: "Checklist", description: "Review condition" },
+    { id: "review", title: "Review", description: "Check details" },
+  ];
+
+  // Add confirmation step
+  const confirmStep =
+    inspectionType === "pickup"
+      ? { id: "confirm", title: "Start", description: "Begin rental" }
+      : { id: "confirm", title: "Complete", description: "Finish rental" };
+
+  return [...baseSteps, confirmStep];
+};
 
 export default function InspectionWizard({
   bookingId,
@@ -36,8 +56,10 @@ export default function InspectionWizard({
   categorySlug,
   inspectionType,
   isOwner,
+  bookingInfo,
   onSuccess,
   onCancel,
+  onReviewClick,
   className,
 }: InspectionWizardProps) {
   const { user } = useAuth();
@@ -47,7 +69,20 @@ export default function InspectionWizard({
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [inspectionSubmitted, setInspectionSubmitted] = useState(false);
+  const [inspectionTimestamp, setInspectionTimestamp] = useState<string>("");
+  const [inspectionLocation, setInspectionLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  // For return inspections, fetch pickup inspection data for comparison
+  const [pickupInspection, setPickupInspection] = useState<{
+    photos: string[];
+    checklistItems: ChecklistItem[];
+    timestamp: string;
+    location?: { lat: number; lng: number } | null;
+  } | null>(null);
 
   // Use photo upload hook to get previews
   const { previews } = usePhotoUpload({
@@ -55,6 +90,36 @@ export default function InspectionWizard({
     onPhotosChange: setPhotos,
     maxPhotos: 10,
   });
+
+  const WIZARD_STEPS = useMemo(
+    () => getWizardSteps(inspectionType),
+    [inspectionType]
+  );
+
+  // Fetch pickup inspection for return inspections
+  useEffect(() => {
+    if (inspectionType === "return" && bookingId) {
+      const fetchPickupInspection = async () => {
+        const { data, error } = await supabase
+          .from("equipment_inspections")
+          .select("*")
+          .eq("booking_id", bookingId)
+          .eq("inspection_type", "pickup")
+          .single();
+
+        if (data && !error) {
+          setPickupInspection({
+            photos: data.photos || [],
+            checklistItems: (data.checklist_items as ChecklistItem[]) || [],
+            timestamp: data.timestamp,
+            location: data.location as { lat: number; lng: number } | null,
+          });
+        }
+      };
+
+      fetchPickupInspection();
+    }
+  }, [inspectionType, bookingId]);
 
   const handleNext = () => {
     setCurrentStep((prev) => Math.min(prev + 1, WIZARD_STEPS.length - 1));
@@ -133,6 +198,8 @@ export default function InspectionWizard({
         }
       }
 
+      const timestamp = new Date().toISOString();
+
       // Create inspection record
       const inspectionData = {
         booking_id: bookingId,
@@ -146,7 +213,7 @@ export default function InspectionWizard({
         owner_signature: isOwner ? "checkbox_confirmed" : null,
         renter_signature: !isOwner ? "checkbox_confirmed" : null,
         location,
-        timestamp: new Date().toISOString(),
+        timestamp,
       };
 
       const { error: insertError } = await supabase
@@ -158,10 +225,13 @@ export default function InspectionWizard({
         throw new Error(`Failed to save inspection: ${insertError.message}`);
       }
 
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
+      // Store inspection data for confirmation step
+      setInspectionTimestamp(timestamp);
+      setInspectionLocation(location);
+      setInspectionSubmitted(true);
+
+      // Move to confirmation step
+      handleNext();
     } catch (err) {
       console.error("Error submitting inspection:", err);
       setError(
@@ -174,21 +244,55 @@ export default function InspectionWizard({
     }
   };
 
-  // Success state
-  if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 space-y-4">
-        <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-          <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-        </div>
-        <h2 className="text-2xl font-bold text-center">Inspection Complete!</h2>
-        <p className="text-muted-foreground text-center max-w-sm">
-          Your {inspectionType} inspection has been successfully recorded and
-          timestamped.
-        </p>
-      </div>
-    );
-  }
+  // Calculate inspection summary for confirmation steps
+  const inspectionSummary = useMemo(() => {
+    const goodItems = checklistItems.filter((item) => item.status === "good");
+    return {
+      photosCount: photos.length,
+      checklistItemsCount: checklistItems.length,
+      checklistPassedCount: goodItems.length,
+      timestamp: inspectionTimestamp || new Date().toISOString(),
+      location: inspectionLocation,
+    };
+  }, [photos, checklistItems, inspectionTimestamp, inspectionLocation]);
+
+  // Rental period info for pickup confirmation
+  const rentalPeriod = useMemo(() => {
+    return {
+      startDate: bookingInfo?.startDate || new Date().toISOString(),
+      endDate: bookingInfo?.endDate || new Date().toISOString(),
+      returnTime: "5:00 PM", // Default return time
+    };
+  }, [bookingInfo]);
+
+  // Condition comparison for return confirmation
+  const conditionComparison = useMemo(() => {
+    return {
+      pickupInspection: pickupInspection
+        ? {
+            photosCount: pickupInspection.photos.length,
+            checklistItemsCount: pickupInspection.checklistItems.length,
+            checklistPassedCount: pickupInspection.checklistItems.filter(
+              (item) => item.status === "good"
+            ).length,
+            timestamp: pickupInspection.timestamp,
+            location: pickupInspection.location,
+          }
+        : null,
+      returnInspection: inspectionSummary,
+      pickupChecklistItems: pickupInspection?.checklistItems || [],
+      returnChecklistItems: checklistItems,
+    };
+  }, [pickupInspection, inspectionSummary, checklistItems]);
+
+  // Deposit info for return confirmation
+  const depositInfo = useMemo(() => {
+    if (!bookingInfo?.depositAmount) return undefined;
+    return {
+      amount: bookingInfo.depositAmount,
+      claimWindowHours: 48,
+    };
+  }, [bookingInfo]);
 
   // Determine which step to render
   const renderStep = () => {
@@ -238,6 +342,33 @@ export default function InspectionWizard({
             onSubmit={handleSubmit}
           />
         );
+      case 4:
+        // Confirmation step - different for pickup vs return
+        if (inspectionType === "pickup") {
+          return (
+            <PickupConfirmationStep
+              bookingId={bookingId}
+              equipmentTitle={equipmentTitle}
+              rentalPeriod={rentalPeriod}
+              inspectionSummary={inspectionSummary}
+              checklistItems={checklistItems}
+              onSuccess={onSuccess}
+              onBack={handleBack}
+            />
+          );
+        } else {
+          return (
+            <ReturnConfirmationStep
+              bookingId={bookingId}
+              equipmentTitle={equipmentTitle}
+              conditionComparison={conditionComparison}
+              depositInfo={depositInfo}
+              onSuccess={onSuccess}
+              onReviewClick={onReviewClick}
+              onBack={handleBack}
+            />
+          );
+        }
       default:
         return null;
     }
