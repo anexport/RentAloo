@@ -17,7 +17,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useActiveRental } from "@/hooks/useActiveRental";
 import { useAuth } from "@/hooks/useAuth";
 import RentalCountdown from "@/components/rental/RentalCountdown";
-import RentalProgressBar from "@/components/rental/RentalProgressBar";
 import RentalQuickActions from "@/components/rental/RentalQuickActions";
 import { calculateRentalCountdown } from "@/types/rental";
 import { format, differenceInHours } from "date-fns";
@@ -171,20 +170,6 @@ export default function ActiveRentalPage() {
 
         {/* Countdown Timer */}
         <RentalCountdown startDate={booking.start_date} endDate={booking.end_date} />
-
-        {/* Progress Bar */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Rental Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RentalProgressBar
-              startDate={booking.start_date}
-              endDate={booking.end_date}
-              height="lg"
-            />
-          </CardContent>
-        </Card>
 
         {/* Rental Details */}
         <div className="grid gap-4 sm:grid-cols-2">

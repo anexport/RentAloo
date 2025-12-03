@@ -30,7 +30,6 @@ import {
   ChevronDown,
   ChevronUp,
   MapPin,
-  Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MessagingInterface from "../messaging/MessagingInterface";
@@ -339,14 +338,6 @@ const BookingRequestCard = ({
   const today = new Date();
   const isActive = isPast(startDate) && isFuture(endDate);
   const daysUntilStart = differenceInDays(startDate, today);
-  const totalDays = differenceInDays(endDate, startDate) + 1;
-
-  // Progress indicator for active bookings
-  const getProgressPercentage = () => {
-    if (!isActive || totalDays <= 0) return 0;
-    const elapsed = Math.max(differenceInDays(today, startDate), 0);
-    return Math.min((elapsed / totalDays) * 100, 100);
-  };
 
   // Determine if we should show the inspection flow banner prominently
   // Show for approved (pickup inspection) and active (return inspection) bookings
@@ -451,40 +442,16 @@ const BookingRequestCard = ({
               </>
             )}
 
-            {/* View Completed Inspections - Desktop only, mobile uses sheet */}
-            {!isMobile && shouldShowInspectionBanner && (pickupInspectionId || returnInspectionId) && (
-              <div className="flex flex-wrap gap-2">
-                {pickupInspectionId && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/inspection/${bookingRequest.id}/view/pickup`)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Pickup Inspection
-                  </Button>
-                )}
-                {returnInspectionId && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/inspection/${bookingRequest.id}/view/return`)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Return Inspection
-                  </Button>
-                )}
-                {isOwner && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    File Damage Claim
-                  </Button>
-                )}
-              </div>
+            {/* File Damage Claim - Desktop only, for owners */}
+            {!isMobile && shouldShowInspectionBanner && isOwner && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                File Damage Claim
+              </Button>
             )}
 
             {/* Prominent Date Display */}
@@ -527,19 +494,6 @@ const BookingRequestCard = ({
                   </p>
                 </div>
               </div>
-              {isActive && (
-                <div className="pt-2">
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-300"
-                      style={{ width: `${getProgressPercentage()}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {Math.round(getProgressPercentage())}% complete
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Collapsible Details Section */}

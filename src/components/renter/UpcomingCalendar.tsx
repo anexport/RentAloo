@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-import { formatDateForStorage } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { formatDateForStorage, cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
-import { format, isToday, isSameDay, addDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, differenceInDays, startOfDay, endOfDay } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format, isToday, isSameDay, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -115,187 +114,158 @@ const UpcomingCalendar = () => {
 
   const upcomingBookings = bookings.slice(0, 3);
 
+  // Empty state - compact card without calendar
+  if (bookings.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-4 py-4">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">No upcoming rentals</p>
+            <p className="text-xs text-muted-foreground">Approved bookings appear here</p>
+          </div>
+          <Link to="/explore">
+            <Button variant="outline" size="sm">
+              Browse
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5 text-primary" />
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-primary" />
           Upcoming Rentals
         </CardTitle>
-        <CardDescription>
-          Your upcoming approved bookings
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Mini Calendar */}
-        <div className="space-y-2">
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
-            >
-              ←
-            </Button>
-            <span className="text-sm font-semibold">
-              {format(currentMonth, "MMMM yyyy")}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            >
-              →
-            </Button>
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1" role="grid" aria-label="Calendar">
-            {/* Week day headers */}
-            {weekDays.map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-medium text-muted-foreground py-1"
-                role="columnheader"
-              >
-                {day}
-              </div>
-            ))}
-
-            {/* Calendar days */}
-            {days.map((day) => {
-              const dayStr = format(day, "yyyy-MM-dd");
-              const isCurrentMonth = day >= monthStart && day <= monthEnd;
-              const hasBooking = bookingDates.has(dayStr);
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              const dayBookings = getBookingsForDate(day);
-              const bookingCount = dayBookings.length;
-
-              return (
-                <button
-                  key={dayStr}
-                  onClick={() => {
-                    if (hasBooking) {
-                      setSelectedDate(isSelected ? null : day);
-                    }
-                  }}
-                  className={cn(
-                    "aspect-square text-xs rounded-md transition-colors relative",
-                    !isCurrentMonth && "text-muted-foreground/30",
-                    isToday(day) && "ring-2 ring-primary",
-                    hasBooking && "bg-primary/10 hover:bg-primary/20 cursor-pointer",
-                    isSelected && "bg-primary/30 ring-2 ring-primary",
-                    !hasBooking && isCurrentMonth && "hover:bg-muted"
-                  )}
-                  disabled={!hasBooking}
-                  role="gridcell"
-                  aria-label={`${format(day, "MMMM d, yyyy")}${hasBooking ? `, ${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : ''}`}
-                  aria-pressed={isSelected}
-                >
-                  <span className={cn(
-                    "block",
-                    isToday(day) && "font-bold",
-                    hasBooking && "font-semibold"
-                  )}>
-                    {format(day, "d")}
-                  </span>
-                  {hasBooking && (
-                    <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      <CardContent className="p-4 pt-0 space-y-3">
+        {/* Month Navigation */}
+        <div className="flex items-center justify-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, -1))}
+          >
+            ←
+          </Button>
+          <span className="text-xs font-medium w-24 text-center">
+            {format(currentMonth, "MMM yyyy")}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            →
+          </Button>
         </div>
 
-        {/* Selected Date Bookings */}
+        {/* Compact Calendar Grid */}
+        <div className="grid grid-cols-7 gap-0.5" role="grid" aria-label="Calendar">
+          {/* Week day headers */}
+          {weekDays.map((day) => (
+            <div
+              key={day}
+              className="text-center text-[10px] font-medium text-muted-foreground"
+              role="columnheader"
+            >
+              {day.charAt(0)}
+            </div>
+          ))}
+
+          {/* Calendar days */}
+          {days.map((day) => {
+            const dayStr = format(day, "yyyy-MM-dd");
+            const isCurrentMonth = day >= monthStart && day <= monthEnd;
+            const hasBooking = bookingDates.has(dayStr);
+            const isSelected = selectedDate && isSameDay(day, selectedDate);
+            const dayBookings = getBookingsForDate(day);
+            const bookingCount = dayBookings.length;
+
+            return (
+              <button
+                key={dayStr}
+                onClick={() => {
+                  if (hasBooking) {
+                    setSelectedDate(isSelected ? null : day);
+                  }
+                }}
+                className={cn(
+                  "aspect-square text-[10px] rounded transition-colors relative",
+                  !isCurrentMonth && "text-muted-foreground/30",
+                  isToday(day) && "ring-1 ring-primary",
+                  hasBooking && "bg-primary/15 hover:bg-primary/25 cursor-pointer font-semibold",
+                  isSelected && "bg-primary/30 ring-1 ring-primary",
+                  !hasBooking && isCurrentMonth && "hover:bg-muted"
+                )}
+                disabled={!hasBooking}
+                role="gridcell"
+                aria-label={`${format(day, "MMMM d, yyyy")}${hasBooking ? `, ${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : ''}`}
+                aria-pressed={isSelected}
+              >
+                {format(day, "d")}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Details (when clicked) */}
         {selectedDate && getBookingsForDate(selectedDate).length > 0 && (
-          <div className="pt-4 border-t space-y-2">
-            <p className="text-sm font-semibold">
-              {format(selectedDate, "EEEE, MMMM d")}
-            </p>
-            {getBookingsForDate(selectedDate).map((booking) => (
+          <div className="pt-3 border-t">
+            {getBookingsForDate(selectedDate).slice(0, 1).map((booking) => (
               <Link
                 key={booking.id}
                 to={`/renter/dashboard?tab=bookings`}
-                className="block p-2 rounded-md bg-muted hover:bg-muted/80 transition-colors"
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
               >
-                <p className="text-sm font-medium line-clamp-1">
-                  {booking.equipment.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(booking.start_date), "MMM d")} -{" "}
-                  {format(new Date(booking.end_date), "MMM d")}
-                </p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium line-clamp-1">{booking.equipment.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(booking.start_date), "MMM d")} - {format(new Date(booking.end_date), "MMM d")}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="shrink-0">
+                  {differenceInDays(new Date(booking.start_date), new Date()) === 0
+                    ? "Today"
+                    : differenceInDays(new Date(booking.start_date), new Date()) === 1
+                    ? "Tomorrow"
+                    : `${differenceInDays(new Date(booking.start_date), new Date())}d`}
+                </Badge>
               </Link>
             ))}
           </div>
         )}
 
-        {/* Upcoming Rentals List */}
-        {upcomingBookings.length > 0 && (
-          <div className="pt-4 border-t space-y-3">
-            <p className="text-sm font-semibold">Next Rentals</p>
-            {upcomingBookings.map((booking) => {
-              const startDate = new Date(booking.start_date);
-              const daysUntil = differenceInDays(startDate, new Date());
-
-              return (
-                <Link
-                  key={booking.id}
-                  to={`/renter/dashboard?tab=bookings`}
-                  className="block p-3 rounded-lg border hover:border-primary/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold line-clamp-1">
-                        {booking.equipment.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {format(startDate, "MMM d")} -{" "}
-                          {format(new Date(booking.end_date), "MMM d")}
-                        </span>
-                      </div>
-                      {booking.equipment.location && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span className="truncate">{booking.equipment.location}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Badge
-                      variant={daysUntil <= 3 ? "default" : "secondary"}
-                      className="shrink-0"
-                    >
-                      {daysUntil === 0
-                        ? "Today"
-                        : daysUntil === 1
-                        ? "Tomorrow"
-                        : `${daysUntil}d`}
-                    </Badge>
-                  </div>
-                </Link>
-              );
-            })}
+        {/* Next rental (when no date selected) */}
+        {!selectedDate && upcomingBookings.length > 0 && (
+          <div className="pt-3 border-t">
+            <Link
+              to={`/renter/dashboard?tab=bookings`}
+              className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium line-clamp-1">{upcomingBookings[0].equipment.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(upcomingBookings[0].start_date), "MMM d")} - {format(new Date(upcomingBookings[0].end_date), "MMM d")}
+                </p>
+              </div>
+              <Badge variant="secondary" className="shrink-0">
+                {differenceInDays(new Date(upcomingBookings[0].start_date), new Date()) === 0
+                  ? "Today"
+                  : differenceInDays(new Date(upcomingBookings[0].start_date), new Date()) === 1
+                  ? "Tomorrow"
+                  : `${differenceInDays(new Date(upcomingBookings[0].start_date), new Date())}d`}
+              </Badge>
+            </Link>
           </div>
-        )}
-
-        {bookings.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground">
-            <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No upcoming rentals</p>
-          </div>
-        )}
-
-        {bookings.length > 3 && (
-          <Link to="/renter/dashboard?tab=bookings">
-            <Button variant="outline" className="w-full" size="sm">
-              View All Bookings
-            </Button>
-          </Link>
         )}
       </CardContent>
     </Card>

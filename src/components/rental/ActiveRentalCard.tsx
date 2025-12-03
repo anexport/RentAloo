@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import RentalCountdown from "./RentalCountdown";
-import RentalProgressBar from "./RentalProgressBar";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
 // Helper to get display name from profile
@@ -84,10 +83,10 @@ export default function ActiveRentalCard({
   }
 
   return (
-    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow", className)}>
-      <CardContent className="p-0">
+    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col", className)}>
+      <CardContent className="p-0 flex flex-col flex-1">
         {/* Equipment Image */}
-        <div className="relative h-36 bg-muted">
+        <div className="relative h-36 bg-muted flex-shrink-0">
           {photoUrl ? (
             <img
               src={photoUrl}
@@ -105,28 +104,25 @@ export default function ActiveRentalCard({
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
-          <div>
+        <div className="p-4 flex flex-col flex-1">
+          <div className="h-14 mb-4">
             <h3 className="font-semibold text-lg truncate">{equipment.title}</h3>
-            {equipment.owner && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={equipment.owner.avatar_url || undefined} />
-                  <AvatarFallback className="text-[10px]">
-                    {getInitials(getDisplayName(equipment.owner))}
-                  </AvatarFallback>
-                </Avatar>
-                <span>Renting from {getDisplayName(equipment.owner)}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              {equipment.owner ? (
+                <>
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={equipment.owner.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px]">
+                      {getInitials(getDisplayName(equipment.owner))}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">Renting from {getDisplayName(equipment.owner)}</span>
+                </>
+              ) : (
+                <span>&nbsp;</span>
+              )}
+            </div>
           </div>
-
-          {/* Progress */}
-          <RentalProgressBar
-            startDate={booking.start_date}
-            endDate={booking.end_date}
-            height="sm"
-          />
 
           {/* Countdown */}
           <RentalCountdown
@@ -135,8 +131,8 @@ export default function ActiveRentalCard({
             compact
           />
 
-          {/* Action */}
-          <Link to={`/rental/${booking.id}`} className="block">
+          {/* Action - pushed to bottom */}
+          <Link to={`/rental/${booking.id}`} className="block mt-auto pt-4">
             <Button className="w-full gap-2">
               View Rental
               <ArrowRight className="h-4 w-4" />

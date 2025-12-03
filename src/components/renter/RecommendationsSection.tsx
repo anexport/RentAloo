@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
-import { Sparkles, TrendingUp, Clock, ArrowRight } from "lucide-react";
+import { Sparkles, Clock, ChevronRight, ChevronLeft } from "lucide-react";
 import ListingCard from "@/components/equipment/ListingCard";
+import ListingCardSkeleton from "@/components/equipment/ListingCardSkeleton";
 import type { Listing } from "@/components/equipment/services/listings";
 import { fetchListings } from "@/components/equipment/services/listings";
-import { cn } from "@/lib/utils";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 
-type RecommendationType = "category" | "location" | "recent";
+type RecommendationType = "category" | "recent";
 
 interface RecommendationSection {
   type: RecommendationType;
@@ -21,20 +21,19 @@ interface RecommendationSection {
   loading: boolean;
 }
 
-const RecommendationsSection = () => {
+type RecommendationsSectionProps = {
+  onOpenListing?: (listing: Listing) => void;
+};
+
+const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [sections, setSections] = useState<RecommendationSection[]>([
     {
       type: "category",
       title: "Based on Your Rentals",
       description: "Equipment similar to what you've rented before",
-      listings: [],
-      loading: true,
-    },
-    {
-      type: "location",
-      title: "Popular Near You",
-      description: "Trending equipment in your area",
       listings: [],
       loading: true,
     },
@@ -46,6 +45,69 @@ const RecommendationsSection = () => {
       loading: true,
     },
   ]);
+
+  // Carousel for category section with autoplay
+  const [categoryRef, categoryApi] = useEmblaCarousel(
+    {
+      loop: true,
+      align: "start",
+      skipSnaps: false,
+      dragFree: false,
+    },
+    [
+      Autoplay({
+        delay: 3000,
+        stopOnInteraction: true,
+        stopOnMouseEnter: true,
+      }),
+    ]
+  );
+
+  // Carousel for recent section
+  const [recentRef, recentApi] = useEmblaCarousel({
+    loop: false,
+    align: "start",
+    skipSnaps: false,
+    dragFree: true,
+  });
+
+  const scrollCategoryPrev = useCallback(() => {
+    if (categoryApi) categoryApi.scrollPrev();
+  }, [categoryApi]);
+
+  const scrollCategoryNext = useCallback(() => {
+    if (categoryApi) categoryApi.scrollNext();
+  }, [categoryApi]);
+
+  const scrollRecentPrev = useCallback(() => {
+    if (recentApi) recentApi.scrollPrev();
+  }, [recentApi]);
+
+  const scrollRecentNext = useCallback(() => {
+    if (recentApi) recentApi.scrollNext();
+  }, [recentApi]);
+
+  const handleViewAll = () => {
+    navigate("/explore");
+  };
+
+  // Resume autoplay after manual navigation
+  useEffect(() => {
+    if (!categoryApi) return;
+
+    const autoplay = categoryApi.plugins()?.autoplay;
+    if (!autoplay) return;
+
+    const onSelect = () => {
+      // Reset autoplay timer on manual scroll
+      autoplay.reset();
+    };
+
+    categoryApi.on("select", onSelect);
+    return () => {
+      categoryApi.off("select", onSelect);
+    };
+  }, [categoryApi]);
 
   useEffect(() => {
     const loadRecommendations = async () => {
@@ -62,7 +124,6 @@ const RecommendationsSection = () => {
 
         if (bookingsError) {
           console.error("Error fetching booking history:", bookingsError);
-          // Continue with empty bookings to allow other sections to load
         }
 
         // Get unique category IDs
@@ -74,29 +135,12 @@ const RecommendationsSection = () => {
           ),
         ] as string[];
 
-        // Get user's location from profile or recent bookings
-        const { data: recentBooking, error: locationError } = await supabase
-          .from("booking_requests")
-          .select("equipment:equipment(location)")
-          .eq("renter_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (locationError && locationError.code !== "PGRST116") {
-          // PGRST116 = no rows returned, which is expected for new users
-          console.error("Error fetching user location:", locationError);
-        }
-
-        const userLocation =
-          (recentBooking?.equipment as { location?: string })?.location || null;
-
         // Load category-based recommendations
         if (categoryIds.length > 0) {
           try {
             const categoryListings = await fetchListings({
               categoryId: categoryIds[0],
-              limit: 6,
+              limit: 10,
             });
             setSections((prev) =>
               prev.map((s) =>
@@ -116,7 +160,7 @@ const RecommendationsSection = () => {
         } else {
           // If no category history, show popular items
           try {
-            const popularListings = await fetchListings({ limit: 6 });
+            const popularListings = await fetchListings({ limit: 10 });
             setSections((prev) =>
               prev.map((s) =>
                 s.type === "category"
@@ -134,37 +178,7 @@ const RecommendationsSection = () => {
           }
         }
 
-        // Load location-based recommendations
-        if (userLocation) {
-          try {
-            const locationListings = await fetchListings({
-              location: userLocation,
-              limit: 6,
-            });
-            setSections((prev) =>
-              prev.map((s) =>
-                s.type === "location"
-                  ? { ...s, listings: locationListings, loading: false }
-                  : s
-              )
-            );
-          } catch (error) {
-            console.error("Error loading location recommendations:", error);
-            setSections((prev) =>
-              prev.map((s) =>
-                s.type === "location" ? { ...s, loading: false } : s
-              )
-            );
-          }
-        } else {
-          setSections((prev) =>
-            prev.map((s) =>
-              s.type === "location" ? { ...s, loading: false } : s
-            )
-          );
-        }
-
-        // Load recently viewed (from localStorage for now)
+        // Load recently viewed (from localStorage)
         let recentlyViewedIds: string[] = [];
         try {
           const stored = localStorage.getItem("recentlyViewedEquipment");
@@ -178,7 +192,7 @@ const RecommendationsSection = () => {
 
         if (recentlyViewedIds.length > 0) {
           try {
-            const idsToFetch = recentlyViewedIds.slice(0, 6);
+            const idsToFetch = recentlyViewedIds.slice(0, 10);
             const { data, error } = await supabase
               .from("equipment")
               .select(
@@ -240,85 +254,175 @@ const RecommendationsSection = () => {
     void loadRecommendations();
   }, [user]);
 
+  // Return null for anonymous users
+  if (!user) {
+    return null;
+  }
+
   const getSectionIcon = (type: RecommendationType) => {
     switch (type) {
       case "category":
-        return <Sparkles className="h-5 w-5 text-primary" />;
-      case "location":
-        return <TrendingUp className="h-5 w-5 text-primary" />;
+        return <Sparkles className="h-6 w-6 text-primary" />;
       case "recent":
-        return <Clock className="h-5 w-5 text-primary" />;
+        return <Clock className="h-6 w-6 text-primary" />;
     }
   };
 
+  const getCarouselControls = (type: RecommendationType) => {
+    if (type === "category") {
+      return { scrollPrev: scrollCategoryPrev, scrollNext: scrollCategoryNext };
+    }
+    return { scrollPrev: scrollRecentPrev, scrollNext: scrollRecentNext };
+  };
+
+  const getCarouselRef = (type: RecommendationType) => {
+    return type === "category" ? categoryRef : recentRef;
+  };
+
+  // Check if there's any content to show
+  const hasContent = sections.some(s => !s.loading && s.listings.length > 0);
+  const isLoading = sections.some(s => s.loading);
+
+  // Don't render if there's nothing to show
+  if (!isLoading && !hasContent) {
+    return null;
+  }
+
   return (
-    <div className="space-y-8">
-      {sections.map((section) => {
-        if (section.loading || section.listings.length === 0) {
-          if (section.loading) {
-            return (
-              <Card key={section.type}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {getSectionIcon(section.type)}
-                    {section.title}
-                  </CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="flex-shrink-0 w-80">
-                        <Skeleton className="aspect-video w-full rounded-lg mb-2" />
-                        <Skeleton className="h-4 w-3/4 mb-2" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          }
-          return null; // Don't show empty sections
+    <>
+      {sections.map((section, index) => {
+        // Skip empty sections (but show loading state)
+        if (!section.loading && section.listings.length === 0) {
+          return null;
         }
 
-        return (
-          <Card key={section.type}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {getSectionIcon(section.type)}
-                    {section.title}
-                  </CardTitle>
-                  <CardDescription>{section.description}</CardDescription>
-                </div>
-                <Link to="/equipment">
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    View All
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-                {section.listings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="flex-shrink-0 w-80"
-                  >
-                    <ListingCard listing={listing} />
+        const controls = getCarouselControls(section.type);
+        const carouselRef = getCarouselRef(section.type);
+
+        // Loading state
+        if (section.loading) {
+          return (
+            <section
+              key={section.type}
+              className={`py-16 sm:py-20 ${index % 2 === 0 ? "bg-muted/30" : "bg-background"}`}
+            >
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      {getSectionIcon(section.type)}
+                      <h2 className="text-3xl font-bold">{section.title}</h2>
+                    </div>
+                    <p className="text-muted-foreground">{section.description}</p>
                   </div>
-                ))}
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <ListingCardSkeleton key={i} />
+                  ))}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </section>
+          );
+        }
+
+        // Content state
+        return (
+          <section
+            key={section.type}
+            className={`py-16 sm:py-20 ${index % 2 === 0 ? "bg-muted/30" : "bg-background"}`}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {getSectionIcon(section.type)}
+                    <h2 className="text-3xl font-bold">{section.title}</h2>
+                  </div>
+                  <p className="text-muted-foreground">{section.description}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={controls.scrollPrev}
+                    className="hidden sm:flex h-10 w-10 rounded-full"
+                    aria-label="Previous slide"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={controls.scrollNext}
+                    className="hidden sm:flex h-10 w-10 rounded-full"
+                    aria-label="Next slide"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleViewAll}
+                    className="hidden sm:flex items-center gap-2"
+                  >
+                    View all
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden" ref={carouselRef}>
+                <div className="flex gap-6">
+                  {section.listings.map((listing) => (
+                    <div
+                      key={listing.id}
+                      className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(25%-18px)]"
+                    >
+                      <ListingCard listing={listing} onOpen={onOpenListing} className="h-full" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile controls */}
+              <div className="mt-6 sm:hidden">
+                <div className="flex justify-center gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={controls.scrollPrev}
+                    className="h-10 w-10 rounded-full"
+                    aria-label="Previous slide"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={controls.scrollNext}
+                    className="h-10 w-10 rounded-full"
+                    aria-label="Next slide"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    variant="ghost"
+                    onClick={handleViewAll}
+                    className="flex items-center gap-2"
+                  >
+                    View all
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
         );
       })}
-    </div>
+    </>
   );
 };
 
 export default RecommendationsSection;
-

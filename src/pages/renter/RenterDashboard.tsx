@@ -17,7 +17,6 @@ import StatsOverview from "@/components/renter/StatsOverview";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
 import WelcomeHero from "@/components/renter/WelcomeHero";
 import UpcomingCalendar from "@/components/renter/UpcomingCalendar";
-import RecommendationsSection from "@/components/renter/RecommendationsSection";
 import SavedEquipmentTab from "@/components/renter/SavedEquipmentTab";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
@@ -338,15 +337,6 @@ const RenterDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* My Rental Bookings Section */}
             <div className="space-y-4">
-              {renterBookings.length > 3 && activeTab !== "bookings" && (
-                <div className="flex justify-end">
-                  <Link to="/renter/dashboard?tab=bookings">
-                    <Button variant="outline" size="sm">
-                      {t("renter.bookings.view_all")}
-                    </Button>
-                  </Link>
-                </div>
-              )}
               {renterLoading ? (
                 <Card>
                   <CardContent className="text-center py-12">
@@ -407,12 +397,6 @@ const RenterDashboard = () => {
           )}
         </div>
 
-        {/* Recommendations Section */}
-        {activeTab !== "bookings" && (
-          <div className="animate-in slide-in-from-bottom-4 duration-500 delay-400">
-            <RecommendationsSection />
-          </div>
-        )}
       </div>
 
       {/* Mobile Inspection CTA - Sticky bottom bar */}

@@ -188,12 +188,12 @@ const StatsOverview = () => {
           paymentsResult,
           reviewsResult,
         ] = await Promise.all([
-          // Active bookings (all-time)
+          // Active bookings (currently in progress - status: "active")
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .eq("status", "approved"),
+            .eq("status", "active"),
           // Saved items (favorites, all-time)
           supabase
             .from("user_favorites")
@@ -226,7 +226,7 @@ const StatsOverview = () => {
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .eq("status", "approved")
+            .eq("status", "active")
             .lt("created_at", currentMonthStart.toISOString())
             .gte("created_at", oneMonthAgo.toISOString()),
           supabase
@@ -345,7 +345,7 @@ const StatsOverview = () => {
                 .from("booking_requests")
                 .select("*", { count: "exact", head: true })
                 .eq("renter_id", user.id)
-                .eq("status", "approved")
+                .eq("status", "active")
                 .gte("created_at", start.toISOString())
                 .lt("created_at", end.toISOString());
               if (error) throw error;
@@ -522,9 +522,9 @@ const StatsOverview = () => {
               <div className="text-3xl font-bold tracking-tight mb-2">
                 {stat.value}
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 mt-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">
                     {stat.description}
                   </p>
                   {hasTrend && (
@@ -535,20 +535,20 @@ const StatsOverview = () => {
                       )}
                     >
                       {isPositive ? (
-                        <TrendingUp className="h-3 w-3" />
+                        <TrendingUp className="h-3 w-3 flex-shrink-0" />
                       ) : (
-                        <TrendingDown className="h-3 w-3" />
+                        <TrendingDown className="h-3 w-3 flex-shrink-0" />
                       )}
-                      <span>{formatTrend(trend.trend)} vs last month</span>
+                      <span className="truncate">{formatTrend(trend.trend)} vs last month</span>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {stat.sparkline && stat.sparkline.length > 0 && (
-                    <Sparkline data={stat.sparkline} />
+                    <Sparkline data={stat.sparkline} className="hidden sm:block" />
                   )}
                   {stat.badge && (
-                    <Badge variant={stat.badgeVariant} className="text-xs">
+                    <Badge variant={stat.badgeVariant} className="text-xs whitespace-nowrap">
                       {stat.badge}
                     </Badge>
                   )}
