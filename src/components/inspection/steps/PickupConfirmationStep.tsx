@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { formatBookingDate, formatBookingDuration } from "@/lib/booking";
 import type { ChecklistItem } from "@/types/inspection";
+import { toast } from "sonner";
 
 interface RentalPeriodInfo {
   startDate: string;
@@ -71,30 +72,41 @@ export default function PickupConfirmationStep({
         throw new Error(activateError.message);
       }
 
-      // Send system message to conversation
-      const { data: conversation, error: conversationError } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("booking_request_id", bookingId)
-        .single();
+      // Send system message to conversation (non-critical)
+      try {
+        const { data: conversation, error: conversationError } = await supabase
+          .from("conversations")
+          .select("id")
+          .eq("booking_request_id", bookingId)
+          .single();
 
-      if (conversationError) {
-        console.error("Failed to fetch conversation:", conversationError);
-      }
-
-      if (conversation?.id) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          await supabase.from("messages").insert({
-            conversation_id: conversation.id,
-            sender_id: userData.user.id,
-            content: `🎉 The rental has officially started! The pickup inspection is complete and ${equipmentTitle} is now in the renter's care.`,
-            message_type: "system",
-          });
+        if (conversationError) {
+          throw conversationError;
         }
+
+        if (conversation?.id) {
+          const { data: userData, error: authError } = await supabase.auth.getUser();
+          if (authError) throw authError;
+
+          if (userData.user) {
+            const { error: msgError } = await supabase.from("messages").insert({
+              conversation_id: conversation.id,
+              sender_id: userData.user.id,
+              content: `🎉 The rental has officially started! The pickup inspection is complete and ${equipmentTitle} is now in the renter's care.`,
+              message_type: "system",
+            });
+            if (msgError) throw msgError;
+          }
+        }
+      } catch (msgErr) {
+        console.error("Error sending system message:", msgErr);
+        // Non-critical error - don't fail the entire operation
       }
 
       setIsComplete(true);
+      toast.success("Rental Started!", {
+        description: "The equipment is now in your care.",
+      });
       setTimeout(() => {
         onSuccess();
       }, 2000);

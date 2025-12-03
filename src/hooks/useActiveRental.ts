@@ -12,7 +12,7 @@ interface InspectionData {
 }
 
 interface ActiveRentalData {
-  booking: BookingRequestWithDetails;
+  booking: BookingRequestWithDetails | null;
   pickupInspection: InspectionData | null;
   returnInspection: InspectionData | null;
   isLoading: boolean;
@@ -163,7 +163,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
   }, [bookingId, fetchRental]);
 
   return {
-    booking: booking as BookingRequestWithDetails,
+    booking,
     pickupInspection,
     returnInspection,
     isLoading,

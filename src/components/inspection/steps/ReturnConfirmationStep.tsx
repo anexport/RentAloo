@@ -159,6 +159,12 @@ export default function ReturnConfirmationStep({
     setIsCompleting(true);
 
     try {
+      // Verify authentication first
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error("Authentication required to complete rental");
+      }
+
       // Call the complete_rental function
       const { error: completeError } = await supabase.rpc("complete_rental", {
         p_booking_id: bookingId,
@@ -168,19 +174,22 @@ export default function ReturnConfirmationStep({
         throw new Error(completeError.message);
       }
 
-      // Send system message to conversation
-      const { data: conversation } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("booking_request_id", bookingId)
-        .single();
+      // Send system message to conversation (non-critical)
+      try {
+        const { data: conversation, error: convError } = await supabase
+          .from("conversations")
+          .select("id")
+          .eq("booking_request_id", bookingId)
+          .single();
 
-      if (conversation) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          await supabase.from("messages").insert({
+        if (convError) {
+          throw convError;
+        }
+
+        if (conversation?.id) {
+          const { error: messageError } = await supabase.from("messages").insert({
             conversation_id: conversation.id,
-            sender_id: userData.user.id,
+            sender_id: user.id,
             content: `✅ The rental has been completed! ${equipmentTitle} has been returned and the return inspection is complete.${
               depositInfo
                 ? ` The security deposit of $${depositInfo.amount.toFixed(2)} will be released within ${depositInfo.claimWindowHours} hours if no damage claim is filed.`
@@ -188,7 +197,14 @@ export default function ReturnConfirmationStep({
             }`,
             message_type: "system",
           });
+
+          if (messageError) {
+            throw messageError;
+          }
         }
+      } catch (msgErr) {
+        console.error("Error sending system message:", msgErr);
+        // Non-critical error - don't fail the entire operation
       }
 
       setIsComplete(true);

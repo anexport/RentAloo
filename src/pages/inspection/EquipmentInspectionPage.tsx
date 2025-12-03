@@ -181,7 +181,7 @@ export default function EquipmentInspectionPage() {
   const bookingInfo = {
     startDate: booking.start_date,
     endDate: booking.end_date,
-    depositAmount: booking.damage_deposit_amount || undefined,
+    depositAmount: booking.damage_deposit_amount ?? undefined,
   };
 
   return (

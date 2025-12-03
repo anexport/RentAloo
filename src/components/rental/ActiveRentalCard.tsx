@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import RentalCountdown from "./RentalCountdown";
+import RentalCountdown from "@/components/rental/RentalCountdown";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
 // Helper to get display name from profile
@@ -37,6 +37,8 @@ export default function ActiveRentalCard({
   className,
   compact = false,
 }: ActiveRentalCardProps) {
+  if (!booking.equipment) return null;
+
   const equipment = booking.equipment;
   const primaryPhoto = equipment.equipment_photos?.find((p) => p.is_primary);
   const photoUrl = primaryPhoto?.photo_url || equipment.equipment_photos?.[0]?.photo_url;
@@ -74,8 +76,8 @@ export default function ActiveRentalCard({
 
             {/* Action */}
             <Link to={`/rental/${booking.id}`}>
-              <Button size="sm" variant="ghost" className="px-2">
-                <ArrowRight className="h-4 w-4" />
+              <Button size="sm" variant="ghost" className="px-2" aria-label="View rental details">
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </Link>
           </div>

@@ -82,7 +82,6 @@ export default function RentalQuickActions({
           const Icon = action.icon;
           const content = (
             <Button
-              key={action.id}
               variant={action.variant}
               size="sm"
               disabled={action.disabled}
@@ -94,7 +93,11 @@ export default function RentalQuickActions({
           );
 
           if (action.disabled) {
-            return content;
+            return (
+              <span key={action.id}>
+                {content}
+              </span>
+            );
           }
 
           if (action.external) {
@@ -122,7 +125,7 @@ export default function RentalQuickActions({
 
   return (
     <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3", className)}>
-      {actions.slice(0, 4).map((action) => {
+      {actions.map((action) => {
         const Icon = action.icon;
         const content = (
           <Button

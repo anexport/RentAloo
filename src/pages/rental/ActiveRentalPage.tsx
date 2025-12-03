@@ -285,7 +285,7 @@ export default function ActiveRentalPage() {
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-3">
                 <Camera
-                  className={`h-5 w-5 ${returnInspection ? "text-emerald-500" : "text-muted-foreground"}`}
+                  className={cn("h-5 w-5", returnInspection ? "text-emerald-500" : "text-muted-foreground")}
                 />
                 <div>
                   <p className="font-medium">Return Inspection</p>

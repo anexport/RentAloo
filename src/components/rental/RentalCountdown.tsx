@@ -133,6 +133,12 @@ export default function RentalCountdown({
         <div className="space-y-2">
           <div className="h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
             <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={countdown.progressPercentage}
+              aria-label={`Rental return progress: ${countdown.progressPercentage}% complete`}
+              tabIndex={0}
               className={cn(
                 "h-full rounded-full transition-all duration-500",
                 styles.progress
