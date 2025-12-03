@@ -100,14 +100,14 @@ const OwnerDashboard = () => {
   }, [user, fetchStats]);
 
   useEffect(() => {
-    // Always update pendingRequests based on bookingRequests, even when empty
-    const pendingCount = bookingRequests.filter(
-      (r) => r.status === "pending"
+    // Count active bookings (approved and in progress)
+    const activeCount = bookingRequests.filter(
+      (r) => r.status === "approved" || r.status === "active"
     ).length;
 
     setStats((prev) => ({
       ...prev,
-      pendingRequests: pendingCount,
+      pendingRequests: activeCount, // Renamed field tracks active bookings now
     }));
   }, [bookingRequests]);
 

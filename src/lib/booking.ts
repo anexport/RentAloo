@@ -230,10 +230,10 @@ export const formatBookingDuration = (
 
 export const getBookingStatusColor = (status: string): string => {
   switch (status) {
-    case "pending":
-      return "bg-yellow-100 text-yellow-800";
     case "approved":
       return "bg-green-100 text-green-800";
+    case "active":
+      return "bg-purple-100 text-purple-800";
     case "cancelled":
       return "bg-gray-100 text-gray-800";
     case "completed":
@@ -245,10 +245,10 @@ export const getBookingStatusColor = (status: string): string => {
 
 export const getBookingStatusText = (status: string): string => {
   switch (status) {
-    case "pending":
-      return "Awaiting Payment";
     case "approved":
       return "Confirmed";
+    case "active":
+      return "In Progress";
     case "cancelled":
       return "Cancelled";
     case "completed":

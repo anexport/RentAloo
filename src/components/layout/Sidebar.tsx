@@ -76,8 +76,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     staleTime: 1000 * 60, // 1 minute
   });
 
-  const { data: pendingOwnerRequestsData } = useQuery({
-    queryKey: ["sidebar", "pending-owner-requests", userId],
+  // Count confirmed bookings for owner's equipment (approved + active)
+  const { data: activeOwnerBookingsData } = useQuery({
+    queryKey: ["sidebar", "active-owner-bookings", userId],
     enabled: !!userId && !!equipmentStatus?.hasEquipment,
     queryFn: async () => {
       const { count, error } = await supabase
@@ -87,7 +88,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           head: true,
         })
         .eq("equipment.owner_id", userId as string)
-        .eq("status", "pending");
+        .eq("status", "approved"); // TODO: Add "active" after migration
       if (error) throw error;
       return count || 0;
     },
@@ -151,7 +152,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           `
         )
         .eq("renter_id", userId as string)
-        .in("status", ["approved", "pending"])
+        .eq("status", "approved") // TODO: Add "active" after migration
         .gte("start_date", today)
         .order("start_date", { ascending: true })
         .limit(1)
@@ -288,7 +289,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   };
 
   const hasEquipment = equipmentStatus?.hasEquipment ?? false;
-  const pendingOwnerRequests = pendingOwnerRequestsData ?? 0;
+  const activeOwnerBookings = activeOwnerBookingsData ?? 0;
   const unreadMessages = unreadMessagesData ?? 0;
   const openSupportTickets = supportTickets ?? 0;
   const pendingPayouts = payoutInfo?.pendingPayouts ?? 0;
@@ -311,7 +312,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       label: t("sidebar.my_equipment_listings"),
       icon: Package,
       href: "/owner/dashboard?tab=equipment",
-      ...(pendingOwnerRequests > 0 && { badge: pendingOwnerRequests }),
+      ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
     },
   ];
 
@@ -345,7 +346,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       label: t("sidebar.my_bookings"),
       icon: ListChecks,
       href: "/owner/dashboard?tab=bookings",
-      ...(pendingOwnerRequests > 0 && { badge: pendingOwnerRequests }),
+      ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
     },
     {
       label: t("sidebar.messages"),

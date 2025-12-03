@@ -24,8 +24,11 @@ After a renter completes the pickup inspection, there is:
 
 ### Existing Flow
 ```
-[Payment] → [Pickup Inspection] → ??? → [Return Inspection] → ???
+[Payment Success] → [Booking Created as "approved"] → [Pickup Inspection] → ??? → [Return Inspection] → ???
 ```
+
+> **Note:** Bookings are created directly with `approved` status after successful Stripe payment (via webhook). 
+> There is no `pending` state in production - payment is required upfront before booking creation.
 
 ### What's Currently Working
 | Feature | Status | Location |
@@ -53,15 +56,19 @@ After a renter completes the pickup inspection, there is:
 
 ### Target Flow
 ```
-[Payment] → [Pickup Inspection] → [Pickup Confirmation] → [Active Rental] 
-    → [Return Inspection] → [Return Confirmation] → [Review + Deposit Release] → [Completed]
+[Payment Success] → [Booking Created as "approved"] → [Pickup Inspection] 
+    → [Pickup Confirmation] → [Active Rental] → [Return Inspection] 
+    → [Return Confirmation] → [Review + Deposit Release] → [Completed]
 ```
 
 ### Booking Status Flow
 ```
-pending → approved → active → completed
-                  ↘ cancelled ↙
+approved → active → completed
+        ↘ cancelled ↙
 ```
+
+> **Important:** The `pending` status is NOT used in the production flow. 
+> Stripe webhook creates bookings directly as `approved` after successful payment.
 
 ---
 
@@ -100,7 +107,7 @@ ALTER TYPE booking_status ADD VALUE 'active' AFTER 'approved';
 - [ ] After pickup inspection submission, user sees confirmation screen
 - [ ] "Start My Rental" button updates status to `active`
 - [ ] Booking card shows "Active" badge
-- [ ] Owner receives notification of rental start
+- [ ] System message sent to conversation when rental starts
 
 ---
 
@@ -155,14 +162,15 @@ src/
 │       ├── ActiveRentalCard.tsx
 │       ├── RentalCountdown.tsx
 │       ├── RentalQuickActions.tsx
-│       ├── RentalProgressBar.tsx
-│       └── index.ts
+│       └── RentalProgressBar.tsx
 ├── pages/
 │   └── rental/
 │       └── ActiveRentalPage.tsx
 └── types/
     └── rental.ts
 ```
+
+> **Note:** No barrel export (`index.ts`) per project conventions. Import components directly.
 
 #### Files to Modify
 | File | Changes |
@@ -216,7 +224,7 @@ src/
 - [ ] Condition comparison shown if both inspections exist
 - [ ] Status updates to `completed` on confirmation
 - [ ] Completion modal displays with next steps
-- [ ] Both parties notified of completion
+- [ ] System message sent to conversation when rental completes
 
 ---
 
@@ -247,11 +255,16 @@ src/
 
 ##### 3. `MutualReviewCard.tsx`
 - **Location:** `src/components/reviews/MutualReviewCard.tsx`
-- **Purpose:** Show mutual review status
+- **Purpose:** Show mutual review status with reveal logic
 - **Features:**
-  - Your review status
-  - Other party's review status (hidden until you review)
-  - Unlock reveal after both complete
+  - Your review status (submitted or pending)
+  - Other party's review status (hidden until BOTH submit)
+  - Unlock reveal animation after both complete
+  - "Waiting for other party" state when you've submitted but they haven't
+- **Mutual Reveal Logic:**
+  - Reviews are stored immediately but `is_revealed` flag starts as `false`
+  - When both `renter_reviewed_at` AND `owner_reviewed_at` are set, trigger reveal
+  - Database trigger or application logic updates `is_revealed = true` for both reviews
 
 #### Files to Modify
 | File | Changes |
@@ -262,10 +275,38 @@ src/
 
 #### Database Changes
 ```sql
--- Add review_reminder tracking
+-- Add review tracking and mutual reveal support
 ALTER TABLE booking_requests 
 ADD COLUMN renter_review_prompted_at TIMESTAMPTZ,
 ADD COLUMN owner_review_prompted_at TIMESTAMPTZ;
+
+-- Add reveal flag to reviews table for mutual reveal feature
+ALTER TABLE reviews
+ADD COLUMN is_revealed BOOLEAN DEFAULT false;
+
+-- Trigger to auto-reveal reviews when both parties have submitted
+CREATE OR REPLACE FUNCTION reveal_mutual_reviews()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Check if both parties have reviewed
+  IF EXISTS (
+    SELECT 1 FROM booking_requests br
+    WHERE br.id = NEW.booking_id
+    AND br.renter_reviewed_at IS NOT NULL
+    AND br.owner_reviewed_at IS NOT NULL
+  ) THEN
+    -- Reveal all reviews for this booking
+    UPDATE reviews 
+    SET is_revealed = true 
+    WHERE booking_id = NEW.booking_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_reveal_mutual_reviews
+AFTER INSERT OR UPDATE ON reviews
+FOR EACH ROW EXECUTE FUNCTION reveal_mutual_reviews();
 ```
 
 #### Acceptance Criteria
@@ -339,10 +380,10 @@ SELECT cron.schedule('auto-release-deposits', '0 * * * *', 'SELECT auto_release_
 
 #### Acceptance Criteria
 - [ ] Deposit status shown after rental completion
-- [ ] Release timeline clearly communicated
-- [ ] Auto-release occurs after claim window (48-72 hrs)
+- [ ] Release timeline clearly communicated (48 hour claim window)
+- [ ] Auto-release occurs after 48 hour claim window
 - [ ] Release blocked if damage claim exists
-- [ ] Notifications sent on release
+- [ ] System message sent to conversation on release
 
 ---
 
@@ -356,8 +397,8 @@ src/
 │   │   ├── RentalCountdown.tsx              # Countdown timer
 │   │   ├── RentalQuickActions.tsx           # Action buttons
 │   │   ├── RentalProgressBar.tsx            # Progress indicator
-│   │   ├── RentalCompletionModal.tsx        # Completion celebration
-│   │   └── index.ts                         # Barrel export
+│   │   └── RentalCompletionModal.tsx        # Completion celebration
+│   │   # NO index.ts - import directly per project conventions
 │   │
 │   ├── inspection/
 │   │   ├── steps/
@@ -607,9 +648,11 @@ ADD COLUMN completed_at TIMESTAMPTZ;
 |------|----------|----------|
 | `PostRentalReviewFlow.tsx` | 6 hrs | 🟡 High |
 | `ReviewPromptBanner.tsx` | 3 hrs | 🟡 High |
+| `MutualReviewCard.tsx` + reveal logic | 4 hrs | 🟡 High |
 | `DepositReleaseConfirmation.tsx` | 4 hrs | 🟢 Medium |
 | Auto-release backend logic | 6 hrs | 🟢 Medium |
-| Notifications integration | 4 hrs | 🟢 Medium |
+
+> **Note:** Push notifications are out of scope for this phase. System messages in conversation threads will be used instead.
 
 ### Sprint 4 (Week 4-5): Polish & Testing
 | Task | Estimate | Priority |
@@ -628,7 +671,8 @@ ADD COLUMN completed_at TIMESTAMPTZ;
 - [ ] `PickupConfirmationStep` renders correctly
 - [ ] `ReturnConfirmationStep` shows comparison when both inspections exist
 - [ ] `RentalCountdown` calculates time correctly
-- [ ] Status transitions work (approved → active → completed)
+- [ ] Status transitions work (`approved` → `active` → `completed`)
+- [ ] Mutual reveal logic triggers correctly when both parties review
 
 ### Integration Tests
 - [ ] Complete pickup flow end-to-end
@@ -650,7 +694,7 @@ ADD COLUMN completed_at TIMESTAMPTZ;
 |--------|---------|--------|-------------|
 | Rental completion rate | Unknown | 95% | % of approved bookings reaching completed |
 | Review submission rate | Unknown | 60% | % of completed rentals with reviews |
-| Deposit release time | Manual | < 72 hrs | Avg time from completion to release |
+| Deposit release time | Manual | < 48 hrs | Avg time from completion to release |
 | Support tickets (rental issues) | Baseline | -50% | Monthly ticket count |
 | User satisfaction | Baseline | +20% | Post-rental survey |
 
@@ -664,12 +708,19 @@ ADD COLUMN completed_at TIMESTAMPTZ;
 
 ---
 
-## 📝 Open Questions
+## 📝 Decisions (Previously Open Questions)
 
-1. **Claim Window Duration:** Should the deposit release window be 48 or 72 hours? 48 hours
-2. **Review Visibility:** Should reviews be hidden until both parties submit (mutual reveal)? yes
-3. **Active Rental Notifications:** What notifications should be sent during active rental? not notification not setup yet 
-4. **Extension Handling:** What happens if a renter needs to extend their rental? not available to extend for now we're gonna do it later
+| Question | Decision | Impact |
+|----------|----------|--------|
+| **Claim Window Duration** | **48 hours** | Auto-release deposits 48 hours after rental completion |
+| **Review Visibility** | **Yes, mutual reveal** | Reviews hidden until both parties submit; requires `is_revealed` flag |
+| **Active Rental Notifications** | **Out of scope** | No push notifications for now; use system messages in conversation |
+| **Extension Handling** | **Deferred** | Not available in v1; will implement in future iteration |
+
+### Scope Exclusions (for this phase)
+- ❌ Push notifications (use conversation system messages instead)
+- ❌ Rental extensions
+- ❌ `pending` booking status (payment-first model means bookings start as `approved`)
 
 ---
 

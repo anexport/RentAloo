@@ -25,10 +25,7 @@ import {
   Calendar,
   User,
   MessageSquare,
-  CheckCircle,
   XCircle,
-  Clock,
-  Shield,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
@@ -37,7 +34,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import MessagingInterface from "../messaging/MessagingInterface";
-import PaymentForm from "../payment/PaymentForm";
 import RenterScreening from "../verification/RenterScreening";
 import { 
   InspectionFlowBanner, 
@@ -69,7 +65,6 @@ const BookingRequestCard = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [showPayment, setShowPayment] = useState(false);
   const [hasPayment, setHasPayment] = useState(false);
   const [showRenterScreening, setShowRenterScreening] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
@@ -328,7 +323,7 @@ const BookingRequestCard = ({
   const isRenter = user?.id === bookingRequest.renter.id;
   const canCancel =
     (isOwner || isRenter) &&
-    ["pending", "approved"].includes(bookingRequest.status || "");
+    bookingRequest.status === "approved";
 
   // Get equipment image
   const equipmentImage =
@@ -395,18 +390,14 @@ const BookingRequestCard = ({
               <Badge
                 className={cn(
                   "shrink-0",
-                  bookingRequest.status === "pending" && !hasPayment
-                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    : bookingRequest.status === "approved" && hasPayment
+                  bookingRequest.status === "approved" && hasPayment
                     ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : getBookingStatusColor(bookingRequest.status || "pending")
+                    : getBookingStatusColor(bookingRequest.status || "approved")
                 )}
               >
-                {bookingRequest.status === "pending" && !hasPayment
-                  ? "Awaiting Payment"
-                  : bookingRequest.status === "approved" && hasPayment
+                {bookingRequest.status === "approved" && hasPayment
                   ? "Confirmed"
-                  : getBookingStatusText(bookingRequest.status || "pending")}
+                  : getBookingStatusText(bookingRequest.status || "approved")}
               </Badge>
             </div>
           </CardHeader>
@@ -420,7 +411,7 @@ const BookingRequestCard = ({
                 hasReturnInspection={!!returnInspectionId}
                 startDate={startDate}
                 endDate={endDate}
-                bookingStatus={bookingRequest.status || "pending"}
+                bookingStatus={bookingRequest.status || "approved"}
                 compact={true}
               />
             )}
@@ -612,17 +603,6 @@ const BookingRequestCard = ({
             )}
 
             {/* Status-specific information */}
-            {bookingRequest.status === "pending" && !hasPayment && (
-              <Alert>
-                <Clock className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  {isOwner
-                    ? "Awaiting payment from the renter."
-                    : "Complete payment to confirm your booking."}
-                </AlertDescription>
-              </Alert>
-            )}
-
             {bookingRequest.status === "cancelled" && (
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
@@ -637,17 +617,6 @@ const BookingRequestCard = ({
             {/* Action Buttons */}
             {showActions && (
               <div className="flex flex-wrap gap-2 pt-4 border-t">
-                {isOwner && bookingRequest.status === "pending" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowRenterScreening(!showRenterScreening)}
-                  >
-                    <Shield className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">{showRenterScreening ? "Hide" : "View"}</span> Renter
-                  </Button>
-                )}
-
                 {/* Message Button */}
                 <Button
                   size="sm"
@@ -695,36 +664,6 @@ const BookingRequestCard = ({
                 setShowMessaging(false);
                 setConversationId(null);
               }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Payment Modal */}
-      {showPayment && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-background rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 border shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Complete Payment</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPayment(false)}
-                aria-label="Close payment modal"
-              >
-                ✕
-              </Button>
-            </div>
-            <PaymentForm
-              bookingRequestId={bookingRequest.id}
-              ownerId={bookingRequest.owner.id}
-              totalAmount={bookingRequest.total_amount}
-              onSuccess={() => {
-                setShowPayment(false);
-                setHasPayment(true);
-                onStatusChange?.();
-              }}
-              onCancel={() => setShowPayment(false)}
             />
           </div>
         </div>
