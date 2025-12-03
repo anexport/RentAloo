@@ -36,6 +36,10 @@ ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
 -- RLS policies for rental_events table
 ALTER TABLE rental_events ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then recreate them
+DROP POLICY IF EXISTS "Users can view rental events for their bookings" ON rental_events;
+DROP POLICY IF EXISTS "Users can create rental events for their bookings" ON rental_events;
+
 -- Users can view events for bookings they're part of (as renter or equipment owner)
 CREATE POLICY "Users can view rental events for their bookings"
 ON rental_events FOR SELECT
@@ -63,22 +67,37 @@ WITH CHECK (
 -- Function to activate a rental (called after pickup inspection)
 CREATE OR REPLACE FUNCTION activate_rental(p_booking_id UUID)
 RETURNS VOID AS $$
+DECLARE
+  v_caller_id UUID := auth.uid();
+  v_renter_id UUID;
+  v_owner_id UUID;
 BEGIN
+  -- Fetch renter and owner for permission check
+  SELECT br.renter_id, e.owner_id INTO v_renter_id, v_owner_id
+  FROM booking_requests br
+  JOIN equipment e ON br.equipment_id = e.id
+  WHERE br.id = p_booking_id;
+
+  -- Explicitly validate caller is renter or owner
+  IF v_caller_id IS NULL OR (v_caller_id != v_renter_id AND v_caller_id != v_owner_id) THEN
+    RAISE EXCEPTION 'Unauthorized: user does not have permission to activate this rental';
+  END IF;
+
   -- Update booking status to active
   UPDATE booking_requests
-  SET 
+  SET
     status = 'active',
     activated_at = NOW(),
     updated_at = NOW()
   WHERE id = p_booking_id
   AND status = 'approved';
-  
+
   -- Log the event
   INSERT INTO rental_events (booking_id, event_type, created_by, event_data)
   VALUES (
     p_booking_id,
     'rental_started',
-    auth.uid(),
+    v_caller_id,
     jsonb_build_object('activated_at', NOW())
   );
 END;
@@ -87,22 +106,37 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Function to complete a rental (called after return inspection)
 CREATE OR REPLACE FUNCTION complete_rental(p_booking_id UUID)
 RETURNS VOID AS $$
+DECLARE
+  v_caller_id UUID := auth.uid();
+  v_renter_id UUID;
+  v_owner_id UUID;
 BEGIN
+  -- Fetch renter and owner for permission check
+  SELECT br.renter_id, e.owner_id INTO v_renter_id, v_owner_id
+  FROM booking_requests br
+  JOIN equipment e ON br.equipment_id = e.id
+  WHERE br.id = p_booking_id;
+
+  -- Explicitly validate caller is renter or owner
+  IF v_caller_id IS NULL OR (v_caller_id != v_renter_id AND v_caller_id != v_owner_id) THEN
+    RAISE EXCEPTION 'Unauthorized: user does not have permission to complete this rental';
+  END IF;
+
   -- Update booking status to completed
   UPDATE booking_requests
-  SET 
+  SET
     status = 'completed',
     completed_at = NOW(),
     updated_at = NOW()
   WHERE id = p_booking_id
   AND status = 'active';
-  
+
   -- Log the event
   INSERT INTO rental_events (booking_id, event_type, created_by, event_data)
   VALUES (
     p_booking_id,
     'rental_completed',
-    auth.uid(),
+    v_caller_id,
     jsonb_build_object('completed_at', NOW())
   );
 END;

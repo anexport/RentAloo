@@ -16,8 +16,10 @@ const getDisplayName = (profile: { full_name?: string | null; username?: string 
 
 // Helper to get initials for avatar fallback
 const getInitials = (name: string): string => {
+  if (!name.trim()) return "U";
   return name
     .split(" ")
+    .filter((n) => n.length > 0)
     .map((n) => n[0])
     .join("")
     .toUpperCase()

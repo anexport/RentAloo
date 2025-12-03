@@ -143,6 +143,18 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
           void fetchRental();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "equipment_inspections",
+          filter: `booking_id=eq.${bookingId}`,
+        },
+        () => {
+          void fetchRental();
+        }
+      )
       .subscribe();
 
     return () => {

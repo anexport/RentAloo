@@ -28,6 +28,9 @@ export default function RentalCountdown({
 
   // Update countdown every minute
   useEffect(() => {
+    // Update immediately when props change
+    setCountdown(calculateRentalCountdown(startDate, endDate));
+
     const interval = setInterval(() => {
       setCountdown(calculateRentalCountdown(startDate, endDate));
     }, 60000); // Update every minute

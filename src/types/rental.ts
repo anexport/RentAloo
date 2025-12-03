@@ -72,6 +72,15 @@ export const calculateRentalCountdown = (
   const end = new Date(endDate);
   const now = new Date();
 
+  // Validate dates
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    throw new Error("Invalid date provided");
+  }
+
+  if (end < start) {
+    throw new Error("End date must be after start date");
+  }
+
   const totalMs = end.getTime() - start.getTime();
   const remainingMs = Math.max(end.getTime() - now.getTime(), 0);
   const elapsedMs = Math.max(now.getTime() - start.getTime(), 0);
@@ -85,10 +94,9 @@ export const calculateRentalCountdown = (
     (remainingMs % (1000 * 60 * 60)) / (1000 * 60)
   );
 
-  const progressPercentage = Math.min(
-    Math.round((elapsedMs / totalMs) * 100),
-    100
-  );
+  // Handle divide-by-zero case when start equals end
+  const progressPercentage =
+    totalMs > 0 ? Math.min(Math.round((elapsedMs / totalMs) * 100), 100) : 100;
 
   return {
     totalDays,

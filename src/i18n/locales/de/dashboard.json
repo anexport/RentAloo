@@ -28,6 +28,10 @@
       "card_title": "Meine Bewertungen",
       "card_description": "Bewertungen, die du für Ausrüstungseigentümer geschrieben hast"
     },
+    "active_rentals": {
+      "title": "Aktive Mietverträge",
+      "description": "Deine derzeit aktiven Ausrüstungsmietverträge"
+    },
     "tabs": {
       "overview": "Übersicht",
       "bookings": "Mietverträge"

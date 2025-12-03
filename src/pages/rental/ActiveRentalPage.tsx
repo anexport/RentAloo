@@ -29,8 +29,10 @@ const getDisplayName = (profile: { full_name?: string | null; username?: string 
 
 // Helper to get initials for avatar fallback
 const getInitials = (name: string): string => {
+  if (!name.trim()) return "U";
   return name
     .split(" ")
+    .filter((n) => n.length > 0)
     .map((n) => n[0])
     .join("")
     .toUpperCase()
@@ -58,6 +60,9 @@ export default function ActiveRentalPage() {
   }
 
   if (error || !booking) {
+    const errorMessage = error instanceof Error ? error.message : error || "This rental doesn't exist or you don't have access to it.";
+    const dashboardPath = user?.user_metadata?.role === "owner" ? "/owner/dashboard" : "/renter/dashboard";
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
@@ -65,9 +70,9 @@ export default function ActiveRentalPage() {
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Rental Not Found</h2>
             <p className="text-muted-foreground mb-6">
-              {error || "This rental doesn't exist or you don't have access to it."}
+              {errorMessage}
             </p>
-            <Button onClick={() => navigate("/renter/dashboard")}>
+            <Button onClick={() => navigate(dashboardPath)}>
               Back to Dashboard
             </Button>
           </CardContent>
@@ -198,7 +203,7 @@ export default function ActiveRentalPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="font-medium">${booking.total_amount.toFixed(2)}</p>
+                  <p className="font-medium">${(booking.total_amount ?? 0).toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -260,7 +265,7 @@ export default function ActiveRentalPage() {
                 <div>
                   <p className="font-medium">Pickup Inspection</p>
                   <p className="text-sm text-muted-foreground">
-                    {pickupInspection
+                    {pickupInspection?.completed_at
                       ? `Completed ${format(new Date(pickupInspection.completed_at), "MMM d, h:mm a")}`
                       : "Not completed"}
                   </p>
@@ -285,7 +290,7 @@ export default function ActiveRentalPage() {
                 <div>
                   <p className="font-medium">Return Inspection</p>
                   <p className="text-sm text-muted-foreground">
-                    {returnInspection
+                    {returnInspection?.completed_at
                       ? `Completed ${format(new Date(returnInspection.completed_at), "MMM d, h:mm a")}`
                       : "Not started"}
                   </p>

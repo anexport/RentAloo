@@ -222,13 +222,15 @@ const StatsOverview = () => {
           prevPaymentsResult,
           prevReviewsResult,
         ] = await Promise.all([
+          // Count bookings that were active during the previous month
+          // (rental period overlapped with the previous month)
           supabase
             .from("booking_requests")
             .select("*", { count: "exact", head: true })
             .eq("renter_id", user.id)
-            .eq("status", "active")
-            .lt("created_at", currentMonthStart.toISOString())
-            .gte("created_at", oneMonthAgo.toISOString()),
+            .lt("start_date", currentMonthStart.toISOString())
+            .gte("end_date", oneMonthAgo.toISOString())
+            .in("status", ["active", "completed"]),
           supabase
             .from("user_favorites")
             .select("*", { count: "exact", head: true })
@@ -341,13 +343,15 @@ const StatsOverview = () => {
         const [activeSparkline, savedItemsSparkline, spentSparkline] =
           await Promise.all([
             generateSparkline(async (start, end) => {
+              // Count bookings that were active during this period
+              // (rental period overlapped with this time period)
               const { count, error } = await supabase
                 .from("booking_requests")
                 .select("*", { count: "exact", head: true })
                 .eq("renter_id", user.id)
-                .eq("status", "active")
-                .gte("created_at", start.toISOString())
-                .lt("created_at", end.toISOString());
+                .lt("start_date", end.toISOString())
+                .gte("end_date", start.toISOString())
+                .in("status", ["active", "completed"]);
               if (error) throw error;
               return count || 0;
             }),

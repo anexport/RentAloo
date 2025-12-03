@@ -320,10 +320,14 @@ const BookingRequestCard = ({
 
   const isOwner = user?.id === bookingRequest.owner.id;
   const isRenter = user?.id === bookingRequest.renter.id;
-  // Can cancel if approved (before rental starts) or active (during rental - early termination)
+  // Can cancel if:
+  // - Status is "approved" (before rental starts)
+  // - Status is "active" BUT pickup inspection not completed (can still cancel before equipment handoff)
+  // - Status is "active" AND pickup inspection completed (requires return flow, not simple cancellation)
   const canCancel =
     (isOwner || isRenter) &&
-    (bookingRequest.status === "approved" || bookingRequest.status === "active");
+    (bookingRequest.status === "approved" ||
+      (bookingRequest.status === "active" && !pickupInspectionId));
 
   // Get equipment image
   const equipmentImage =

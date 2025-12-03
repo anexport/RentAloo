@@ -126,7 +126,6 @@ export default function RentalQuickActions({
         const Icon = action.icon;
         const content = (
           <Button
-            key={action.id}
             variant={action.variant}
             disabled={action.disabled}
             className={cn(

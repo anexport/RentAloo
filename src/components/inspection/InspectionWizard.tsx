@@ -13,6 +13,8 @@ import PickupConfirmationStep from "@/components/inspection/steps/PickupConfirma
 import ReturnConfirmationStep from "@/components/inspection/steps/ReturnConfirmationStep";
 import type { InspectionType, ChecklistItem } from "@/types/inspection";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface BookingInfo {
   startDate: string;
@@ -76,13 +78,44 @@ export default function InspectionWizard({
     lng: number;
   } | null>(null);
 
-  // For return inspections, fetch pickup inspection data for comparison
-  const [pickupInspection, setPickupInspection] = useState<{
-    photos: string[];
-    checklistItems: ChecklistItem[];
-    timestamp: string;
-    location?: { lat: number; lng: number } | null;
-  } | null>(null);
+  // For return inspections, fetch pickup inspection data for comparison using React Query
+  const {
+    data: pickupInspection,
+    isLoading: isLoadingPickupInspection,
+    error: pickupInspectionError,
+  } = useQuery({
+    queryKey: ["pickup-inspection", bookingId],
+    queryFn: async () => {
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+
+      const { data, error } = await supabase
+        .from("equipment_inspections")
+        .select("*")
+        .eq("booking_id", bookingId)
+        .eq("inspection_type", "pickup")
+        .single();
+
+      if (error) throw error;
+
+      return {
+        photos: (data.photos as string[]) || [],
+        checklistItems: (data.checklist_items as ChecklistItem[]) || [],
+        timestamp: data.timestamp,
+        location: data.location as { lat: number; lng: number } | null,
+      };
+    },
+    enabled: inspectionType === "return" && !!bookingId && !!user,
+  });
+
+  // Show error toast if pickup inspection fetch fails
+  useEffect(() => {
+    if (pickupInspectionError) {
+      toast.error("Failed to load pickup inspection data");
+      console.error("Pickup inspection error:", pickupInspectionError);
+    }
+  }, [pickupInspectionError]);
 
   // Use photo upload hook to get previews
   const { previews } = usePhotoUpload({
@@ -95,31 +128,6 @@ export default function InspectionWizard({
     () => getWizardSteps(inspectionType),
     [inspectionType]
   );
-
-  // Fetch pickup inspection for return inspections
-  useEffect(() => {
-    if (inspectionType === "return" && bookingId) {
-      const fetchPickupInspection = async () => {
-        const { data, error } = await supabase
-          .from("equipment_inspections")
-          .select("*")
-          .eq("booking_id", bookingId)
-          .eq("inspection_type", "pickup")
-          .single();
-
-        if (data && !error) {
-          setPickupInspection({
-            photos: data.photos || [],
-            checklistItems: (data.checklist_items as ChecklistItem[]) || [],
-            timestamp: data.timestamp,
-            location: data.location as { lat: number; lng: number } | null,
-          });
-        }
-      };
-
-      fetchPickupInspection();
-    }
-  }, [inspectionType, bookingId]);
 
   const handleNext = () => {
     setCurrentStep((prev) => Math.min(prev + 1, WIZARD_STEPS.length - 1));
@@ -373,6 +381,20 @@ export default function InspectionWizard({
         return null;
     }
   };
+
+  // Show loading state for return inspections while fetching pickup data
+  if (inspectionType === "return" && isLoadingPickupInspection) {
+    return (
+      <div className={cn("flex flex-col min-h-screen bg-background", className)}>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+            <p className="text-sm text-muted-foreground">Loading pickup inspection data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col min-h-screen bg-background", className)}>

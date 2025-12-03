@@ -72,13 +72,17 @@ export default function PickupConfirmationStep({
       }
 
       // Send system message to conversation
-      const { data: conversation } = await supabase
+      const { data: conversation, error: conversationError } = await supabase
         .from("conversations")
         .select("id")
         .eq("booking_request_id", bookingId)
         .single();
 
-      if (conversation) {
+      if (conversationError) {
+        console.error("Failed to fetch conversation:", conversationError);
+      }
+
+      if (conversation?.id) {
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
           await supabase.from("messages").insert({

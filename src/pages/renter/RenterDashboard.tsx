@@ -297,10 +297,10 @@ const RenterDashboard = () => {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                   <Package className="h-6 w-6 text-emerald-500" />
-                  Active Rentals
+                  {t("renter.active_rentals.title")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Equipment you're currently renting
+                  {t("renter.active_rentals.description")}
                 </p>
               </div>
             </div>
