@@ -4,10 +4,11 @@ import {
   CheckCircle,
   ArrowLeft,
   Phone,
-  Mail,
-  MapPin,
   Info,
   AlertTriangle,
+  Sparkles,
+  Lock,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,6 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -30,14 +30,41 @@ import {
 } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
 import DocumentUpload from "@/components/verification/DocumentUpload";
-import VerificationBadge from "@/components/verification/VerificationBadge";
+import VerificationStatusGrid from "@/components/verification/VerificationStatusGrid";
 import TrustScore from "@/components/verification/TrustScore";
 import PhoneVerification from "@/components/verification/PhoneVerification";
-import { getVerificationProgress } from "../../lib/verification";
+import { getVerificationProgress } from "@/lib/verification";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useToast } from "@/hooks/useToast";
-import { useMemo, useRef, useState } from "react";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
+
+type VerificationStep = "overview" | "identity" | "phone";
+
+type StepConfig = {
+  id: VerificationStep;
+  label: string;
+  icon: LucideIcon;
+  description: string;
+  points: number;
+};
+
+const VERIFICATION_STEPS: StepConfig[] = [
+  {
+    id: "identity",
+    label: "Identity",
+    icon: Shield,
+    description: "Upload a government-issued ID",
+    points: 30,
+  },
+  {
+    id: "phone",
+    label: "Phone",
+    icon: Phone,
+    description: "Verify via SMS code",
+    points: 10,
+  },
+];
 
 const VerifyIdentity = () => {
   const { toast } = useToast();
@@ -49,11 +76,8 @@ const VerifyIdentity = () => {
     fetchVerificationProfile,
   } = useVerification();
 
-  const [activeTab, setActiveTab] = useState<string>("overview");
-  const identitySectionRef = useRef<HTMLDivElement | null>(null);
-  const prefersReducedMotion = usePrefersReducedMotion();
+  const [activeStep, setActiveStep] = useState<VerificationStep>("overview");
 
-  // Moved useMemo above all early returns to comply with the Rules of Hooks
   const hasAnyVerification = useMemo(() => {
     if (!profile) return false;
     return (
@@ -86,12 +110,9 @@ const VerifyIdentity = () => {
   };
 
   const handlePhoneVerify = async (_phoneNumber: string, code: string) => {
-    // Simulate verification (in production, this would call an API)
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-        // Demo: accept code "123456"
         if (code === "123456") {
-          // Refresh profile to update phoneVerified status
           fetchVerificationProfile()
             .then(() => {
               toast({
@@ -118,36 +139,24 @@ const VerifyIdentity = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-pulse" />
-          <p className="text-muted-foreground">
-            Loading verification status...
-          </p>
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 animate-pulse">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-muted-foreground">Loading verification status...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   const progress = profile ? getVerificationProgress(profile) : 0;
 
-  const handleClickVerifyNow = () => {
-    setActiveTab("identity");
-    setTimeout(() => {
-      const el = identitySectionRef.current;
-      if (el && el instanceof HTMLElement) {
-        el.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: "start",
-        });
-        el.focus({ preventScroll: true });
-      }
-    }, 50);
-  };
-
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 pb-8">
         {/* Back Button */}
         <Link
           to="/renter/dashboard"
@@ -158,376 +167,325 @@ const VerifyIdentity = () => {
         </Link>
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 mb-2">
             <Shield className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Verify Your Identity
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Increase your trust score and access more rental opportunities by
-            completing verification
+          <p className="text-muted-foreground max-w-lg mx-auto text-sm sm:text-base">
+            Build trust and unlock more rental opportunities by completing verification
           </p>
         </div>
 
-        {/* High-Emphasis Banner for 0% progress and no uploads */}
+        {/* Urgent CTA for unverified users */}
         {progress === 0 && !hasAnyVerification && (
-          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20">
-            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
+          <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
+            <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-full bg-destructive/10">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold text-destructive">
+                  <p className="font-semibold text-amber-900 dark:text-amber-200">
                     Complete your verification
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Your account is unverified (0%). Verify now to start renting
-                    safely.
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Your account is unverified. Verify now to start renting safely.
                   </p>
                 </div>
               </div>
               <Button
-                variant="default"
-                size="lg"
-                className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
-                aria-label="Verify now"
-                onClick={handleClickVerifyNow}
-                data-testid="verify-now-banner"
+                onClick={() => setActiveStep("identity")}
+                className="w-full sm:w-auto"
               >
-                Verify now
+                <Sparkles className="h-4 w-4 mr-2" />
+                Get Started
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Overall Progress Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Verification Progress</CardTitle>
-                <CardDescription>
-                  Complete all verifications to maximize your trust
-                </CardDescription>
-              </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Info className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Why Verify Your Identity?</DialogTitle>
-                    <DialogDescription>
-                      Verification helps build trust in our community and
-                      provides several benefits.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 text-sm">
-                    <div>
-                      <h4 className="font-semibold mb-1">For Renters:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                        <li>Instant booking confirmation</li>
-                        <li>Access to premium equipment</li>
-                        <li>Build credibility with equipment owners</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-1">
-                        Privacy & Security:
-                      </h4>
-                      <p className="text-muted-foreground">
-                        Your documents are encrypted and only used for
-                        verification. They are never shared with other users.
-                      </p>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Overall Progress</span>
-                <span className="font-semibold text-foreground">
-                  {progress}%
-                </span>
-              </div>
-              <Progress value={progress} className="h-3" />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-3 mt-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <Shield className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Identity</span>
-                </div>
-                <VerificationBadge
-                  status={profile?.identityVerified ? "verified" : "unverified"}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <Mail className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Email</span>
-                </div>
-                <VerificationBadge
-                  status={profile?.emailVerified ? "verified" : "unverified"}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <Phone className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Phone</span>
-                </div>
-                <VerificationBadge
-                  status={profile?.phoneVerified ? "verified" : "unverified"}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <MapPin className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-medium">Address</span>
-                </div>
-                <VerificationBadge
-                  status={profile?.addressVerified ? "verified" : "unverified"}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Trust Score */}
-        {profile && <TrustScore score={profile.trustScore} />}
-
-        {/* Tabs for Verification Steps */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="identity">
-              <Shield className="h-4 w-4 mr-2" />
-              Identity
-            </TabsTrigger>
-            <TabsTrigger value="phone">
-              <Phone className="h-4 w-4 mr-2" />
-              Phone
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4 mt-6">
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Progress & Trust Score */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Progress Card */}
             <Card>
-              <CardHeader>
-                <CardTitle>Available Verifications</CardTitle>
-                <CardDescription>
-                  Choose a verification method to get started
-                </CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Progress</CardTitle>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Why Verify?</DialogTitle>
+                        <DialogDescription>
+                          Verification builds trust in our community
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 text-sm">
+                        <div>
+                          <h4 className="font-semibold mb-2">Benefits:</h4>
+                          <ul className="space-y-2 text-muted-foreground">
+                            <li className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              Instant booking confirmation
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              Access to premium equipment
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              Build credibility with owners
+                            </li>
+                          </ul>
+                        </div>
+                        <div className="p-3 rounded-lg bg-muted">
+                          <div className="flex items-start gap-2">
+                            <Lock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <p className="text-xs text-muted-foreground">
+                              Your documents are encrypted and never shared with other users.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div
-                    className={`p-4 border-2 rounded-lg ${
-                      !profile?.identityVerified
-                        ? "border-primary bg-primary/5"
-                        : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold">
-                            Identity Verification
-                          </h3>
-                          {profile?.identityVerified && (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Upload a government-issued ID (Driver's License,
-                          Passport, or State ID)
-                        </p>
-                      </div>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="font-medium"
-                        aria-label="Verify identity now"
-                        onClick={handleClickVerifyNow}
-                      >
-                        Verify now
-                      </Button>
-                    </div>
-                    {!profile?.identityVerified && (
-                      <p className="text-xs text-primary font-medium mt-3">
-                        Recommended • Adds +30 points to Trust Score
-                      </p>
-                    )}
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Overall</span>
+                    <span className="font-semibold tabular-nums">{progress}%</span>
                   </div>
-
-                  <div
-                    className={`p-4 border-2 rounded-lg ${
-                      !profile?.phoneVerified
-                        ? "border-border"
-                        : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold">Phone Verification</h3>
-                          {profile?.phoneVerified && (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Verify your phone number via SMS for better security
-                        </p>
-                      </div>
-                    </div>
-                    {!profile?.phoneVerified && (
-                      <p className="text-xs text-muted-foreground mt-3">
-                        Quick verification • Takes less than 2 minutes
-                      </p>
-                    )}
-                  </div>
+                  <Progress value={progress} className="h-2" />
                 </div>
 
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Pro tip:</strong> Complete all verifications to
-                    unlock premium features and get instant booking
-                    confirmation.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent
-            value="identity"
-            className="space-y-4 mt-6"
-            ref={identitySectionRef}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Identity Verification</CardTitle>
-                <CardDescription>
-                  Upload a clear photo of your government-issued ID
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {profile?.identityVerified ? (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Identity Verified!</strong> Your identity has been
-                      successfully verified.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <>
-                    <DocumentUpload
-                      type="identity"
-                      onUpload={handleUpload}
-                      isUploading={uploading}
-                    />
-
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold">
-                        Accepted Documents:
-                      </h4>
-                      <ul className="text-sm text-muted-foreground space-y-2">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary" />
-                          <span>Driver's License (front and back)</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary" />
-                          <span>Passport (photo page)</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 mt-0.5 text-primary" />
-                          <span>State-issued ID card</span>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <Alert>
-                      <Shield className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Your privacy matters:</strong> Your documents
-                        are encrypted and only used for verification. They are
-                        never shared with other users.
-                      </AlertDescription>
-                    </Alert>
-                  </>
+                {profile && (
+                  <VerificationStatusGrid
+                    profile={profile}
+                    compact
+                    className="gap-2"
+                  />
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="phone" className="space-y-4 mt-6">
-            {profile?.phoneVerified ? (
+            {/* Trust Score - Hidden on mobile when viewing a step */}
+            {profile && (
+              <div className={cn(activeStep !== "overview" && "hidden lg:block")}>
+                <TrustScore score={profile.trustScore} showBreakdown={false} />
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Verification Steps */}
+          <div className="lg:col-span-2 space-y-4">
+            {activeStep === "overview" ? (
+              /* Overview - Step Selection */
               <Card>
                 <CardHeader>
-                  <CardTitle>Phone Verification</CardTitle>
+                  <CardTitle>Choose Verification Method</CardTitle>
                   <CardDescription>
-                    Your phone number has been verified
+                    Select a verification to get started
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Phone Verified!</strong> Your phone number has
-                      been successfully verified.
+                <CardContent className="space-y-3">
+                  {VERIFICATION_STEPS.map((step) => {
+                    const Icon = step.icon;
+                    const isCompleted =
+                      step.id === "identity"
+                        ? profile?.identityVerified
+                        : profile?.phoneVerified;
+
+                    return (
+                      <button
+                        key={step.id}
+                        onClick={() => setActiveStep(step.id)}
+                        className={cn(
+                          "w-full p-4 rounded-xl border-2 text-left transition-all",
+                          "hover:border-primary/50 hover:bg-accent/30",
+                          isCompleted
+                            ? "border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20"
+                            : "border-border"
+                        )}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            className={cn(
+                              "p-3 rounded-xl",
+                              isCompleted
+                                ? "bg-green-100 dark:bg-green-900/30"
+                                : "bg-primary/10"
+                            )}
+                          >
+                            <Icon
+                              className={cn(
+                                "h-5 w-5",
+                                isCompleted
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-primary"
+                              )}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-foreground">
+                                {step.label} Verification
+                              </h3>
+                              {isCompleted && (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {step.description}
+                            </p>
+                            {!isCompleted && (
+                              <p className="text-xs text-primary font-medium mt-2">
+                                +{step.points} trust points
+                              </p>
+                            )}
+                          </div>
+                          <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  <Alert className="mt-4">
+                    <Sparkles className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>Pro tip:</strong> Complete all verifications for instant
+                      booking confirmation and access to premium equipment.
                     </AlertDescription>
                   </Alert>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Phone Verification</CardTitle>
-                    <CardDescription>
-                      Verify your phone number to enhance account security
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Phone verification helps secure your account and allows
-                      owners to contact you directly about bookings.
-                    </p>
-                  </CardContent>
-                </Card>
+            ) : activeStep === "identity" ? (
+              /* Identity Verification */
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Identity Verification</CardTitle>
+                      <CardDescription>
+                        Upload a clear photo of your government ID
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveStep("overview")}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {profile?.identityVerified ? (
+                    <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-700 dark:text-green-300">
+                        <strong>Identity Verified!</strong> Your identity has been
+                        successfully verified.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      <DocumentUpload
+                        type="identity"
+                        onUpload={handleUpload}
+                        isUploading={uploading}
+                      />
 
-                <PhoneVerification
-                  onVerify={handlePhoneVerify}
-                  isVerifying={uploading}
-                />
+                      <div className="space-y-3 p-4 rounded-xl bg-muted/50">
+                        <h4 className="text-sm font-semibold">Accepted Documents:</h4>
+                        <ul className="text-sm text-muted-foreground space-y-2">
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                            Driver's License (front and back)
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                            Passport (photo page)
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                            State-issued ID card
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                        <div className="flex items-start gap-2">
+                          <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <p className="text-xs text-muted-foreground">
+                            <strong className="text-foreground">Your privacy matters:</strong>{" "}
+                            Documents are encrypted and only used for verification.
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              /* Phone Verification */
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Phone Verification</CardTitle>
+                      <CardDescription>
+                        Verify your phone number via SMS
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveStep("overview")}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Back
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {profile?.phoneVerified ? (
+                    <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-700 dark:text-green-300">
+                        <strong>Phone Verified!</strong> Your phone number has been
+                        successfully verified.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <PhoneVerification
+                      onVerify={handlePhoneVerify}
+                      isVerifying={uploading}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Trust Score Breakdown - Shown below on mobile */}
+            {profile && activeStep === "overview" && (
+              <div className="lg:hidden">
+                <TrustScore score={profile.trustScore} />
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
