@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -23,6 +23,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -101,6 +102,17 @@ const isMacOS = (): boolean => {
   return platform.toLowerCase().includes("mac");
 };
 
+// Helper to check if a key is a navigation key that should allow focus to move to Command
+const isNavigationKey = (key: string): boolean => {
+  return (
+    key === "ArrowDown" ||
+    key === "ArrowUp" ||
+    key === "Enter" ||
+    key === " " ||
+    key === "Escape"
+  );
+};
+
 // Helper functions for recent searches
 const getRecentSearches = (): string[] => {
   try {
@@ -149,6 +161,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [locationInputValue, setLocationInputValue] = useState("");
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const [equipmentInputValue, setEquipmentInputValue] = useState("");
+  const equipmentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
@@ -287,8 +303,67 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const handleLocationSelect = (location: string) => {
     onChange({ ...value, location });
     setLocationOpen(false);
+    setLocationInputValue("");
+    addressAutocomplete.setQuery("");
     setActiveSection("when");
+    locationInputRef.current?.blur();
   };
+
+  // Sync locationInputValue with value.location when location changes externally
+  useEffect(() => {
+    if (!locationOpen && !addressAutocomplete.query) {
+      setLocationInputValue(value.location || "");
+    }
+  }, [value.location, locationOpen, addressAutocomplete.query]);
+
+  // Update addressAutocomplete when user types in the input
+  useEffect(() => {
+    if (locationOpen) {
+      addressAutocomplete.setQuery(locationInputValue);
+    }
+  }, [locationInputValue, locationOpen]);
+
+  // Sync equipmentInputValue with value.equipmentType when equipment changes externally
+  useEffect(() => {
+    if (!equipmentOpen && !equipmentAutocomplete.query) {
+      setEquipmentInputValue(value.equipmentType || "");
+    }
+  }, [value.equipmentType, equipmentOpen, equipmentAutocomplete.query]);
+
+  // Update equipmentAutocomplete when user types in the input
+  useEffect(() => {
+    if (equipmentOpen) {
+      equipmentAutocomplete.setQuery(equipmentInputValue);
+    }
+  }, [equipmentInputValue, equipmentOpen]);
+
+  // Focus Command input when location popover opens
+  useEffect(() => {
+    if (locationOpen && isDesktop) {
+      // Small delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        const commandInput = document.querySelector(
+          '[data-slot="command-input"]'
+        ) as HTMLInputElement;
+        commandInput?.focus();
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [locationOpen, isDesktop]);
+
+  // Focus Command input when equipment popover opens
+  useEffect(() => {
+    if (equipmentOpen && isDesktop) {
+      // Small delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        const commandInput = document.querySelector(
+          '[data-slot="command-input"]'
+        ) as HTMLInputElement;
+        commandInput?.focus();
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [equipmentOpen, isDesktop]);
 
   useEffect(() => {
     if (!value.equipmentCategoryId || value.equipmentType) return;
@@ -331,11 +406,14 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         : "rounded-2xl border";
     return (
       <Command className={commandClassName} shouldFilter={false}>
-        <CommandInput
-          placeholder={placeholder}
-          value={addressAutocomplete.query}
-          onValueChange={addressAutocomplete.setQuery}
-        />
+        <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+          <CommandInput
+            placeholder={placeholder}
+            value={addressAutocomplete.query}
+            onValueChange={addressAutocomplete.setQuery}
+            className="h-12 text-base"
+          />
+        </div>
         <CommandList aria-busy={addressAutocomplete.loading}>
           <CommandEmpty>
             {addressAutocomplete.loading
@@ -450,9 +528,11 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
 
     // Clear input and close popover/sheet
     equipmentAutocomplete.setQuery("");
+    setEquipmentInputValue("");
     setEquipmentOpen(false);
     setSheetOpen(false);
     setActiveSection("where");
+    equipmentInputRef.current?.blur();
   };
 
   const handleSearch = () => {
@@ -648,7 +728,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         </SheetTrigger>
         <SheetContent side="bottom" className="h-[85vh] p-0">
           <div className="flex h-full flex-col">
-            <SheetHeader className="px-6 pt-6 pb-4 text-left">
+            <SheetHeader className="px-6 pt-6 pb-4 text-left border-b sticky top-0 bg-background z-10">
               <SheetTitle className="text-lg font-semibold">
                 Plan your next outing
               </SheetTitle>
@@ -656,7 +736,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 Browse gear by destination, dates, and activity.
               </p>
             </SheetHeader>
-            <div className="px-6 pb-4">
+            <div className="px-6 py-4 border-b sticky top-[88px] bg-background z-10">
               <div className="flex items-center rounded-full bg-muted p-1">
                 {MOBILE_SECTIONS.map((section) => {
                   // Use dynamic icon for "What" section based on selection type
@@ -675,12 +755,26 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       type="button"
                       onClick={() => {
                         setActiveSection(section.key);
+                        // Auto-focus input when switching to sections with inputs
+                        setTimeout(() => {
+                          if (section.key === "where") {
+                            const input = document.querySelector(
+                              '[data-slot="command-input"]'
+                            ) as HTMLInputElement;
+                            input?.focus();
+                          } else if (section.key === "what") {
+                            const input = document.querySelector(
+                              '[data-slot="command-input"]'
+                            ) as HTMLInputElement;
+                            input?.focus();
+                          }
+                        }, 150);
                       }}
                       className={cn(
-                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
+                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                       aria-pressed={isActive}
                     >
@@ -693,19 +787,19 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             </div>
             <div className="flex-1 overflow-y-auto px-6 pb-6">
               {activeSection === "where" && (
-                <div className="space-y-5">
+                <div className="space-y-5 animate-in fade-in-0 duration-200">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-sm font-semibold text-foreground mb-1">
                       Where do you need gear?
                     </h3>
                     <p className="text-xs text-muted-foreground">
                       Search cities or choose a popular destination.
                     </p>
                   </div>
+                  {renderAutocompleteCommand("Try Yosemite National Park")}
                   <Button
                     variant="secondary"
-                    className="w-full justify-start animate-suggestion-item"
-                    style={{ "--item-index": 0 } as React.CSSProperties}
+                    className="w-full justify-start"
                     onClick={handleLocationClick}
                     disabled={isLocating}
                     aria-label="Use current location"
@@ -716,7 +810,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       ? "Detecting your location..."
                       : "Use current location"}
                   </Button>
-                  {renderAutocompleteCommand("Try Yosemite National Park")}
                   <div className="flex flex-wrap gap-2 animate-suggestions-in">
                     {POPULAR_LOCATIONS.map((loc, idx) => (
                       <Button
@@ -755,9 +848,9 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               )}
 
               {activeSection === "when" && (
-                <div className="space-y-5">
+                <div className="space-y-5 animate-in fade-in-0 duration-200">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-sm font-semibold text-foreground mb-1">
                       When will you pick it up?
                     </h3>
                     <p className="text-xs text-muted-foreground">
@@ -830,9 +923,9 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               )}
 
               {activeSection === "what" && (
-                <div className="space-y-5">
+                <div className="space-y-5 animate-in fade-in-0 duration-200">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">
+                    <h3 className="text-sm font-semibold text-foreground mb-1">
                       What are you planning?
                     </h3>
                     <p className="text-xs text-muted-foreground">
@@ -840,11 +933,14 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     </p>
                   </div>
                   <Command shouldFilter={false} className="rounded-2xl border">
-                    <CommandInput
-                      placeholder="What are you looking for?"
-                      value={equipmentAutocomplete.query}
-                      onValueChange={equipmentAutocomplete.setQuery}
-                    />
+                    <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+                      <CommandInput
+                        placeholder="What are you looking for?"
+                        value={equipmentAutocomplete.query}
+                        onValueChange={equipmentAutocomplete.setQuery}
+                        className="h-12 text-base"
+                      />
+                    </div>
                     <CommandList
                       className="max-h-[400px]"
                       aria-busy={equipmentAutocomplete.loading}
@@ -1078,30 +1174,82 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           open={locationOpen}
           onOpenChange={(open) => {
             setLocationOpen(open);
-            if (open) addressAutocomplete.setQuery("");
+            if (!open) {
+              // Reset input to show selected location when popover closes
+              setLocationInputValue(value.location || "");
+              addressAutocomplete.setQuery("");
+            }
           }}
         >
           <PopoverTrigger asChild>
             <button
-              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors rounded-l-full focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
+              type="button"
+              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors rounded-l-full focus:outline-none focus:ring-2 focus:ring-ring focus:z-10 w-full"
               aria-label="Select location"
+              onClick={(e) => {
+                // Focus the input when button is clicked
+                e.preventDefault();
+                locationInputRef.current?.focus();
+              }}
             >
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-foreground">
+                  <div className="text-xs font-semibold text-foreground mb-1">
                     Where
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {value.location || "Search destinations"}
-                  </div>
+                  <Input
+                    ref={locationInputRef}
+                    type="text"
+                    placeholder="Search destinations"
+                    value={
+                      locationOpen ? locationInputValue : value.location || ""
+                    }
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setLocationInputValue(e.target.value);
+                      if (!locationOpen) {
+                        setLocationOpen(true);
+                      }
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                      setLocationOpen(true);
+                      setLocationInputValue(value.location || "");
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow navigation keys to work when popover is open
+                      if (locationOpen && isNavigationKey(e.key)) {
+                        // Find and focus the Command input in the popover
+                        const commandInput = document.querySelector(
+                          '[data-slot="command-input"]'
+                        ) as HTMLInputElement;
+                        if (commandInput) {
+                          // Focus the Command input so it can handle navigation
+                          commandInput.focus();
+                          // Don't stop propagation - let navigation keys work normally
+                          return;
+                        }
+                      }
+                      // Stop propagation for typing keys to prevent unwanted behavior
+                      if (!isNavigationKey(e.key)) {
+                        e.stopPropagation();
+                      }
+                    }}
+                    className="h-auto p-0 !border-0 !shadow-none focus-visible:ring-0 focus-visible:border-0 text-sm text-foreground placeholder:text-muted-foreground !bg-transparent dark:!bg-transparent pointer-events-auto cursor-text rounded-none"
+                    aria-label="Search destinations"
+                  />
                 </div>
-                {value.location && (
+                {value.location && !locationOpen && (
                   <X
                     className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       onChange({ ...value, location: "" });
+                      setLocationInputValue("");
                     }}
                     aria-label="Clear location"
                   />
@@ -1109,7 +1257,20 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
+          <PopoverContent
+            className="w-80 p-0"
+            align="start"
+            onOpenAutoFocus={(e) => {
+              // Allow focus to move to Command input, but delay slightly to ensure DOM is ready
+              e.preventDefault();
+              setTimeout(() => {
+                const commandInput = document.querySelector(
+                  '[data-slot="command-input"]'
+                ) as HTMLInputElement;
+                commandInput?.focus();
+              }, 0);
+            }}
+          >
             <div className="p-3 border-b">
               <Button
                 variant="ghost"
@@ -1204,13 +1365,21 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           open={equipmentOpen}
           onOpenChange={(open) => {
             setEquipmentOpen(open);
-            if (!open) equipmentAutocomplete.setQuery("");
+            if (!open) {
+              setEquipmentInputValue(value.equipmentType || "");
+              equipmentAutocomplete.setQuery("");
+            }
           }}
         >
           <PopoverTrigger asChild>
             <button
-              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
+              type="button"
+              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:z-10 w-full"
               aria-label="Select equipment type"
+              onClick={(e) => {
+                e.preventDefault();
+                equipmentInputRef.current?.focus();
+              }}
             >
               <div className="flex items-center gap-3 w-full">
                 {value.equipmentType && value.search ? (
@@ -1219,20 +1388,63 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   <Package className="h-5 w-5 text-muted-foreground shrink-0" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-foreground">
+                  <div className="text-xs font-semibold text-foreground mb-1">
                     What
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {value.equipmentType || "What are you looking for?"}
-                  </div>
+                  <Input
+                    ref={equipmentInputRef}
+                    type="text"
+                    placeholder="What are you looking for?"
+                    value={
+                      equipmentOpen
+                        ? equipmentInputValue
+                        : value.equipmentType || ""
+                    }
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setEquipmentInputValue(e.target.value);
+                      if (!equipmentOpen) {
+                        setEquipmentOpen(true);
+                      }
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                      setEquipmentOpen(true);
+                      setEquipmentInputValue(value.equipmentType || "");
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow navigation keys to work when popover is open
+                      if (equipmentOpen && isNavigationKey(e.key)) {
+                        // Find and focus the Command input in the popover
+                        const commandInput = document.querySelector(
+                          '[data-slot="command-input"]'
+                        ) as HTMLInputElement;
+                        if (commandInput) {
+                          // Focus the Command input so it can handle navigation
+                          commandInput.focus();
+                          // Don't stop propagation - let navigation keys work normally
+                          return;
+                        }
+                      }
+                      // Stop propagation for typing keys to prevent unwanted behavior
+                      if (!isNavigationKey(e.key)) {
+                        e.stopPropagation();
+                      }
+                    }}
+                    className="h-auto p-0 !border-0 !shadow-none focus-visible:ring-0 focus-visible:border-0 text-sm text-foreground placeholder:text-muted-foreground !bg-transparent dark:!bg-transparent pointer-events-auto cursor-text rounded-none"
+                    aria-label="What are you looking for?"
+                  />
                 </div>
-                {!value.equipmentType && (
+                {!value.equipmentType && !equipmentOpen && (
                   <kbd className="hidden xl:inline-flex items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-60 shrink-0">
                     <span className="text-xs">{isMacOS() ? "⌘" : "Ctrl+"}</span>
                     K
                   </kbd>
                 )}
-                {value.equipmentType && (
+                {value.equipmentType && !equipmentOpen && (
                   <X
                     className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors"
                     onClick={(e) => {
@@ -1243,6 +1455,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         equipmentCategoryId: undefined,
                         search: "",
                       });
+                      setEquipmentInputValue("");
                       equipmentAutocomplete.setQuery("");
                     }}
                     aria-label="Clear equipment selection"
@@ -1251,13 +1464,28 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
+          <PopoverContent
+            className="w-80 p-0"
+            align="start"
+            onOpenAutoFocus={(e) => {
+              // Allow focus to move to Command input, but delay slightly to ensure DOM is ready
+              e.preventDefault();
+              setTimeout(() => {
+                const commandInput = document.querySelector(
+                  '[data-slot="command-input"]'
+                ) as HTMLInputElement;
+                commandInput?.focus();
+              }, 0);
+            }}
+          >
             <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="What are you looking for?"
-                value={equipmentAutocomplete.query}
-                onValueChange={equipmentAutocomplete.setQuery}
-              />
+              <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+                <CommandInput
+                  placeholder="What are you looking for?"
+                  value={equipmentAutocomplete.query}
+                  onValueChange={equipmentAutocomplete.setQuery}
+                />
+              </div>
               <CommandList aria-busy={equipmentAutocomplete.loading}>
                 <CommandEmpty>
                   {equipmentAutocomplete.loading ? (
