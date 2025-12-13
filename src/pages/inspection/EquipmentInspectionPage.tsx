@@ -93,6 +93,13 @@ export default function EquipmentInspectionPage() {
           return;
         }
 
+        // Only the renter should complete the pickup inspection
+        if (inspectionType === "pickup" && isOwner) {
+          setError("Pickup inspections must be completed by the renter");
+          setLoading(false);
+          return;
+        }
+
         // Check booking status based on inspection type
         // Pickup inspection: booking must be 'approved'
         // Return inspection: booking must be 'active'
