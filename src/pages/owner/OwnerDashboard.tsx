@@ -3,6 +3,7 @@ import {
   Plus,
   BarChart3,
   Calendar,
+  Package,
   Star,
   MessageSquare,
   Shield,
@@ -30,9 +31,14 @@ import EscrowDashboard from "@/components/payment/EscrowDashboard";
 import TransactionHistory from "@/components/payment/TransactionHistory";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import WelcomeHero from "@/components/owner/WelcomeHero";
+import OwnerNotificationsPanel from "@/components/owner/NotificationsPanel";
+import OwnerClaimsList from "@/components/claims/OwnerClaimsList";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { formatDateForStorage } from "@/lib/utils";
+import { useActiveRentals } from "@/hooks/useActiveRental";
+import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const OWNER_DASHBOARD_TABS = [
   "overview",
@@ -79,6 +85,11 @@ const OwnerDashboard = () => {
     loading: bookingsLoading,
     fetchBookingRequests,
   } = useBookingRequests("owner");
+  const {
+    rentals: activeRentals,
+    isLoading: activeRentalsLoading,
+    error: activeRentalsError,
+  } = useActiveRentals("owner");
 
   const progress = profile ? getVerificationProgress(profile) : 0;
 
@@ -211,6 +222,49 @@ const OwnerDashboard = () => {
               </Link>
             </CardContent>
           </Card>
+        )}
+
+        {/* Notifications / Tasks */}
+        <OwnerNotificationsPanel />
+
+        {/* Claims Requiring Action */}
+        <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
+          <OwnerClaimsList />
+        </div>
+
+        {/* Active Rentals Section */}
+        {!activeRentalsLoading && activeRentalsError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{activeRentalsError}</AlertDescription>
+          </Alert>
+        )}
+
+        {!activeRentalsLoading && activeRentals.length > 0 && (
+          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-150">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <Package className="h-6 w-6 text-emerald-500" />
+                  Active Rentals
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Rentals currently in progress for your listings.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeRentals.map((rental, index) => (
+                <div
+                  key={rental.id}
+                  className="animate-in slide-in-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${150 + index * 50}ms` }}
+                >
+                  <ActiveRentalCard booking={rental} viewerRole="owner" />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Stats Overview */}

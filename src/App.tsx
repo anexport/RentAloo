@@ -23,6 +23,7 @@ import EquipmentInspectionPage from "@/pages/inspection/EquipmentInspectionPage"
 import InspectionView from "@/components/inspection/InspectionView";
 import FileClaimPage from "@/pages/claims/FileClaimPage";
 import ReviewClaimPage from "@/pages/claims/ReviewClaimPage";
+import ManageClaimPage from "@/pages/claims/ManageClaimPage";
 import ActiveRentalPage from "@/pages/rental/ActiveRentalPage";
 import { Analytics } from "@vercel/analytics/react";
 import OwnerUpgrade from "@/pages/owner/OwnerUpgrade";
@@ -99,6 +100,10 @@ function App() {
                 <Route
                   path="/claims/review/:claimId"
                   element={<ReviewClaimPage />}
+                />
+                <Route
+                  path="/claims/manage/:claimId"
+                  element={<ManageClaimPage />}
                 />
               </>
             )}

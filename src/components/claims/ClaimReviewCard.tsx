@@ -17,7 +17,7 @@ interface ClaimReviewCardProps {
     damage_description: string;
     estimated_cost: number;
     evidence_photos: string[];
-    repair_quotes: string[];
+    repair_quotes: string[] | null;
     status: ClaimStatus;
     filed_at: string;
     booking: {
@@ -27,6 +27,8 @@ interface ClaimReviewCardProps {
     };
   };
   onReview: () => void;
+  pendingActionLabel?: string;
+  nonPendingActionLabel?: string;
 }
 
 const getStatusColor = (status: ClaimStatus) => {
@@ -66,7 +68,14 @@ const getStatusText = (status: ClaimStatus) => {
 export default function ClaimReviewCard({
   claim,
   onReview,
+  pendingActionLabel = "Review & Respond",
+  nonPendingActionLabel = "View Details",
 }: ClaimReviewCardProps) {
+  const evidenceCount = claim.evidence_photos?.length ?? 0;
+  const repairQuoteCount = Array.isArray(claim.repair_quotes)
+    ? claim.repair_quotes.length
+    : 0;
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -107,25 +116,25 @@ export default function ClaimReviewCard({
         <div className="flex gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <ImageIcon className="h-4 w-4" />
-            <span>{claim.evidence_photos.length} photos</span>
+            <span>{evidenceCount} photos</span>
           </div>
-          {claim.repair_quotes.length > 0 && (
+          {repairQuoteCount > 0 && (
             <div className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              <span>{claim.repair_quotes.length} quotes</span>
+              <span>{repairQuoteCount} quotes</span>
             </div>
           )}
         </div>
 
         {claim.status === "pending" && (
           <Button onClick={onReview} className="w-full">
-            Review & Respond
+            {pendingActionLabel}
           </Button>
         )}
 
         {claim.status !== "pending" && (
           <Button onClick={onReview} variant="outline" className="w-full">
-            View Details
+            {nonPendingActionLabel}
           </Button>
         )}
       </CardContent>
