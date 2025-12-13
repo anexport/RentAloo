@@ -29,7 +29,7 @@ import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleMode } from "@/contexts/RoleModeContext";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/payment";
 import { formatDateLabel } from "@/lib/format";
@@ -243,14 +243,37 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     };
   }, [userId, refetchUnreadMessages]);
 
-  const isActive = (href: string) => {
-    if (href === "/renter/dashboard") {
-      return location.pathname === href && !location.search;
-    }
-    return (
-      location.pathname === href || location.pathname + location.search === href
-    );
-  };
+  const isActive = useCallback(
+    (href: string): boolean => {
+      const currentParams = new URLSearchParams(location.search);
+      const currentTab = currentParams.get("tab");
+
+      const [hrefPath, hrefSearch = ""] = href.split("?");
+      const hrefTab = hrefSearch
+        ? new URLSearchParams(hrefSearch).get("tab")
+        : null;
+
+      const isDashboardPath =
+        hrefPath === "/renter/dashboard" || hrefPath === "/owner/dashboard";
+
+      if (isDashboardPath && !hrefSearch) {
+        return (
+          location.pathname === hrefPath &&
+          (currentTab === null || currentTab === "overview")
+        );
+      }
+
+      if (isDashboardPath && hrefTab) {
+        return location.pathname === hrefPath && currentTab === hrefTab;
+      }
+
+      return (
+        location.pathname === href ||
+        location.pathname + location.search === href
+      );
+    },
+    [location.pathname, location.search]
+  );
 
   const hasEquipment = equipmentStatus?.hasEquipment ?? false;
   const activeOwnerBookings = activeOwnerBookingsData ?? 0;
