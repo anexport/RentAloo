@@ -54,7 +54,8 @@ export const RoleModeProvider: React.FC<RoleModeProviderProps> = ({ children }) 
     }
 
     const storedMode = localStorage.getItem(STORAGE_KEY) as RoleMode | null;
-    const primaryRole = (user.user_metadata?.role as RoleMode) || "renter";
+    const primaryRole =
+      user.user_metadata?.role === "owner" ? "owner" : "renter";
 
     // If user is also an owner, allow stored mode or default to primary role
     if (isAlsoOwner) {
