@@ -29,7 +29,10 @@ const OwnerNotificationsPanel = () => {
     let isMounted = true;
 
     const loadNotifications = async () => {
-      if (!user) return;
+      if (!user) {
+        if (isMounted) setNotifications([]);
+        return;
+      }
 
       try {
         const newNotifications: Notification[] = [];
@@ -53,23 +56,30 @@ const OwnerNotificationsPanel = () => {
           ]);
 
         if (pendingBookingsResult.status === "fulfilled") {
-          const pendingCount = pendingBookingsResult.value.count ?? 0;
-          if (pendingCount > 0) {
-            newNotifications.push({
-              id: "pending-bookings",
-              type: "pending_booking",
-              title: `${pendingCount} Booking ${
-                pendingCount === 1 ? "Request" : "Requests"
-              } to Review`,
-              description: `You have ${pendingCount} booking ${
-                pendingCount === 1 ? "request" : "requests"
-              } awaiting your approval.`,
-              action: {
-                label: "Review Bookings",
-                href: "/owner/dashboard?tab=bookings",
-              },
-              dismissible: true,
-            });
+          if (pendingBookingsResult.value.error) {
+            console.error(
+              "Failed to fetch pending bookings:",
+              pendingBookingsResult.value.error
+            );
+          } else {
+            const pendingCount = pendingBookingsResult.value.count ?? 0;
+            if (pendingCount > 0) {
+              newNotifications.push({
+                id: "pending-bookings",
+                type: "pending_booking",
+                title: `${pendingCount} Booking ${
+                  pendingCount === 1 ? "Request" : "Requests"
+                } to Review`,
+                description: `You have ${pendingCount} booking ${
+                  pendingCount === 1 ? "request" : "requests"
+                } awaiting your approval.`,
+                action: {
+                  label: "Review Bookings",
+                  href: "/owner/dashboard?tab=bookings",
+                },
+                dismissible: true,
+              });
+            }
           }
         } else {
           console.error(
@@ -79,22 +89,29 @@ const OwnerNotificationsPanel = () => {
         }
 
         if (pendingPayoutsResult.status === "fulfilled") {
-          const pendingCount = pendingPayoutsResult.value.count ?? 0;
-          if (pendingCount > 0) {
-            newNotifications.push({
-              id: "pending-payouts",
-              type: "payout",
-              title: `${pendingCount} Pending ${
-                pendingCount === 1 ? "Payout" : "Payouts"
-              }`,
-              description:
-                "You have payouts pending processing. Check your payouts for details.",
-              action: {
-                label: "View Payouts",
-                href: "/owner/dashboard?tab=payments",
-              },
-              dismissible: false,
-            });
+          if (pendingPayoutsResult.value.error) {
+            console.error(
+              "Failed to fetch pending payouts:",
+              pendingPayoutsResult.value.error
+            );
+          } else {
+            const pendingCount = pendingPayoutsResult.value.count ?? 0;
+            if (pendingCount > 0) {
+              newNotifications.push({
+                id: "pending-payouts",
+                type: "payout",
+                title: `${pendingCount} Pending ${
+                  pendingCount === 1 ? "Payout" : "Payouts"
+                }`,
+                description:
+                  "You have payouts pending processing. Check your payouts for details.",
+                action: {
+                  label: "View Payouts",
+                  href: "/owner/dashboard?tab=payments",
+                },
+                dismissible: false,
+              });
+            }
           }
         } else {
           console.error(
@@ -104,23 +121,30 @@ const OwnerNotificationsPanel = () => {
         }
 
         if (unreadMessagesResult.status === "fulfilled") {
-          const unreadCount = unreadMessagesResult.value.data ?? 0;
-          if (unreadCount > 0) {
-            newNotifications.push({
-              id: "unread-messages",
-              type: "message",
-              title: `${unreadCount} Unread ${
-                unreadCount === 1 ? "Message" : "Messages"
-              }`,
-              description: `You have ${unreadCount} unread ${
-                unreadCount === 1 ? "message" : "messages"
-              } from renters.`,
-              action: {
-                label: "View Messages",
-                href: "/messages",
-              },
-              dismissible: true,
-            });
+          if (unreadMessagesResult.value.error) {
+            console.error(
+              "Failed to fetch unread messages:",
+              unreadMessagesResult.value.error
+            );
+          } else {
+            const unreadCount = unreadMessagesResult.value.data ?? 0;
+            if (unreadCount > 0) {
+              newNotifications.push({
+                id: "unread-messages",
+                type: "message",
+                title: `${unreadCount} Unread ${
+                  unreadCount === 1 ? "Message" : "Messages"
+                }`,
+                description: `You have ${unreadCount} unread ${
+                  unreadCount === 1 ? "message" : "messages"
+                } from renters.`,
+                action: {
+                  label: "View Messages",
+                  href: "/messages",
+                },
+                dismissible: true,
+              });
+            }
           }
         } else {
           console.error(
@@ -187,15 +211,16 @@ const OwnerNotificationsPanel = () => {
                 </AlertDescription>
                 {notification.action && (
                   <div className="mt-3">
-                    <Link to={notification.action.href}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="hover:bg-primary/10 hover:text-primary hover:border-primary/50"
-                      >
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-primary/10 hover:text-primary hover:border-primary/50"
+                    >
+                      <Link to={notification.action.href}>
                         {notification.action.label}
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </div>
                 )}
               </div>

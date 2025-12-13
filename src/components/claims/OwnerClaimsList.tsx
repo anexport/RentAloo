@@ -1,114 +1,14 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { useOwnerClaims } from "@/hooks/useOwnerClaims";
 import ClaimReviewCard from "@/components/claims/ClaimReviewCard";
-import type { ClaimStatus } from "@/types/claim";
-
-interface OwnerClaim {
-  id: string;
-  damage_description: string;
-  estimated_cost: number;
-  evidence_photos: string[];
-  repair_quotes: string[];
-  status: ClaimStatus;
-  filed_at: string;
-  booking: {
-    equipment: {
-      title: string;
-    };
-  };
-}
 
 export default function OwnerClaimsList() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [claims, setClaims] = useState<OwnerClaim[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { claims, isLoading, error } = useOwnerClaims();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchClaims = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("damage_claims")
-          .select(
-            `
-            id,
-            damage_description,
-            estimated_cost,
-            evidence_photos,
-            repair_quotes,
-            status,
-            filed_at,
-            booking:booking_requests(
-              equipment:equipment(title)
-            )
-          `
-          )
-          .eq("filed_by", user.id)
-          .in("status", ["pending", "disputed"])
-          .order("filed_at", { ascending: false });
-
-        if (fetchError) throw fetchError;
-
-        const transformedClaims: OwnerClaim[] = (data || []).map((claim) => ({
-          ...(claim as Omit<OwnerClaim, "repair_quotes" | "booking"> & {
-            repair_quotes: string[] | null;
-            booking: unknown;
-          }),
-          repair_quotes: (claim as { repair_quotes: string[] | null }).repair_quotes ?? [],
-          booking: (claim as { booking: unknown }).booking as OwnerClaim["booking"],
-        }));
-
-        if (isMounted) {
-          setClaims(transformedClaims);
-          setError("");
-        }
-      } catch (err) {
-        console.error("Error fetching owner claims:", err);
-        if (isMounted) {
-          setError("Failed to load claims");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchClaims();
-
-    if (!user) return;
-
-    const channel = supabase
-      .channel(`owner-claims-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "damage_claims",
-        },
-        () => {
-          void fetchClaims();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      isMounted = false;
-      void supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

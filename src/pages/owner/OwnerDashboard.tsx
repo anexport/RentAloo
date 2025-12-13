@@ -232,8 +232,8 @@ const OwnerDashboard = () => {
           <OwnerClaimsList />
         </div>
 
-        {/* Active Rentals Section */}
-        {!activeRentalsLoading && activeRentalsError && (
+        {/* Active Rentals Section - Show error only when no data to fall back on */}
+        {!activeRentalsLoading && activeRentalsError && activeRentals.length === 0 && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{activeRentalsError}</AlertDescription>
@@ -246,10 +246,10 @@ const OwnerDashboard = () => {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                   <Package className="h-6 w-6 text-emerald-500" />
-                  Active Rentals
+                  {t("owner.active_rentals.title")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Rentals currently in progress for your listings.
+                  {t("owner.active_rentals.description")}
                 </p>
               </div>
             </div>

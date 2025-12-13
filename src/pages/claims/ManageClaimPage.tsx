@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ExternalLink, Loader2, MessageSquare, LifeBuoy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getClaimStatusColor, getClaimStatusText } from "@/lib/claim";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,124 +37,69 @@ interface ClaimDetails {
   } | null;
 }
 
-const getStatusColor = (status: ClaimStatus) => {
-  switch (status) {
-    case "pending":
-      return "bg-yellow-100 text-yellow-800";
-    case "accepted":
-      return "bg-green-100 text-green-800";
-    case "disputed":
-      return "bg-orange-100 text-orange-800";
-    case "resolved":
-      return "bg-blue-100 text-blue-800";
-    case "escalated":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
+async function fetchClaimDetails(claimId: string, userId: string): Promise<ClaimDetails> {
+  const { data, error } = await supabase
+    .from("damage_claims")
+    .select(
+      `
+      id,
+      booking_id,
+      damage_description,
+      estimated_cost,
+      evidence_photos,
+      repair_quotes,
+      status,
+      filed_at,
+      renter_response,
+      booking:booking_requests(
+        renter:renter_id(id, full_name, username, email, avatar_url),
+        equipment:equipment(title, owner_id)
+      )
+    `
+    )
+    .eq("id", claimId)
+    .single();
 
-const getStatusText = (status: ClaimStatus) => {
-  switch (status) {
-    case "pending":
-      return "Pending";
-    case "accepted":
-      return "Accepted";
-    case "disputed":
-      return "Disputed";
-    case "resolved":
-      return "Resolved";
-    case "escalated":
-      return "Escalated";
-    default:
-      return status;
+  if (error) throw error;
+
+  const booking = data.booking as ClaimDetails["booking"];
+  const equipment = booking?.equipment ?? null;
+
+  if (!equipment || equipment.owner_id !== userId) {
+    throw new Error("You are not authorized to view this claim");
   }
-};
+
+  return {
+    ...(data as unknown as Omit<ClaimDetails, "evidence_photos" | "repair_quotes" | "booking" | "renter_response"> & {
+      evidence_photos: string[] | null;
+      repair_quotes: string[] | null;
+      booking: unknown;
+      renter_response: unknown;
+    }),
+    evidence_photos: (data as { evidence_photos: string[] | null }).evidence_photos ?? [],
+    repair_quotes: (data as { repair_quotes: string[] | null }).repair_quotes ?? [],
+    renter_response: (data as { renter_response: unknown }).renter_response as RenterResponse | null,
+    booking,
+  };
+}
 
 export default function ManageClaimPage() {
   const { claimId } = useParams<{ claimId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [claim, setClaim] = useState<ClaimDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchClaim = async () => {
-      if (!claimId || !user) {
-        setError("Invalid claim or not authenticated");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("damage_claims")
-          .select(
-            `
-            id,
-            booking_id,
-            damage_description,
-            estimated_cost,
-            evidence_photos,
-            repair_quotes,
-            status,
-            filed_at,
-            renter_response,
-            booking:booking_requests(
-              renter:renter_id(id, full_name, username, email, avatar_url),
-              equipment:equipment(title, owner_id)
-            )
-          `
-          )
-          .eq("id", claimId)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        const booking = data.booking as ClaimDetails["booking"];
-        const equipment = booking?.equipment ?? null;
-
-        if (!equipment || equipment.owner_id !== user.id) {
-          throw new Error("You are not authorized to view this claim");
-        }
-
-        const normalized: ClaimDetails = {
-          ...(data as unknown as Omit<ClaimDetails, "repair_quotes" | "booking" | "renter_response"> & {
-            repair_quotes: string[] | null;
-            booking: unknown;
-            renter_response: unknown;
-          }),
-          repair_quotes: (data as { repair_quotes: string[] | null }).repair_quotes ?? [],
-          renter_response: (data as { renter_response: unknown }).renter_response as RenterResponse | null,
-          booking,
-        };
-
-        if (isMounted) {
-          setClaim(normalized);
-          setError("");
-        }
-      } catch (err) {
-        console.error("Error fetching claim:", err);
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Failed to load claim");
-          setClaim(null);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchClaim();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [claimId, user]);
+  const {
+    data: claim,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["claim", claimId, user?.id],
+    queryFn: () => fetchClaimDetails(claimId!, user!.id),
+    enabled: !!claimId && !!user,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
   const renterDisplayName = useMemo(() => {
     const renter = claim?.booking?.renter;
@@ -160,7 +107,21 @@ export default function ManageClaimPage() {
     return renter.full_name || renter.username || renter.email?.split("@")[0] || "Renter";
   }, [claim?.booking?.renter]);
 
-  if (loading) {
+  if (!claimId || !user) {
+    return (
+      <div className="container max-w-2xl mx-auto py-8 px-4">
+        <Alert variant="destructive">
+          <AlertDescription>Invalid claim or not authenticated</AlertDescription>
+        </Alert>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Go Back
+        </Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -168,11 +129,12 @@ export default function ManageClaimPage() {
     );
   }
 
-  if (error || !claim) {
+  if (isError || !claim) {
+    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
     return (
       <div className="container max-w-2xl mx-auto py-8 px-4">
         <Alert variant="destructive">
-          <AlertDescription>{error || "Something went wrong"}</AlertDescription>
+          <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
         <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -205,8 +167,8 @@ export default function ManageClaimPage() {
                   {renterDisplayName}
                 </p>
               </div>
-              <Badge className={getStatusColor(claim.status)}>
-                {getStatusText(claim.status)}
+              <Badge className={getClaimStatusColor(claim.status)}>
+                {getClaimStatusText(claim.status)}
               </Badge>
             </div>
           </CardHeader>
@@ -253,7 +215,7 @@ export default function ManageClaimPage() {
                       key={url}
                       href={url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="group relative overflow-hidden rounded-lg border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                       aria-label={`Open evidence photo ${index + 1} in new tab`}
                     >
@@ -282,7 +244,7 @@ export default function ManageClaimPage() {
                       key={url}
                       href={url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm hover:bg-muted/50"
                     >
                       <span className="truncate">Open quote</span>
