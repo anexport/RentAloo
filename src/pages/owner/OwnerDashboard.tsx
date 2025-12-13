@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -29,9 +29,27 @@ import EscrowDashboard from "@/components/payment/EscrowDashboard";
 import TransactionHistory from "@/components/payment/TransactionHistory";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
+const OWNER_DASHBOARD_TABS = [
+  "overview",
+  "equipment",
+  "bookings",
+  "messages",
+  "reviews",
+  "payments",
+] as const;
+
+type OwnerDashboardTab = (typeof OWNER_DASHBOARD_TABS)[number];
+
+const isOwnerDashboardTab = (
+  tab: string | null
+): tab is OwnerDashboardTab => {
+  return OWNER_DASHBOARD_TABS.includes(tab as OwnerDashboardTab);
+};
+
 const OwnerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("dashboard");
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
   const [stats, setStats] = useState({
@@ -40,9 +58,16 @@ const OwnerDashboard = () => {
     totalEarnings: 0,
     averageRating: 0,
   });
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "equipment" | "bookings" | "messages" | "reviews" | "payments"
-  >("overview");
+  const tabParam = searchParams.get("tab");
+  const activeTab: OwnerDashboardTab = isOwnerDashboardTab(tabParam)
+    ? tabParam
+    : "overview";
+  const setActiveTab = useCallback(
+    (tab: OwnerDashboardTab) => {
+      setSearchParams(tab === "overview" ? {} : { tab }, { replace: true });
+    },
+    [setSearchParams]
+  );
   const {
     bookingRequests,
     loading: bookingsLoading,
