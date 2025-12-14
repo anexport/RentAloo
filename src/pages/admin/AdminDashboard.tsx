@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Banknote, Loader2, Package, ShieldCheck, Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,12 +22,28 @@ import { formatCurrency } from "@/lib/payment";
 import { formatDateLabel } from "@/lib/format";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-type EquipmentRow = Database["public"]["Tables"]["equipment"]["Row"] & {
-  owner?: Pick<ProfileRow, "email" | "role"> | null;
+
+// Partial types for dashboard list views (only columns we select)
+type UserListItem = Pick<ProfileRow, "id" | "email" | "role" | "created_at">;
+type EquipmentListItem = {
+  id: string;
+  title: string;
+  is_available: boolean | null;
+  location: string;
+  created_at: string | null;
+  owner: { email: string; role: ProfileRow["role"] } | null;
 };
-type PaymentRow = Database["public"]["Tables"]["payments"]["Row"] & {
-  owner?: Pick<ProfileRow, "email"> | null;
-  renter?: Pick<ProfileRow, "email"> | null;
+type PaymentListItem = {
+  id: string;
+  owner_id: string;
+  renter_id: string;
+  payout_status: string;
+  owner_payout_amount: number;
+  total_amount: number;
+  payout_processed_at: string | null;
+  created_at: string | null;
+  owner: { email: string } | null;
+  renter: { email: string } | null;
 };
 
 type SummaryStats = {
@@ -34,99 +52,84 @@ type SummaryStats = {
   pendingPayouts: number;
 };
 
+type AdminData = {
+  summary: SummaryStats;
+  users: UserListItem[];
+  listings: EquipmentListItem[];
+  payouts: PaymentListItem[];
+};
+
+async function fetchAdminData(): Promise<AdminData> {
+  const [userCount, listingCount, pendingPayoutCount] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .throwOnError(),
+    supabase
+      .from("equipment")
+      .select("*", { count: "exact", head: true })
+      .throwOnError(),
+    supabase
+      .from("payments")
+      .select("*", { count: "exact", head: true })
+      .eq("payout_status", "pending")
+      .throwOnError(),
+  ]);
+
+  const [{ data: userRows }, { data: equipmentRows }, { data: payoutRows }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id,email,role,created_at")
+        .order("created_at", { ascending: false })
+        .throwOnError(),
+      supabase
+        .from("equipment")
+        .select(
+          "id,title,is_available,location,created_at,owner:owner_id(email,role)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .throwOnError(),
+      supabase
+        .from("payments")
+        .select(
+          "id,owner_id,renter_id,payout_status,owner_payout_amount,total_amount,payout_processed_at,created_at,owner:owner_id(email),renter:renter_id(email)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .throwOnError(),
+    ]);
+
+  return {
+    summary: {
+      totalUsers: userCount.count ?? 0,
+      totalListings: listingCount.count ?? 0,
+      pendingPayouts: pendingPayoutCount.count ?? 0,
+    },
+    users: userRows || [],
+    listings: equipmentRows || [],
+    payouts: payoutRows || [],
+  };
+}
+
 const AdminDashboard = () => {
   const { toast } = useToast();
-
-  const [summary, setSummary] = useState<SummaryStats>({
-    totalUsers: 0,
-    totalListings: 0,
-    pendingPayouts: 0,
-  });
-  const [users, setUsers] = useState<ProfileRow[]>([]);
-  const [listings, setListings] = useState<EquipmentRow[]>([]);
-  const [payouts, setPayouts] = useState<PaymentRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const currentUserId = user?.id;
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: fetchAdminData,
+    staleTime: 5 * 60 * 1000,
+  });
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [userCount, listingCount, pendingPayoutCount] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select("*", { count: "exact", head: true })
-            .throwOnError(),
-          supabase
-            .from("equipment")
-            .select("*", { count: "exact", head: true })
-            .throwOnError(),
-          supabase
-            .from("payments")
-            .select("*", { count: "exact", head: true })
-            .eq("payout_status", "pending")
-            .throwOnError(),
-        ]);
-
-        const [{ data: userRows }, { data: equipmentRows }, { data: payoutRows }] =
-          await Promise.all([
-            supabase
-              .from("profiles")
-              .select("id,email,role,created_at")
-              .order("created_at", { ascending: false })
-              .throwOnError(),
-            supabase
-              .from("equipment")
-              .select(
-                "id,title,is_available,location,created_at,owner:owner_id(email,role)"
-              )
-              .order("created_at", { ascending: false })
-              .limit(50)
-              .throwOnError(),
-            supabase
-              .from("payments")
-              .select(
-                "id,owner_id,renter_id,payout_status,owner_payout_amount,total_amount,payout_processed_at,created_at,owner:owner_id(email),renter:renter_id(email)"
-              )
-              .order("created_at", { ascending: false })
-              .limit(50)
-              .throwOnError(),
-          ]);
-
-        if (!isMounted) return;
-
-        setSummary({
-          totalUsers: userCount.count ?? 0,
-          totalListings: listingCount.count ?? 0,
-          pendingPayouts: pendingPayoutCount.count ?? 0,
-        });
-        setUsers(userRows || []);
-        setListings(equipmentRows || []);
-        setPayouts(payoutRows || []);
-      } catch (error) {
-        console.error("Failed to load admin data:", error);
-        toast({
-          variant: "destructive",
-          title: "Failed to load admin data",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Something went wrong while loading admin data.",
-        });
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchData();
-    return () => {
-      isMounted = false;
-    };
-  }, [toast]);
+  const summary = data?.summary ?? { totalUsers: 0, totalListings: 0, pendingPayouts: 0 };
+  const users = data?.users ?? [];
+  const listings = data?.listings ?? [];
+  const payouts = data?.payouts ?? [];
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
@@ -136,86 +139,146 @@ const AdminDashboard = () => {
     );
   }, [search, users]);
 
-  const updateUserRole = async (id: string, role: ProfileRow["role"]) => {
-    const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
-    if (error) {
+  const adminCount = useMemo(
+    () => users.filter((profile) => profile.role === "admin").length,
+    [users]
+  );
+
+  const canChangeRole = useCallback(
+    (targetUserId: string, newRole: ProfileRow["role"]) => {
+      const targetUser = users.find((profile) => profile.id === targetUserId);
+      if (!targetUser) return false;
+
+      const isCurrentUserTarget = targetUserId === currentUserId;
+      const isTargetCurrentlyAdmin = targetUser.role === "admin";
+      const isDemotion = isTargetCurrentlyAdmin && newRole !== "admin";
+
+      // Prevent self-demotion
+      if (isCurrentUserTarget && isDemotion) {
+        return false;
+      }
+
+      // Prevent demoting the last admin
+      if (isDemotion && adminCount <= 1) {
+        return false;
+      }
+
+      return true;
+    },
+    [users, currentUserId, adminCount]
+  );
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: ProfileRow["role"] }) => {
+      const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast({ title: "Role updated", description: "User role updated successfully." });
+    },
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Failed to update role",
         description: error.message,
       });
+    },
+  });
+
+  const updateUserRole = (id: string, role: ProfileRow["role"]) => {
+    if (!canChangeRole(id, role)) {
+      const targetUser = users.find((profile) => profile.id === id);
+      const isSelf = id === currentUserId;
+
+      toast({
+        variant: "destructive",
+        title: "Cannot change role",
+        description: isSelf
+          ? "You cannot demote yourself. Ask another admin to change your role."
+          : targetUser?.role === "admin" && adminCount <= 1
+            ? "Cannot demote the last admin. Promote another user to admin first."
+            : "Role change not permitted.",
+      });
       return;
     }
 
-    setUsers((prev) =>
-      prev.map((profile) => (profile.id === id ? { ...profile, role } : profile))
-    );
-    toast({ title: "Role updated", description: "User role updated successfully." });
+    updateRoleMutation.mutate({ id, role });
   };
 
-  const toggleListingAvailability = async (id: string, current: boolean) => {
-    const { error } = await supabase
-      .from("equipment")
-      .update({ is_available: !current })
-      .eq("id", id);
-
-    if (error) {
+  const toggleListingMutation = useMutation({
+    mutationFn: async ({ id, newAvailability }: { id: string; newAvailability: boolean }) => {
+      const { error } = await supabase
+        .from("equipment")
+        .update({ is_available: newAvailability })
+        .eq("id", id);
+      if (error) throw error;
+      return newAvailability;
+    },
+    onSuccess: (newAvailability) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast({
+        title: "Listing updated",
+        description: `Listing marked as ${newAvailability ? "active" : "inactive"}.`,
+      });
+    },
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Failed to update listing",
         description: error.message,
       });
-      return;
-    }
+    },
+  });
 
-    setListings((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, is_available: !current } : item
-      )
-    );
-    toast({
-      title: "Listing updated",
-      description: `Listing marked as ${!current ? "active" : "inactive"}.`,
-    });
+  const toggleListingAvailability = (id: string, current: boolean) => {
+    toggleListingMutation.mutate({ id, newAvailability: !current });
   };
 
-  const updatePayoutStatus = async (
-    id: string,
-    payout_status: PaymentRow["payout_status"]
-  ) => {
-    const payload: Partial<PaymentRow> = {
-      payout_status,
-      payout_processed_at: payout_status === "completed" ? new Date().toISOString() : null,
-    };
-
-    const { error } = await supabase
-      .from("payments")
-      .update(payload)
-      .eq("id", id);
-
-    if (error) {
+  const updatePayoutMutation = useMutation({
+    mutationFn: async ({ id, payout_status }: { id: string; payout_status: string }) => {
+      // Let the database handle the timestamp via trigger or default
+      const { error } = await supabase
+        .from("payments")
+        .update({ payout_status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast({ title: "Payout updated", description: "Payout status changed." });
+    },
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Failed to update payout",
         description: error.message,
       });
-      return;
-    }
+    },
+  });
 
-    setPayouts((prev) =>
-      prev.map((payment) =>
-        payment.id === id ? { ...payment, ...payload } : payment
-      )
-    );
-
-    toast({ title: "Payout updated", description: "Payout status changed." });
+  const updatePayoutStatus = (id: string, payout_status: string) => {
+    updatePayoutMutation.mutate({ id, payout_status });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <DashboardLayout>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+          <p className="text-destructive">Failed to load admin data</p>
+          <p className="text-sm text-muted-foreground">
+            {error instanceof Error ? error.message : "Something went wrong"}
+          </p>
         </div>
       </DashboardLayout>
     );
@@ -280,6 +343,7 @@ const AdminDashboard = () => {
             </div>
             <Input
               placeholder="Search by email"
+              aria-label="Search users by email"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="w-60"
@@ -301,14 +365,17 @@ const AdminDashboard = () => {
                     <TableCell className="font-medium">{profile.email}</TableCell>
                     <TableCell className="capitalize">{profile.role}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDateLabel(profile.created_at || undefined)}
+                      {formatDateLabel(profile.created_at ?? null)}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => updateUserRole(profile.id, "renter")}
-                        disabled={profile.role === "renter"}
+                        disabled={
+                          profile.role === "renter" ||
+                          !canChangeRole(profile.id, "renter")
+                        }
                       >
                         Set renter
                       </Button>
@@ -316,7 +383,10 @@ const AdminDashboard = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => updateUserRole(profile.id, "owner")}
-                        disabled={profile.role === "owner"}
+                        disabled={
+                          profile.role === "owner" ||
+                          !canChangeRole(profile.id, "owner")
+                        }
                       >
                         Set owner
                       </Button>
@@ -436,7 +506,7 @@ const AdminDashboard = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDateLabel(payment.created_at || undefined)}
+                      {formatDateLabel(payment.created_at ?? null)}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button

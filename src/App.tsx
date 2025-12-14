@@ -41,9 +41,24 @@ const PageLoader = () => (
 );
 
 const AdminRoute = () => {
-  const { isAdmin, loading } = useAdminAccess();
+  const { isAdmin, loading, error, refetch } = useAdminAccess();
 
   if (loading) return <PageLoader />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-destructive">Failed to verify admin access: {error}</p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!isAdmin) return <Navigate to="/" replace />;
 
   return <AdminDashboard />;

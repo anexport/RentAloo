@@ -4,18 +4,18 @@ import { useAuth } from "@/hooks/useAuth";
 
 export const useAdminAccess = () => {
   const { user } = useAuth();
+  const userId = user?.id ?? null;
 
-  const metadataAdmin = user?.user_metadata?.role === "admin";
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["admin-access", user?.id],
-    enabled: !!user?.id && !metadataAdmin,
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin-access", userId],
+    enabled: !!userId,
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
+      if (!userId) return false;
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", user?.id as string)
+        .eq("id", userId)
         .maybeSingle();
 
       if (error) throw error;
@@ -23,13 +23,14 @@ export const useAdminAccess = () => {
     },
   });
 
-  if (!user?.id) {
-    return { isAdmin: false, loading: false, error: null } as const;
+  if (!userId) {
+    return { isAdmin: false, loading: false, error: null, refetch } as const;
   }
 
   return {
-    isAdmin: Boolean(metadataAdmin || data),
-    loading: metadataAdmin ? false : isLoading,
+    isAdmin: Boolean(data),
+    loading: isLoading,
     error: error ? error.message : null,
+    refetch,
   } as const;
 };
