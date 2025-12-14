@@ -1,11 +1,18 @@
 import React, { createContext, useEffect, useState } from "react";
-import type { User, Session, AuthError, PostgrestError } from "@supabase/supabase-js";
+import type {
+  User,
+  Session,
+  AuthError,
+  PostgrestError,
+} from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import i18n from "@/i18n/config";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
-type UserMetadata = { role: "renter" | "owner" | "admin" } & Record<string, unknown>;
+// SECURITY: Admin role cannot be assigned during client-side signup
+// Admin roles can only be assigned through the admin-users edge function
+type UserMetadata = { role: "renter" | "owner" } & Record<string, unknown>;
 type UpdateProfileError = AuthError | PostgrestError;
 
 interface AuthContextType {
@@ -65,8 +72,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
           console.error("Error getting session:", error);
           setSession(null);
@@ -123,12 +133,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     userData: UserMetadata
   ) => {
+    // SECURITY: Admin role is prevented at the type level (UserMetadata excludes "admin")
+    // Database trigger also provides server-side protection against admin role assignment
+    // Admin roles can only be assigned through the admin-users edge function
+
+    // Client-side role validation: enforce only allowed role values
+    const ALLOWED_ROLES = ["renter", "owner"] as const;
+    const providedRole = userData?.role;
+
+    if (
+      providedRole &&
+      !ALLOWED_ROLES.includes(providedRole as (typeof ALLOWED_ROLES)[number])
+    ) {
+      return {
+        error: {
+          message: `Invalid role: "${providedRole}". Only "${ALLOWED_ROLES.join(
+            '" or "'
+          )}" roles are allowed for signup.`,
+          name: "AuthError",
+          status: 400,
+        } as AuthError,
+      };
+    }
+
+    // Sanitize: ensure role is set to a safe default if missing or invalid
+    // (This provides defense in depth, though TypeScript should prevent invalid roles)
+    const sanitizedUserData: UserMetadata = {
+      ...userData,
+      role:
+        providedRole &&
+        ALLOWED_ROLES.includes(providedRole as (typeof ALLOWED_ROLES)[number])
+          ? providedRole
+          : "renter", // Safe default
+    };
+
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData,
+          data: sanitizedUserData,
         },
       });
       return { error };

@@ -17,31 +17,31 @@ SET search_path = public, pg_catalog;
 
 -- Admin policies to manage core tables
 CREATE POLICY "Admins can manage profiles" ON profiles
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage renter profiles" ON renter_profiles
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage owner profiles" ON owner_profiles
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage equipment" ON equipment
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage equipment photos" ON equipment_photos
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage availability" ON availability_calendar
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage booking requests" ON booking_requests
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage bookings" ON bookings
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 CREATE POLICY "Admins can manage payments" ON payments
-    FOR ALL USING (is_admin(auth.uid()));
+    FOR ALL USING (is_admin(auth.uid())) WITH CHECK (is_admin(auth.uid()));
 
 -- Trigger function to set payout_processed_at when payout_status changes to 'completed'
 -- This ensures consistent, server-side timestamps for audit/reconciliation purposes

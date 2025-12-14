@@ -9,6 +9,7 @@ import { NuqsAdapter } from "nuqs/adapters/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Toaster } from "@/components/ui/toaster";
+import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
 
@@ -18,15 +19,25 @@ const RenterDashboard = lazy(() => import("@/pages/renter/RenterDashboard"));
 const OwnerDashboard = lazy(() => import("@/pages/owner/OwnerDashboard"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const ExplorePage = lazy(() => import("@/pages/ExplorePage"));
-const EquipmentDetailPage = lazy(() => import("@/pages/equipment/EquipmentDetailPage"));
+const EquipmentDetailPage = lazy(
+  () => import("@/pages/equipment/EquipmentDetailPage")
+);
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
-const PaymentConfirmation = lazy(() => import("@/pages/payment/PaymentConfirmation"));
+const PaymentConfirmation = lazy(
+  () => import("@/pages/payment/PaymentConfirmation")
+);
 const PaymentsPage = lazy(() => import("@/pages/renter/PaymentsPage"));
-const VerifyIdentity = lazy(() => import("@/pages/verification/VerifyIdentity"));
+const VerifyIdentity = lazy(
+  () => import("@/pages/verification/VerifyIdentity")
+);
 const ProfileSettings = lazy(() => import("@/pages/ProfileSettings"));
 const SupportPage = lazy(() => import("@/pages/SupportPage"));
-const EquipmentInspectionPage = lazy(() => import("@/pages/inspection/EquipmentInspectionPage"));
-const InspectionView = lazy(() => import("@/components/inspection/InspectionView"));
+const EquipmentInspectionPage = lazy(
+  () => import("@/pages/inspection/EquipmentInspectionPage")
+);
+const InspectionView = lazy(
+  () => import("@/components/inspection/InspectionView")
+);
 const FileClaimPage = lazy(() => import("@/pages/claims/FileClaimPage"));
 const ReviewClaimPage = lazy(() => import("@/pages/claims/ReviewClaimPage"));
 const ManageClaimPage = lazy(() => import("@/pages/claims/ManageClaimPage"));
@@ -46,15 +57,13 @@ const AdminRoute = () => {
   if (loading) return <PageLoader />;
 
   if (error) {
+    console.error(error);
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-destructive">Failed to verify admin access: {error}</p>
-        <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        >
-          Retry
-        </button>
+        <p className="text-destructive">
+          An error occurred while verifying access. Please try again.
+        </p>
+        <Button onClick={() => refetch()}>Retry</Button>
       </div>
     );
   }
@@ -88,7 +97,9 @@ function App() {
                   <Route path="/explore" element={<ExplorePage />} />
                   <Route
                     path="/register/renter"
-                    element={<Navigate to="/?signup=true&role=renter" replace />}
+                    element={
+                      <Navigate to="/?signup=true&role=renter" replace />
+                    }
                   />
                   <Route
                     path="/register/owner"
@@ -103,25 +114,46 @@ function App() {
                     path="/equipment"
                     element={<Navigate to="/explore" replace />}
                   />
-                  <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
+                  <Route
+                    path="/equipment/:id"
+                    element={<EquipmentDetailPage />}
+                  />
 
                   {/* Protected routes */}
                   {user && (
                     <>
                       <Route path="/renter" element={<RenterDashboard />} />
-                      <Route path="/renter/dashboard" element={<RenterDashboard />} />
-                      <Route path="/renter/payments" element={<PaymentsPage />} />
-                      <Route path="/rental/:bookingId" element={<ActiveRentalPage />} />
+                      <Route
+                        path="/renter/dashboard"
+                        element={<RenterDashboard />}
+                      />
+                      <Route
+                        path="/renter/payments"
+                        element={<PaymentsPage />}
+                      />
+                      <Route
+                        path="/rental/:bookingId"
+                        element={<ActiveRentalPage />}
+                      />
                       <Route path="/owner" element={<OwnerDashboard />} />
-                      <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-                      <Route path="/owner/become-owner" element={<OwnerUpgrade />} />
+                      <Route
+                        path="/owner/dashboard"
+                        element={<OwnerDashboard />}
+                      />
+                      <Route
+                        path="/owner/become-owner"
+                        element={<OwnerUpgrade />}
+                      />
                       <Route path="/messages" element={<MessagingPage />} />
                       <Route path="/support" element={<SupportPage />} />
                       <Route
                         path="/payment/confirmation"
                         element={<PaymentConfirmation />}
                       />
-                      <Route path="/verification" element={<VerifyIdentity />} />
+                      <Route
+                        path="/verification"
+                        element={<VerifyIdentity />}
+                      />
                       <Route path="/settings" element={<ProfileSettings />} />
                       <Route
                         path="/inspection/:bookingId/:type"
