@@ -161,6 +161,16 @@ export default function InspectionView() {
       }
 
       setInspection(data);
+
+      if (bookingId) {
+        void supabase.functions
+          .invoke("release-deposit", { body: { bookingId } })
+          .then(({ error: releaseError }) => {
+            if (releaseError) {
+              console.error("Deposit release error:", releaseError);
+            }
+          });
+      }
     } catch (err) {
       console.error("Error confirming inspection:", err);
       setConfirmError(
