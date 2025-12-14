@@ -30,6 +30,7 @@ import SignupModal from "@/components/auth/SignupModal";
 import ExploreHeader from "@/components/layout/ExploreHeader";
 import EmptyState from "@/components/explore/EmptyState";
 import MapView from "@/components/explore/MapView";
+import MobileListingsBottomSheet from "@/components/explore/MobileListingsBottomSheet";
 import {
   fetchListings,
   type ListingsFilters,
@@ -64,7 +65,6 @@ const ExplorePage = () => {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
-  const [mobileSheetExpanded, setMobileSheetExpanded] = useState(false);
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   // Filter params managed via nuqs
@@ -637,28 +637,11 @@ const ExplorePage = () => {
               </div>
 
               {(hasResults || isLoading || isError) ? (
-                <div
-                  className={cn(
-                    "fixed inset-x-0 bottom-0 z-40 bg-background/95 backdrop-blur border-t border-border rounded-t-2xl shadow-lg flex flex-col transition-[height] duration-200",
-                    mobileSheetExpanded ? "h-[60dvh]" : "h-[28dvh]"
-                  )}
+                <MobileListingsBottomSheet
+                  title={t("browse.items_count", { count: data?.length ?? 0 })}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setMobileSheetExpanded((v) => !v)}
-                    className="flex-shrink-0 pt-3 pb-2"
-                    aria-label="Toggle listings panel"
-                  >
-                    <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto" />
-                    <div className="text-center mt-2 text-sm font-semibold">
-                      {t("browse.items_count", { count: data?.length ?? 0 })}
-                    </div>
-                  </button>
-
-                  <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 overscroll-contain">
-                    {renderListingsList()}
-                  </div>
-                </div>
+                  {renderListingsList()}
+                </MobileListingsBottomSheet>
               ) : (
                 <div className="mt-4 px-4">
                   {renderListingsList()}
