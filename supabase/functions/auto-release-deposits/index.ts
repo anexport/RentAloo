@@ -1,5 +1,7 @@
-import Stripe from "npm:stripe@13.10.0";
-import { createClient } from "npm:@supabase/supabase-js@2.46.1";
+/// <reference path="../deno.d.ts" />
+
+import Stripe from "npm:stripe@20.0.0";
+import { createClient } from "@supabase/supabase-js";
 
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
