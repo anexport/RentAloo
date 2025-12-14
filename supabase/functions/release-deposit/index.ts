@@ -1,5 +1,7 @@
-import Stripe from "npm:stripe@13.10.0";
-import { createClient } from "npm:@supabase/supabase-js@2.46.1";
+/// <reference path="../deno.d.ts" />
+
+import Stripe from "npm:stripe@20.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -10,6 +12,13 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+};
+
+const getBearerToken = (authHeader: string | null): string | null => {
+  if (!authHeader) return null;
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) return null;
+  return token;
 };
 
 Deno.serve(async (req) => {
@@ -26,31 +35,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get auth token from request
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    const token = getBearerToken(authHeader);
+    if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create Supabase client with service role key
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     // Verify user
     const {
       data: { user },
       error: userErr,
-    } = await supabase.auth.getUser();
+    } = await supabaseAdmin.auth.getUser(token);
     if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch payment and booking details
-    const { data: payment, error: paymentErr } = await supabase
+    const { data: payment, error: paymentErr } = await supabaseAdmin
       .from("payments")
       .select(
         `
@@ -99,7 +102,10 @@ Deno.serve(async (req) => {
     const booking = payment.booking_request as {
       id: string;
       renter_id: string;
-      equipment: { owner_id: string; deposit_refund_timeline_hours: number | null } | null;
+      equipment: {
+        owner_id: string;
+        deposit_refund_timeline_hours: number | null;
+      } | null;
     } | null;
 
     if (!booking) {
@@ -121,7 +127,24 @@ Deno.serve(async (req) => {
     const isOwner = booking.equipment.owner_id === user.id;
     const isRenter = booking.renter_id === user.id;
 
-    if (!isOwner && !isRenter) {
+    const { data: callerProfile, error: callerProfileError } =
+      await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (callerProfileError) {
+      console.error("Error loading caller profile:", callerProfileError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const isAdmin = callerProfile?.role === "admin";
+
+    if (!isAdmin && !isOwner && !isRenter) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -130,21 +153,24 @@ Deno.serve(async (req) => {
 
     // Check if deposit can be released
     if (!payment.deposit_amount || payment.deposit_amount <= 0) {
-      return new Response(
-        JSON.stringify({ error: "No deposit to release" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "No deposit to release" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (payment.deposit_status !== "held") {
       return new Response(
         JSON.stringify({ error: "Deposit already processed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     // Check for pending claims
-    const { data: pendingClaims } = await supabase
+    const { data: pendingClaims } = await supabaseAdmin
       .from("damage_claims")
       .select("id")
       .eq("booking_id", bookingId)
@@ -153,48 +179,98 @@ Deno.serve(async (req) => {
     if (pendingClaims && pendingClaims.length > 0) {
       return new Response(
         JSON.stringify({ error: "Cannot release deposit with pending claims" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     // Check for return inspection (optional but recommended)
-    const { data: returnInspection } = await supabase
+    const { data: returnInspection, error: inspectionErr } = await supabaseAdmin
       .from("equipment_inspections")
-      .select("id, verified_by_owner, verified_by_renter, timestamp, created_at")
+      .select(
+        "id, verified_by_owner, verified_by_renter, timestamp, created_at"
+      )
       .eq("booking_id", bookingId)
       .eq("inspection_type", "return")
       .maybeSingle();
 
+    if (inspectionErr) {
+      console.error("Error fetching return inspection:", inspectionErr);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch return inspection" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (!returnInspection) {
       return new Response(
-        JSON.stringify({ error: "Return inspection required before deposit release" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Return inspection required before deposit release",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     if (!returnInspection.verified_by_renter) {
       return new Response(
-        JSON.stringify({ error: "Return inspection must be submitted by the renter before deposit release" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "Return inspection must be submitted by the renter before deposit release",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const claimWindowHours = booking.equipment.deposit_refund_timeline_hours ?? 48;
-    const submittedAt = new Date(returnInspection.timestamp || returnInspection.created_at);
-    const claimDeadlineMs = submittedAt.getTime() + claimWindowHours * 60 * 60 * 1000;
+    const claimWindowHours =
+      booking.equipment.deposit_refund_timeline_hours ?? 48;
+    const submittedAt = new Date(
+      returnInspection.timestamp || returnInspection.created_at
+    );
+
+    // Guard against invalid timestamps - if NaN, treat as window not expired
+    const submittedAtMs = submittedAt.getTime();
+    if (isNaN(submittedAtMs)) {
+      console.error("Invalid inspection timestamp:", returnInspection.timestamp, returnInspection.created_at);
+      return new Response(
+        JSON.stringify({ error: "Invalid inspection timestamp" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const claimDeadlineMs = submittedAtMs + claimWindowHours * 60 * 60 * 1000;
     const claimWindowExpired = Date.now() > claimDeadlineMs;
 
     // Require owner confirmation unless the claim window has expired (auto-accept)
     if (!returnInspection.verified_by_owner && !claimWindowExpired) {
       return new Response(
-        JSON.stringify({ error: "Owner confirmation or claim window expiry required before deposit release" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            "Owner confirmation or claim window expiry required before deposit release",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     // Auto-accept the return if the claim window has expired and the owner never confirmed
     if (!returnInspection.verified_by_owner && claimWindowExpired) {
-      const { data: autoAcceptData, error: autoAcceptErr } = await supabase
+      const { data: autoAcceptData, error: autoAcceptErr } = await supabaseAdmin
         .from("equipment_inspections")
         .update({ verified_by_owner: true, owner_signature: "auto_accepted" })
         .eq("id", returnInspection.id)
@@ -205,25 +281,36 @@ Deno.serve(async (req) => {
       if (autoAcceptErr) {
         console.error("Error auto-accepting return inspection:", autoAcceptErr);
         return new Response(
-          JSON.stringify({ error: "Failed to auto-accept inspection. Please try again." }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Failed to auto-accept inspection. Please try again.",
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
 
       if (!autoAcceptData) {
-        console.error("Auto-accept update matched no rows for inspection:", returnInspection.id);
+        console.error(
+          "Auto-accept update matched no rows for inspection:",
+          returnInspection.id
+        );
         return new Response(
-          JSON.stringify({ error: "Inspection could not be auto-accepted. It may have already been processed." }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error:
+              "Inspection could not be auto-accepted. It may have already been processed.",
+          }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
     }
 
     // Atomically move deposit to "releasing" to prevent concurrent refunds
-    const {
-      data: depositLock,
-      error: depositLockErr,
-    } = await supabase
+    const { data: depositLock, error: depositLockErr } = await supabaseAdmin
       .from("payments")
       .update({ deposit_status: "releasing" })
       .eq("id", payment.id)
@@ -232,17 +319,26 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (depositLockErr) {
-      console.error("Error locking payment for deposit release:", depositLockErr);
+      console.error(
+        "Error locking payment for deposit release:",
+        depositLockErr
+      );
       return new Response(
         JSON.stringify({ error: "Failed to reserve deposit for release" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     if (!depositLock) {
       return new Response(
         JSON.stringify({ error: "Deposit already being released" }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -265,13 +361,16 @@ Deno.serve(async (req) => {
       );
     } catch (stripeError) {
       console.error("Stripe refund error:", stripeError);
-      const { error: resetErr } = await supabase
+      const { error: resetErr } = await supabaseAdmin
         .from("payments")
         .update({ deposit_status: "held" })
         .eq("id", payment.id)
         .eq("deposit_status", "releasing");
       if (resetErr) {
-        console.error("Failed to reset deposit status after Stripe error:", resetErr);
+        console.error(
+          "Failed to reset deposit status after Stripe error:",
+          resetErr
+        );
       }
       return new Response(
         JSON.stringify({
@@ -289,7 +388,7 @@ Deno.serve(async (req) => {
     }
 
     // Update payment record
-    const { data: releasedPayment, error: updateErr } = await supabase
+    const { data: releasedPayment, error: updateErr } = await supabaseAdmin
       .from("payments")
       .update({
         deposit_status: "released",
@@ -317,7 +416,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Deposit of $${Number(payment.deposit_amount).toFixed(2)} has been released`,
+        message: `Deposit of $${Number(payment.deposit_amount).toFixed(
+          2
+        )} has been released`,
       }),
       {
         status: 200,

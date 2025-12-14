@@ -1,5 +1,7 @@
-import Stripe from "npm:stripe@13.10.0";
-import { createClient } from "npm:@supabase/supabase-js@2.46.1";
+/// <reference path="../deno.d.ts" />
+
+import Stripe from "npm:stripe@20.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -111,7 +113,9 @@ Deno.serve(async (req) => {
     // Get equipment details and verify it exists
     const { data: equipment, error: equipError } = await supabase
       .from("equipment")
-      .select("id, owner_id, daily_rate, is_available, title")
+      .select(
+        "id, owner_id, daily_rate, is_available, title, damage_deposit_amount, damage_deposit_percentage"
+      )
       .eq("id", bookingData.equipment_id)
       .single();
 
@@ -137,6 +141,19 @@ Deno.serve(async (req) => {
     if (!equipment.is_available) {
       return new Response(
         JSON.stringify({ error: "Equipment is not available" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate rental dates
+    const startDateMs = Date.parse(bookingData.start_date);
+    const endDateMs = Date.parse(bookingData.end_date);
+    if (!Number.isFinite(startDateMs) || !Number.isFinite(endDateMs) || endDateMs < startDateMs) {
+      return new Response(
+        JSON.stringify({ error: "Invalid rental dates" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -181,23 +198,83 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate breakdown from total
-    const bookingTotal = Number(bookingData.total_amount);
-    const insuranceAmount = roundToTwo(Number(bookingData.insurance_cost ?? 0));
-    const depositAmount = roundToTwo(Number(bookingData.damage_deposit_amount ?? 0));
-    const subtotalBeforeFees = roundToTwo(
-      bookingTotal - insuranceAmount - depositAmount
+    // SERVER-SIDE PRICE CALCULATION (don't trust client amounts)
+    // Calculate the number of rental days (matches client-side calculation in lib/booking.ts)
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const rentalDays = Math.ceil((endDateMs - startDateMs) / msPerDay);
+    if (rentalDays < 1) {
+      return new Response(
+        JSON.stringify({ error: "Minimum rental period is 1 day" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    if (rentalDays > 30) {
+      return new Response(
+        JSON.stringify({ error: "Maximum rental period is 30 days" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Calculate expected rental amount from server-side data
+    const dailyRate = Number(equipment.daily_rate ?? 0);
+    const expectedRentalAmount = roundToTwo(dailyRate * rentalDays);
+    const expectedServiceFee = roundToTwo(expectedRentalAmount * 0.05); // 5% service fee
+
+    // Calculate expected deposit amount from server-side equipment config
+    // Supports both fixed amount and percentage of daily rate (legacy/optional field).
+    const fixedDeposit = Number(equipment.damage_deposit_amount ?? 0);
+    const depositPercentage = Number(equipment.damage_deposit_percentage ?? 0);
+    const expectedDepositAmount =
+      Number.isFinite(fixedDeposit) && fixedDeposit > 0
+        ? roundToTwo(fixedDeposit)
+        : Number.isFinite(depositPercentage) && depositPercentage > 0
+          ? roundToTwo(dailyRate * (depositPercentage / 100))
+          : 0;
+
+    // Calculate insurance amount from insurance type (don't trust client cost)
+    const insuranceType =
+      bookingData.insurance_type === "none" ||
+      bookingData.insurance_type === "basic" ||
+      bookingData.insurance_type === "premium"
+        ? bookingData.insurance_type
+        : "none";
+    const insuranceRate =
+      insuranceType === "basic" ? 0.05 : insuranceType === "premium" ? 0.1 : 0;
+    const insuranceAmount = roundToTwo(expectedRentalAmount * insuranceRate);
+
+    // Use server-calculated deposit, not client-provided
+    const depositAmount = expectedDepositAmount;
+
+    // Calculate expected total
+    const expectedTotal = roundToTwo(
+      expectedRentalAmount + expectedServiceFee + insuranceAmount + depositAmount
     );
 
-    if (!Number.isFinite(subtotalBeforeFees) || subtotalBeforeFees < 0) {
-      console.error("Booking totals are inconsistent", {
-        bookingTotal,
+    // Verify client-provided total matches server calculation (with small tolerance for rounding)
+    const clientTotal = roundToTwo(Number(bookingData.total_amount));
+    const pricingDifference = Math.abs(expectedTotal - clientTotal);
+    const tolerance = 0.02; // Allow 2 cents tolerance for rounding differences
+
+    if (pricingDifference > tolerance) {
+      console.error("Pricing mismatch detected", {
+        clientTotal,
+        expectedTotal,
+        expectedRentalAmount,
+        expectedServiceFee,
         insuranceAmount,
         depositAmount,
+        rentalDays,
+        dailyRate: equipment.daily_rate,
       });
       return new Response(
         JSON.stringify({
-          error: "Booking totals are invalid. Please try again.",
+          error: "Pricing mismatch. Please refresh and try again.",
         }),
         {
           status: 400,
@@ -206,8 +283,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const rentalSubtotal = roundToTwo(subtotalBeforeFees / 1.05);
-    const serviceFee = roundToTwo(subtotalBeforeFees - rentalSubtotal);
+    // Use server-calculated values
+    const bookingTotal = expectedTotal;
+    const rentalSubtotal = expectedRentalAmount;
+    const serviceFee = expectedServiceFee;
 
     // Create PaymentIntent with ALL booking data in metadata
     // This data will be used by the webhook to create the booking after payment
@@ -224,7 +303,7 @@ Deno.serve(async (req) => {
         total_amount: bookingTotal.toString(),
         rental_amount: rentalSubtotal.toString(),
         service_fee: serviceFee.toString(),
-        insurance_type: bookingData.insurance_type || "none",
+        insurance_type: insuranceType,
         insurance_cost: insuranceAmount.toString(),
         damage_deposit_amount: depositAmount.toString(),
         equipment_title: equipment.title || "",

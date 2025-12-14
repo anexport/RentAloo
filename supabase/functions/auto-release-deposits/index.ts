@@ -1,11 +1,17 @@
-import Stripe from "npm:stripe@13.10.0";
-import { createClient } from "npm:@supabase/supabase-js@2.46.1";
+/// <reference path="../deno.d.ts" />
+
+import Stripe from "npm:stripe@20.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.47.12";
+import * as jose from "npm:jose@5.9.6";
 
 const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+// JWT_SECRET is the Supabase JWT secret used to verify token signatures
+// Set via: npx supabase secrets set JWT_SECRET=your-jwt-secret
+const jwtSecret = Deno.env.get("JWT_SECRET");
 
-if (!stripeSecretKey || !supabaseUrl || !serviceRoleKey) {
+if (!stripeSecretKey || !supabaseUrl || !serviceRoleKey || !jwtSecret) {
   throw new Error("Missing required environment variables");
 }
 
@@ -45,26 +51,24 @@ type ReturnInspection = {
 
 const getBearerToken = (authHeader: string | null): string | null => {
   if (!authHeader) return null;
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) return null;
+  const parts = authHeader.trim().split(/\s+/, 2);
+  const [scheme, token] = parts;
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !token) return null;
   return token;
 };
 
-const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-
-  const base64UrlPayload = parts[1];
-  const base64Payload = base64UrlPayload.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64Payload.padEnd(
-    base64Payload.length + ((4 - (base64Payload.length % 4)) % 4),
-    "="
-  );
-
+/**
+ * Verify JWT signature and check for service_role.
+ * This prevents attackers from forging tokens with arbitrary claims.
+ */
+const verifyServiceRoleJwt = async (token: string): Promise<boolean> => {
   try {
-    return JSON.parse(atob(padded)) as Record<string, unknown>;
-  } catch {
-    return null;
+    const secret = new TextEncoder().encode(jwtSecret);
+    const { payload } = await jose.jwtVerify(token, secret);
+    return payload?.role === "service_role";
+  } catch (err) {
+    console.error("JWT verification failed:", err);
+    return false;
   }
 };
 
@@ -89,8 +93,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  const payload = decodeJwtPayload(token);
-  if (payload?.role !== "service_role") {
+  // Verify JWT signature and role (prevents token forgery)
+  const isServiceRole = await verifyServiceRoleJwt(token);
+  if (!isServiceRole) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -194,7 +199,7 @@ Deno.serve(async (req) => {
     }
 
     const pendingClaimBookingIds = new Set<string>(
-      (pendingClaims || []).map((c) => c.booking_id as string)
+      (pendingClaims || []).map((c: { booking_id: string }) => c.booking_id)
     );
 
     let eligible = 0;
