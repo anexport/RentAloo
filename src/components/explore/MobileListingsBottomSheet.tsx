@@ -12,7 +12,7 @@ type Props = {
 
 const MID_HEIGHT_RATIO = 0.28;
 const FULL_HEIGHT_RATIO = 0.6;
-const MIN_PEEK_PX = 64;
+const MIN_PEEK_PX = 48;
 const MIN_SHEET_GROWTH_PX = 180;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -81,9 +81,7 @@ const MobileListingsBottomSheet = ({
 
   const recomputeMetrics = useCallback(() => {
     const viewportHeight = getViewportHeightPx();
-    const handleHeight =
-      handleRef.current?.getBoundingClientRect().height ?? MIN_PEEK_PX;
-    const peek = Math.max(MIN_PEEK_PX, Math.ceil(handleHeight));
+    const peek = MIN_PEEK_PX;
 
     const rawFull = Math.round(viewportHeight * FULL_HEIGHT_RATIO);
     const full = Math.max(rawFull, peek + MIN_SHEET_GROWTH_PX);
@@ -214,13 +212,18 @@ const MobileListingsBottomSheet = ({
         onPointerUp={finishDragOrToggle}
         onPointerCancel={finishDragOrToggle}
         onKeyDown={handleKeyDown}
-        className="flex-shrink-0 pt-3 pb-2 touch-none select-none"
+        className={cn(
+          "flex-shrink-0 touch-none select-none flex flex-col items-center",
+          snap === "peek" ? "h-12 justify-center" : "pt-3 pb-2"
+        )}
         aria-label="Drag to view listings"
         aria-controls={contentId}
         aria-expanded={snap !== "peek"}
       >
-        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto" />
-        <div className="text-center mt-2 text-sm font-semibold">{title}</div>
+        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
+        {snap !== "peek" && (
+          <div className="text-center mt-2 text-sm font-semibold">{title}</div>
+        )}
       </button>
 
       <div
