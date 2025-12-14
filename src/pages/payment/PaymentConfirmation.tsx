@@ -11,7 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Home, MessageSquare, Calendar } from "lucide-react";
+import {
+  Banknote,
+  Calendar,
+  Camera,
+  CheckCircle,
+  Home,
+  MessageSquare,
+  Package,
+} from "lucide-react";
 import type { Database } from "@/lib/database.types";
 
 type PaymentWithRelations = Database["public"]["Tables"]["payments"]["Row"] & {
@@ -199,6 +207,56 @@ const PaymentConfirmation = () => {
         ? "Insurance (Premium Protection)"
         : "Insurance";
 
+  type NextStep = {
+    id: string;
+    title: string;
+    description: string;
+    icon: JSX.Element;
+  };
+
+  const nextSteps: NextStep[] = [
+    {
+      id: "message-owner",
+      title: "Message the owner",
+      description: "Coordinate pickup time, location, and any special instructions.",
+      icon: <MessageSquare className="h-4 w-4" />,
+    },
+    {
+      id: "pickup-inspection",
+      title: "Pickup inspection",
+      description: "Take photos and document the equipment condition at pickup.",
+      icon: <Camera className="h-4 w-4" />,
+    },
+    {
+      id: "pickup",
+      title: "Pick up equipment",
+      description: "Meet the owner, pick up the equipment, and start your rental.",
+      icon: <Package className="h-4 w-4" />,
+    },
+    {
+      id: "return-inspection",
+      title: "Return inspection",
+      description: "Take photos and confirm the condition when returning the equipment.",
+      icon: <Camera className="h-4 w-4" />,
+    },
+    {
+      id: "return",
+      title: "Return equipment",
+      description: "Return the equipment in the same condition and complete the rental.",
+      icon: <Package className="h-4 w-4" />,
+    },
+    ...(depositAmount > 0
+      ? [
+          {
+            id: "deposit-release",
+            title: "Deposit release",
+            description: `Your refundable deposit (${formatCurrency(depositAmount)}) is released after successful return unless there’s a damage claim.`,
+            icon: <Banknote className="h-4 w-4" />,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -362,57 +420,36 @@ const PaymentConfirmation = () => {
         {/* Next Steps Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Next Steps</CardTitle>
+            <CardTitle>What Happens Next</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                  1
-                </div>
-                <div>
-                  <div className="font-medium">Contact the owner</div>
-                  <div className="text-sm text-muted-foreground">
-                    Coordinate pickup details and any special instructions
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                  2
-                </div>
-                <div>
-                  <div className="font-medium">Pick up equipment</div>
-                  <div className="text-sm text-muted-foreground">
-                    Inspect the equipment and ensure it's in good condition
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                  3
-                </div>
-                <div>
-                  <div className="font-medium">Enjoy your adventure</div>
-                  <div className="text-sm text-muted-foreground">
-                    Use the equipment responsibly and have a great time!
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                  4
-                </div>
-                <div>
-                  <div className="font-medium">Return equipment</div>
-                  <div className="text-sm text-muted-foreground">
-                    Return in the same condition and leave a review
-                  </div>
-                </div>
-              </div>
+            <div className="relative">
+              <div
+                className="absolute left-4 top-4 bottom-4 w-px bg-border"
+                aria-hidden="true"
+              />
+              <ol className="space-y-4">
+                {nextSteps.map((step, index) => (
+                  <li key={step.id} className="flex items-start gap-3">
+                    <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-background text-primary">
+                      {step.icon}
+                    </div>
+                    <div className="flex-1 pt-0.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-medium leading-tight">
+                          {step.title}
+                        </div>
+                        {index === 0 && (
+                          <Badge variant="secondary">Next</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        {step.description}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           </CardContent>
         </Card>
