@@ -263,6 +263,11 @@ export const usePayment = () => {
    */
   const releaseEscrow = useCallback(
     async ({ paymentId }: ReleaseEscrowParams): Promise<boolean> => {
+      if (!user) {
+        setError("User must be authenticated");
+        return false;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -308,7 +313,7 @@ export const usePayment = () => {
         setLoading(false);
       }
     },
-    []
+    [user]
   );
 
   /**

@@ -1,7 +1,7 @@
 /// <reference path="../deno.d.ts" />
 
 import Stripe from "npm:stripe@20.0.0";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -187,7 +187,7 @@ Deno.serve(async (req) => {
     }
 
     // Check for return inspection (optional but recommended)
-    const { data: returnInspection } = await supabaseAdmin
+    const { data: returnInspection, error: inspectionErr } = await supabaseAdmin
       .from("equipment_inspections")
       .select(
         "id, verified_by_owner, verified_by_renter, timestamp, created_at"
@@ -195,6 +195,17 @@ Deno.serve(async (req) => {
       .eq("booking_id", bookingId)
       .eq("inspection_type", "return")
       .maybeSingle();
+
+    if (inspectionErr) {
+      console.error("Error fetching return inspection:", inspectionErr);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch return inspection" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!returnInspection) {
       return new Response(
@@ -226,8 +237,21 @@ Deno.serve(async (req) => {
     const submittedAt = new Date(
       returnInspection.timestamp || returnInspection.created_at
     );
-    const claimDeadlineMs =
-      submittedAt.getTime() + claimWindowHours * 60 * 60 * 1000;
+
+    // Guard against invalid timestamps - if NaN, treat as window not expired
+    const submittedAtMs = submittedAt.getTime();
+    if (isNaN(submittedAtMs)) {
+      console.error("Invalid inspection timestamp:", returnInspection.timestamp, returnInspection.created_at);
+      return new Response(
+        JSON.stringify({ error: "Invalid inspection timestamp" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const claimDeadlineMs = submittedAtMs + claimWindowHours * 60 * 60 * 1000;
     const claimWindowExpired = Date.now() > claimDeadlineMs;
 
     // Require owner confirmation unless the claim window has expired (auto-accept)

@@ -1,7 +1,7 @@
 /// <reference path="../deno.d.ts" />
 
 import Stripe from "npm:stripe@20.0.0";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     // Get equipment details and verify it exists
     const { data: equipment, error: equipError } = await supabase
       .from("equipment")
-      .select("id, owner_id, daily_rate, is_available, title")
+      .select("id, owner_id, daily_rate, is_available, title, damage_deposit_amount")
       .eq("id", bookingData.equipment_id)
       .single();
 
@@ -139,6 +139,19 @@ Deno.serve(async (req) => {
     if (!equipment.is_available) {
       return new Response(
         JSON.stringify({ error: "Equipment is not available" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate rental dates
+    const startDateMs = Date.parse(bookingData.start_date);
+    const endDateMs = Date.parse(bookingData.end_date);
+    if (!Number.isFinite(startDateMs) || !Number.isFinite(endDateMs) || endDateMs < startDateMs) {
+      return new Response(
+        JSON.stringify({ error: "Invalid rental dates" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -183,23 +196,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Calculate breakdown from total
-    const bookingTotal = Number(bookingData.total_amount);
-    const insuranceAmount = roundToTwo(Number(bookingData.insurance_cost ?? 0));
-    const depositAmount = roundToTwo(Number(bookingData.damage_deposit_amount ?? 0));
-    const subtotalBeforeFees = roundToTwo(
-      bookingTotal - insuranceAmount - depositAmount
+    // SERVER-SIDE PRICE CALCULATION (don't trust client amounts)
+    // Calculate the number of rental days
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const rentalDays = Math.ceil((endDateMs - startDateMs) / msPerDay) + 1; // Inclusive of both start and end date
+
+    // Calculate expected rental amount from server-side data
+    const expectedRentalAmount = roundToTwo(equipment.daily_rate * rentalDays);
+    const expectedServiceFee = roundToTwo(expectedRentalAmount * 0.05); // 5% service fee
+    const expectedDepositAmount = roundToTwo(Number(equipment.damage_deposit_amount ?? 0));
+
+    // Insurance is provided by client but capped at reasonable amount (e.g., 15% of rental)
+    const clientInsuranceCost = roundToTwo(Number(bookingData.insurance_cost ?? 0));
+    const maxInsuranceCost = roundToTwo(expectedRentalAmount * 0.15);
+    const insuranceAmount = Math.min(clientInsuranceCost, maxInsuranceCost);
+
+    // Use server-calculated deposit, not client-provided
+    const depositAmount = expectedDepositAmount;
+
+    // Calculate expected total
+    const expectedTotal = roundToTwo(
+      expectedRentalAmount + expectedServiceFee + insuranceAmount + depositAmount
     );
 
-    if (!Number.isFinite(subtotalBeforeFees) || subtotalBeforeFees < 0) {
-      console.error("Booking totals are inconsistent", {
-        bookingTotal,
+    // Verify client-provided total matches server calculation (with small tolerance for rounding)
+    const clientTotal = roundToTwo(Number(bookingData.total_amount));
+    const pricingDifference = Math.abs(expectedTotal - clientTotal);
+    const tolerance = 0.02; // Allow 2 cents tolerance for rounding differences
+
+    if (pricingDifference > tolerance) {
+      console.error("Pricing mismatch detected", {
+        clientTotal,
+        expectedTotal,
+        expectedRentalAmount,
+        expectedServiceFee,
         insuranceAmount,
         depositAmount,
+        rentalDays,
+        dailyRate: equipment.daily_rate,
       });
       return new Response(
         JSON.stringify({
-          error: "Booking totals are invalid. Please try again.",
+          error: "Pricing mismatch. Please refresh and try again.",
         }),
         {
           status: 400,
@@ -208,8 +246,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const rentalSubtotal = roundToTwo(subtotalBeforeFees / 1.05);
-    const serviceFee = roundToTwo(subtotalBeforeFees - rentalSubtotal);
+    // Use server-calculated values
+    const bookingTotal = expectedTotal;
+    const rentalSubtotal = expectedRentalAmount;
+    const serviceFee = expectedServiceFee;
 
     // Create PaymentIntent with ALL booking data in metadata
     // This data will be used by the webhook to create the booking after payment

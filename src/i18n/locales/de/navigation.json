@@ -9,12 +9,14 @@
     "explore": "Erkunden",
     "my_rentals": "Meine Vermietungen",
     "my_listings": "Meine Angebote",
-    "payments": "Zahlungen"
+    "payments": "Zahlungen",
+    "admin": "Admin"
   },
   "user_role": {
     "loading": "Wird geladen...",
     "equipment_owner": "Equipment-Eigentümer",
-    "renter": "Mieter"
+    "renter": "Mieter",
+    "admin": "Administrator"
   },
   "pages": {
     "home": "Startseite",

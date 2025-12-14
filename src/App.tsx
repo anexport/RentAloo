@@ -52,7 +52,14 @@ const PageLoader = () => (
 );
 
 const AdminRoute = () => {
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading, error, refetch } = useAdminAccess();
+
+  // Wait for auth to load first
+  if (authLoading) return <PageLoader />;
+
+  // Redirect to home if not logged in
+  if (!user) return <Navigate to="/" replace />;
 
   if (loading) return <PageLoader />;
 
@@ -63,7 +70,7 @@ const AdminRoute = () => {
         <p className="text-destructive">
           An error occurred while verifying access. Please try again.
         </p>
-        <Button onClick={() => refetch()}>Retry</Button>
+        <Button onClick={() => void refetch()}>Retry</Button>
       </div>
     );
   }
@@ -175,9 +182,11 @@ function App() {
                         path="/claims/manage/:claimId"
                         element={<ManageClaimPage />}
                       />
-                      <Route path="/admin" element={<AdminRoute />} />
                     </>
                   )}
+
+                  {/* Admin route - always registered, AdminRoute handles auth */}
+                  <Route path="/admin" element={<AdminRoute />} />
                 </Routes>
               </Suspense>
               <Toaster />

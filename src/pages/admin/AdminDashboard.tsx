@@ -292,6 +292,11 @@ const AdminDashboard = () => {
     );
   }, [search, users]);
 
+  // NOTE: This count is based on loaded users only (up to loadedUsersCount).
+  // In edge cases where not all users are loaded, this may undercount admins.
+  // However, since adminCount is used to prevent demoting the last admin,
+  // this errs on the side of caution (may prevent valid demotions, but never
+  // allows demoting the actual last admin).
   const adminCount = useMemo(
     () => users.filter((profile) => profile.role === "admin").length,
     [users]

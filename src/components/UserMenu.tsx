@@ -93,7 +93,7 @@ const UserMenu = () => {
   const initials = getInitials(user.email);
   const displayName = user.user_metadata?.fullName || user.email;
   const roleLabel = isAdmin
-    ? "Admin"
+    ? t("user_role.admin")
     : activeMode === "owner"
       ? t("user_role.equipment_owner")
       : t("user_role.renter");
@@ -137,7 +137,7 @@ const UserMenu = () => {
         {isAdmin && (
           <DropdownMenuItem onClick={() => handleNavigation("/admin")}>
             <ShieldCheck className="h-4 w-4 text-gray-500" />
-            <span>Admin</span>
+            <span>{t("menu.admin")}</span>
           </DropdownMenuItem>
         )}
 

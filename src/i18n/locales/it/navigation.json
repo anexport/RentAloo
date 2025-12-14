@@ -9,7 +9,8 @@
     "explore": "Esplora",
     "my_rentals": "I miei noleggi",
     "my_listings": "Le mie inserzioni",
-    "payments": "Pagamenti"
+    "payments": "Pagamenti",
+    "admin": "Admin"
   },
   "auth": {
     "sign_in": "Accedi",
@@ -18,7 +19,8 @@
   "user_role": {
     "loading": "Caricamento...",
     "equipment_owner": "Proprietario attrezzatura",
-    "renter": "Noleggiatore"
+    "renter": "Noleggiatore",
+    "admin": "Amministratore"
   },
   "pages": {
     "home": "Home",

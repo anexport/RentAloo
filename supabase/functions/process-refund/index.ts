@@ -1,10 +1,17 @@
 /// <reference path="../deno.d.ts" />
 
 import Stripe from "npm:stripe@20.0.0";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
+import { z } from "npm:zod@4.1.12";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
+});
+
+// Zod schema for request validation
+const ProcessRefundSchema = z.object({
+  paymentId: z.string().uuid("Invalid payment ID format"),
+  reason: z.string().max(500).optional(),
 });
 
 // CORS headers
@@ -61,14 +68,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse request body
-    const { paymentId, reason } = await req.json();
-    if (!paymentId) {
-      return new Response(JSON.stringify({ error: "Missing paymentId" }), {
+    // Parse and validate request body with Zod
+    let requestBody: unknown;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const parseResult = ProcessRefundSchema.safeParse(requestBody);
+    if (!parseResult.success) {
+      return new Response(
+        JSON.stringify({
+          error: "Validation failed",
+          details: parseResult.error.errors.map((e) => e.message).join(", "),
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const { paymentId, reason } = parseResult.data;
 
     // Load payment and ensure caller is involved (renter or owner)
     const { data: payment, error: paymentError } = await supabaseAdmin

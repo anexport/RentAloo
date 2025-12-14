@@ -1,6 +1,6 @@
 /// <reference path="../deno.d.ts" />
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 import { z } from "npm:zod@4.1.12";
 
 // CORS headers
@@ -72,14 +72,6 @@ const SuspendUserSchema = z.object({
 const UnsuspendUserSchema = z.object({
   action: z.literal("unsuspendUser"),
   userId: z.string().uuid(),
-});
-
-// Additional validation schema for createUser action
-const createUserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).optional(),
-  role: z.enum(["admin", "user"]).optional(),
-  emailConfirm: z.boolean().optional(),
 });
 
 // Union schema for all actions
@@ -158,7 +150,7 @@ Deno.serve(async (req) => {
       return jsonResponse(
         {
           error: "Validation failed",
-          details: validationResult.error.errors,
+          details: validationResult.error.issues,
         },
         400
       );
@@ -191,19 +183,8 @@ Deno.serve(async (req) => {
     }
 
     if (validatedRequest.action === "createUser") {
-      // Additional validation for createUser payload
-      const createUserValidation = createUserSchema.safeParse(body);
-      if (!createUserValidation.success) {
-        return jsonResponse(
-          {
-            error: "Validation failed",
-            details: createUserValidation.error.errors,
-          },
-          400
-        );
-      }
-
-      const { email, password, role, emailConfirm } = createUserValidation.data;
+      // Use already validated data from RequestSchema
+      const { email, password, role, emailConfirm } = validatedRequest;
 
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email,

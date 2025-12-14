@@ -1,7 +1,7 @@
 /// <reference path="../deno.d.ts" />
 
 import Stripe from "npm:stripe@20.0.0";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.87.1";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2024-06-20",
@@ -207,12 +207,32 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
 
-      if (paymentError) {
+      if (paymentError || !newPayment) {
         console.error("Error creating payment record:", paymentError);
-        // Booking was created but payment record failed - still need to handle
-      } else {
-        console.log("Created payment record:", newPayment?.id);
+        // Rollback: delete the orphan booking to maintain atomicity
+        const { error: rollbackError } = await supabase
+          .from("booking_requests")
+          .delete()
+          .eq("id", newBooking.id);
+
+        if (rollbackError) {
+          console.error("Failed to rollback booking after payment error:", rollbackError);
+        }
+
+        return new Response(
+          JSON.stringify({
+            received: true,
+            error: "Failed to create payment record",
+            details: paymentError?.message,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
+
+      console.log("Created payment record:", newPayment.id);
 
       // Create conversation and send confirmation message
       try {

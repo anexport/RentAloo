@@ -9,12 +9,14 @@
     "explore": "Explorer",
     "my_rentals": "Mes locations",
     "my_listings": "Mes annonces",
-    "payments": "Paiements"
+    "payments": "Paiements",
+    "admin": "Admin"
   },
   "user_role": {
     "loading": "Chargement...",
     "equipment_owner": "Propriétaire de matériel",
-    "renter": "Locataire"
+    "renter": "Locataire",
+    "admin": "Administrateur"
   },
   "pages": {
     "home": "Accueil",
