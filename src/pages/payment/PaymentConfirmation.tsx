@@ -189,6 +189,16 @@ const PaymentConfirmation = () => {
     return null;
   }
 
+  const insuranceAmount = Number(payment.insurance_amount ?? 0);
+  const depositAmount = Number(payment.deposit_amount ?? 0);
+  const insuranceType = payment.booking_request?.insurance_type;
+  const insuranceLabel =
+    insuranceType === "basic"
+      ? "Insurance (Basic Protection)"
+      : insuranceType === "premium"
+        ? "Insurance (Premium Protection)"
+        : "Insurance";
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -265,6 +275,24 @@ const PaymentConfirmation = () => {
                   <span className="text-muted-foreground">Service Fee</span>
                   <span>{formatCurrency(payment.service_fee)}</span>
                 </div>
+                {insuranceAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {insuranceLabel}
+                    </span>
+                    <span>{formatCurrency(insuranceAmount)}</span>
+                  </div>
+                )}
+                {depositAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Refundable Deposit
+                    </span>
+                    <span className="text-green-600 dark:text-green-400">
+                      {formatCurrency(depositAmount)}
+                    </span>
+                  </div>
+                )}
                 {payment.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tax</span>
@@ -315,8 +343,16 @@ const PaymentConfirmation = () => {
               </h4>
               <p className="text-sm text-muted-foreground">
                 Your payment of {formatCurrency(payment.total_amount)} is
-                securely held in escrow until the rental is completed. The
-                equipment owner will receive their payout after you confirm
+                securely held in escrow until the rental is completed.
+                {depositAmount > 0 && (
+                  <>
+                    {" "}
+                    The refundable deposit of {formatCurrency(depositAmount)}{" "}
+                    will be returned after successful return unless it is used
+                    for a damage claim.
+                  </>
+                )}{" "}
+                The equipment owner will receive their payout after you confirm
                 successful equipment return.
               </p>
             </div>
