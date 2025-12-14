@@ -113,7 +113,9 @@ Deno.serve(async (req) => {
     // Get equipment details and verify it exists
     const { data: equipment, error: equipError } = await supabase
       .from("equipment")
-      .select("id, owner_id, daily_rate, is_available, title, damage_deposit_amount")
+      .select(
+        "id, owner_id, daily_rate, is_available, title, damage_deposit_amount, damage_deposit_percentage"
+      )
       .eq("id", bookingData.equipment_id)
       .single();
 
@@ -197,19 +199,54 @@ Deno.serve(async (req) => {
     }
 
     // SERVER-SIDE PRICE CALCULATION (don't trust client amounts)
-    // Calculate the number of rental days
+    // Calculate the number of rental days (matches client-side calculation in lib/booking.ts)
     const msPerDay = 24 * 60 * 60 * 1000;
-    const rentalDays = Math.ceil((endDateMs - startDateMs) / msPerDay) + 1; // Inclusive of both start and end date
+    const rentalDays = Math.ceil((endDateMs - startDateMs) / msPerDay);
+    if (rentalDays < 1) {
+      return new Response(
+        JSON.stringify({ error: "Minimum rental period is 1 day" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    if (rentalDays > 30) {
+      return new Response(
+        JSON.stringify({ error: "Maximum rental period is 30 days" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Calculate expected rental amount from server-side data
-    const expectedRentalAmount = roundToTwo(equipment.daily_rate * rentalDays);
+    const dailyRate = Number(equipment.daily_rate ?? 0);
+    const expectedRentalAmount = roundToTwo(dailyRate * rentalDays);
     const expectedServiceFee = roundToTwo(expectedRentalAmount * 0.05); // 5% service fee
-    const expectedDepositAmount = roundToTwo(Number(equipment.damage_deposit_amount ?? 0));
 
-    // Insurance is provided by client but capped at reasonable amount (e.g., 15% of rental)
-    const clientInsuranceCost = roundToTwo(Number(bookingData.insurance_cost ?? 0));
-    const maxInsuranceCost = roundToTwo(expectedRentalAmount * 0.15);
-    const insuranceAmount = Math.min(clientInsuranceCost, maxInsuranceCost);
+    // Calculate expected deposit amount from server-side equipment config
+    // Supports both fixed amount and percentage of daily rate (legacy/optional field).
+    const fixedDeposit = Number(equipment.damage_deposit_amount ?? 0);
+    const depositPercentage = Number(equipment.damage_deposit_percentage ?? 0);
+    const expectedDepositAmount =
+      Number.isFinite(fixedDeposit) && fixedDeposit > 0
+        ? roundToTwo(fixedDeposit)
+        : Number.isFinite(depositPercentage) && depositPercentage > 0
+          ? roundToTwo(dailyRate * (depositPercentage / 100))
+          : 0;
+
+    // Calculate insurance amount from insurance type (don't trust client cost)
+    const insuranceType =
+      bookingData.insurance_type === "none" ||
+      bookingData.insurance_type === "basic" ||
+      bookingData.insurance_type === "premium"
+        ? bookingData.insurance_type
+        : "none";
+    const insuranceRate =
+      insuranceType === "basic" ? 0.05 : insuranceType === "premium" ? 0.1 : 0;
+    const insuranceAmount = roundToTwo(expectedRentalAmount * insuranceRate);
 
     // Use server-calculated deposit, not client-provided
     const depositAmount = expectedDepositAmount;
@@ -266,7 +303,7 @@ Deno.serve(async (req) => {
         total_amount: bookingTotal.toString(),
         rental_amount: rentalSubtotal.toString(),
         service_fee: serviceFee.toString(),
-        insurance_type: bookingData.insurance_type || "none",
+        insurance_type: insuranceType,
         insurance_cost: insuranceAmount.toString(),
         damage_deposit_amount: depositAmount.toString(),
         equipment_title: equipment.title || "",

@@ -40,7 +40,7 @@ import { supabase } from "@/lib/supabase";
 import type { PaymentBookingData } from "@/lib/stripe";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
-import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
+import { calculateBookingTotal, calculateDamageDeposit, checkBookingConflicts } from "@/lib/booking";
 import { formatDateForStorage } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
@@ -48,23 +48,6 @@ type EquipmentDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   listingId?: string;
-};
-
-
-const calculateDamageDeposit = (equipment?: Listing | null): number => {
-  if (!equipment) return 0;
-
-  if (equipment.damage_deposit_amount) {
-    return equipment.damage_deposit_amount;
-  }
-
-  if (equipment.damage_deposit_percentage) {
-    return (
-      equipment.daily_rate * (equipment.damage_deposit_percentage / 100)
-    );
-  }
-
-  return 0;
 };
 
 const EquipmentDetailDialog = ({
