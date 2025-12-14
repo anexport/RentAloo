@@ -185,6 +185,11 @@ export default function InspectionView() {
             title: "Deposit Released",
             description: "The security deposit has been successfully released to the renter.",
           });
+
+          toast({
+            title: "Inspection Confirmed",
+            description: "You have successfully confirmed the return inspection.",
+          });
         } catch (releaseErr) {
           console.error("Deposit release error:", releaseErr);
           toast({
@@ -198,11 +203,6 @@ export default function InspectionView() {
           setReleasingDeposit(false);
         }
       }
-
-      toast({
-        title: "Inspection Confirmed",
-        description: "You have successfully confirmed the return inspection.",
-      });
     } catch (err) {
       console.error("Error confirming inspection:", err);
       setConfirmError(

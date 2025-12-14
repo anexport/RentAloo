@@ -293,6 +293,11 @@ Deno.serve(async (req) => {
           .or("verified_by_owner.eq.false,verified_by_owner.is.null");
         if (acceptErr) {
           console.error("Failed to auto-accept return inspection:", acceptErr);
+          errors.push({
+            paymentId: payment.id,
+            bookingId,
+            error: `Failed to auto-accept return inspection (${returnInspection.id}): ${acceptErr.message}`,
+          });
         }
       }
 
