@@ -217,6 +217,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const equipmentInputRef = useRef<HTMLInputElement>(null);
+  const dragStartY = useRef<number | null>(null);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
@@ -365,7 +366,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     onChange({ ...value, location });
     setLocationOpen(false);
     addressAutocomplete.setQuery("");
-    setActiveSection("when");
     locationInputRef.current?.blur();
     // Save to recent locations
     const updated = addRecentLocation(location);
@@ -783,10 +783,53 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         </SheetTrigger>
         <SheetContent side="bottom" className="h-[85vh] p-0" hideCloseButton>
           <div className="flex h-full flex-col">
-            {/* Swipe handle indicator */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-            </div>
+            {/* Swipe handle - draggable to dismiss */}
+            <button
+              type="button"
+              className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
+              aria-label="Drag down to close"
+              onPointerDown={(e) => {
+                if (e.pointerType === "mouse" && e.button !== 0) return;
+                dragStartY.current = e.clientY;
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (dragStartY.current === null) return;
+                const deltaY = e.clientY - dragStartY.current;
+                // Visual feedback: translate sheet down as user drags
+                const sheet = e.currentTarget.closest('[data-slot="sheet-content"]') as HTMLElement;
+                if (sheet && deltaY > 0) {
+                  sheet.style.transform = `translateY(${deltaY}px)`;
+                  sheet.style.transition = 'none';
+                }
+              }}
+              onPointerUp={(e) => {
+                if (dragStartY.current === null) return;
+                const deltaY = e.clientY - dragStartY.current;
+                const sheet = e.currentTarget.closest('[data-slot="sheet-content"]') as HTMLElement;
+                
+                if (deltaY > 100) {
+                  // Close sheet
+                  setSheetOpen(false);
+                } else if (sheet) {
+                  // Snap back
+                  sheet.style.transform = '';
+                  sheet.style.transition = 'transform 200ms ease';
+                }
+                dragStartY.current = null;
+              }}
+              onPointerCancel={() => {
+                dragStartY.current = null;
+                // Reset position
+                const sheet = document.querySelector('[data-slot="sheet-content"]') as HTMLElement;
+                if (sheet) {
+                  sheet.style.transform = '';
+                  sheet.style.transition = 'transform 200ms ease';
+                }
+              }}
+            >
+              <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
+            </button>
             {/* Compact header with integrated tabs */}
             <div className="px-4 pb-3 sticky top-0 bg-background z-10">
               <div className="flex items-center justify-between mb-3">
