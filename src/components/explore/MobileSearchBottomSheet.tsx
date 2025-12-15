@@ -127,7 +127,18 @@ const MobileSearchBottomSheet = ({
     };
   }, [recomputeMetrics]);
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+  // Global ESC key handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && snapRef.current !== "closed") {
+        snapTo("peek");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [snapTo]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
 
     dragRef.current = {
@@ -144,7 +155,7 @@ const MobileSearchBottomSheet = ({
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
     if (dragRef.current.pointerId !== event.pointerId) return;
 
     const deltaY = event.clientY - dragRef.current.startY;
@@ -159,7 +170,7 @@ const MobileSearchBottomSheet = ({
     applyVisibleHeight(nextVisible, { animate: false });
   };
 
-  const finishDragOrToggle = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const finishDragOrToggle = (event: React.PointerEvent<HTMLElement>, isHeader = false) => {
     if (dragRef.current.pointerId !== event.pointerId) return;
     dragRef.current.pointerId = null;
 
@@ -167,6 +178,8 @@ const MobileSearchBottomSheet = ({
     const currentVisible = visibleHeightRef.current;
 
     if (!dragRef.current.didMove) {
+      // Header taps should not toggle - only handle bar taps toggle
+      if (isHeader) return;
       // Toggle: closed→full, peek→full, full→peek
       const nextSnap =
         snapRef.current === "closed"
@@ -218,10 +231,17 @@ const MobileSearchBottomSheet = ({
         <div 
           className="fixed inset-0 z-40 bg-black/50 animate-in fade-in-0"
           onClick={() => snapTo("peek")}
+          onKeyDown={(e) => e.key === "Escape" && snapTo("peek")}
+          tabIndex={-1}
+          role="presentation"
+          aria-hidden="true"
         />
       )}
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search sheet"
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border rounded-t-2xl shadow-lg flex flex-col",
           className
@@ -251,10 +271,20 @@ const MobileSearchBottomSheet = ({
           {snap === "peek" && peekContent}
         </button>
 
+        {/* Draggable header area */}
+        <div
+          className="flex-shrink-0 touch-none select-none h-8 cursor-grab active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={(e) => finishDragOrToggle(e, true)}
+          onPointerCancel={(e) => finishDragOrToggle(e, true)}
+          aria-hidden="true"
+        />
+
         <div
           id={contentId}
           className={cn(
-            "flex-1 min-h-0 overflow-hidden flex flex-col",
+            "flex-1 min-h-0 overflow-hidden flex flex-col -mt-8",
             snap !== "full" && "pointer-events-none"
           )}
         >
