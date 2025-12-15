@@ -12,7 +12,8 @@ type Props = {
 
 const MID_HEIGHT_RATIO = 0.28;
 const FULL_HEIGHT_RATIO = 0.6;
-const MIN_PEEK_PX = 48;
+// 48px base + 64px for mobile bottom nav = 112px minimum peek height
+const MIN_PEEK_PX = 112;
 const MIN_SHEET_GROWTH_PX = 180;
 
 const clamp = (value: number, min: number, max: number) =>

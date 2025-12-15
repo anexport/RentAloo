@@ -45,7 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ArrowUpDown } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -64,8 +64,24 @@ const ExplorePage = () => {
   const { t: tNav } = useTranslation("navigation");
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
+  const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  // Track scroll position for collapsing header on mobile
+  useEffect(() => {
+    if (!isMobile) {
+      setIsScrolled(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobile]);
 
   // Filter params managed via nuqs
   const [searchQuery, setSearchQuery] = useQueryState("search", {
@@ -542,8 +558,13 @@ const ExplorePage = () => {
         />
       )}
 
-      {/* Sticky Header with Search */}
-      <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
+      {/* Sticky Header with Search - collapses on mobile when scrolled */}
+      <div
+        className={cn(
+          "sticky top-0 z-50 bg-background border-b border-border shadow-sm transition-transform duration-300",
+          isScrolled && isMobile && "-translate-y-full"
+        )}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <SearchBarPopover
             value={searchFilters}
@@ -553,9 +574,9 @@ const ExplorePage = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumbs */}
-        <nav className="mb-4 flex items-center text-sm text-muted-foreground">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-6">
+        {/* Breadcrumbs - Hidden on mobile (redundant with bottom nav) */}
+        <nav className="mb-4 hidden md:flex items-center text-sm text-muted-foreground">
           <Link to="/" className="hover:text-foreground transition-colors">
             {tNav("pages.home")}
           </Link>
@@ -569,20 +590,65 @@ const ExplorePage = () => {
           )}
         </nav>
 
-        {/* Categories - Sticky */}
-        <div className="sticky top-[73px] z-40 bg-background py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border">
-          {isLoading && !data ? (
-            <CategoryBarSkeleton />
-          ) : (
-            <CategoryBar
-              activeCategoryId={categoryId}
-              onCategoryChange={setCategoryId}
-            />
+        {/* Categories + Mobile Controls - Sticky */}
+        <div
+          className={cn(
+            "sticky z-40 bg-background py-2 md:py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border transition-all duration-300",
+            isScrolled && isMobile ? "top-0" : "top-[73px]"
           )}
+        >
+          <div className="flex items-center gap-2">
+            {/* Categories take up available space */}
+            <div className="flex-1 min-w-0">
+              {isLoading && !data ? (
+                <CategoryBarSkeleton />
+              ) : (
+                <CategoryBar
+                  activeCategoryId={categoryId}
+                  onCategoryChange={setCategoryId}
+                />
+              )}
+            </div>
+            
+            {/* Mobile-only: compact filter/sort controls */}
+            <div className="flex items-center gap-1.5 flex-shrink-0 md:hidden">
+              <FiltersSheet
+                value={filterValues}
+                onChange={handleFilterChange}
+                resultCount={data?.length ?? 0}
+                activeFilterCount={activeFilterCount}
+              />
+              <Select
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as SortOption)}
+              >
+                <SelectTrigger 
+                  className="h-auto gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors [&>svg:last-child]:hidden" 
+                  aria-label={t("filters.sort_by")}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline max-w-[60px] truncate">
+                    {sortBy === "recommended" ? t("filters.sort_rec", { defaultValue: "Best" }) :
+                     sortBy === "price-low" ? t("filters.sort_price_asc", { defaultValue: "Price ↑" }) :
+                     sortBy === "price-high" ? t("filters.sort_price_desc", { defaultValue: "Price ↓" }) :
+                     sortBy === "newest" ? t("filters.sort_new", { defaultValue: "New" }) :
+                     t("filters.sort_rated", { defaultValue: "Top" })}
+                  </span>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="recommended">{t("filters.recommended")}</SelectItem>
+                  <SelectItem value="price-low">{t("filters.price_low_high")}</SelectItem>
+                  <SelectItem value="price-high">{t("filters.price_high_low")}</SelectItem>
+                  <SelectItem value="newest">{t("filters.newest_first")}</SelectItem>
+                  <SelectItem value="rating">{t("filters.highest_rated")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
-        {/* Filters row and Grid Header */}
-        <div className="flex items-center justify-between gap-4 mt-4 mb-4">
+        {/* Filters row and Grid Header - Desktop only */}
+        <div className="hidden md:flex items-center justify-between gap-4 mt-4 mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold">
               {t("browse.items_count", { count: data?.length ?? 0 })}
@@ -621,7 +687,7 @@ const ExplorePage = () => {
             </Select>
           </div>
         </div>
-        <Separator />
+        <Separator className="hidden md:block" />
 
         {/* Results: map-first */}
         <div className="mt-6">

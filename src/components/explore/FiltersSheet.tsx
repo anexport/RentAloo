@@ -215,23 +215,22 @@ const FiltersSheet = ({
   );
 
   const TriggerButton = () => (
-    <Button
-      variant="outline"
-      size="sm"
-      className="relative"
+    <button
+      type="button"
       onClick={() => setIsOpen(true)}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors whitespace-nowrap"
     >
-      <Filter className="h-4 w-4 mr-2" />
-      {t("filters_sheet.title")}
+      <Filter className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">{t("filters_sheet.title")}</span>
       {activeFilterCount > 0 && (
         <Badge
           variant="default"
-          className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+          className="h-4 min-w-4 rounded-full p-0 flex items-center justify-center text-[10px]"
         >
           {activeFilterCount}
         </Badge>
       )}
-    </Button>
+    </button>
   );
 
   if (isDesktop) {
