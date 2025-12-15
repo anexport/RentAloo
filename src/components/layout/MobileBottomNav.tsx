@@ -8,8 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/explore", icon: Search, label: "Explore" },
-  { to: "/renter/wishlist", icon: Heart, label: "Favorites" },
-  { to: "/messaging", icon: MessageSquare, label: "Messages" },
+  { to: "/renter/dashboard?tab=saved", icon: Heart, label: "Favorites" },
+  { to: "/messages", icon: MessageSquare, label: "Messages" },
   { to: "/profile", icon: User, label: "Profile" },
 ] as const;
 
