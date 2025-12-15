@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -32,6 +33,11 @@ import {
   X,
   Wrench,
   Loader2,
+  Building2,
+  Trees,
+  Waves,
+  Mountain,
+  Clock,
 } from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -53,6 +59,8 @@ import type { EquipmentSuggestion } from "@/components/equipment/services/autoco
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { highlightMatchingText } from "@/lib/highlightText";
+import SearchPreviewMap from "./SearchPreviewMap";
+import { fetchListings } from "@/components/equipment/services/listings";
 
 type Props = {
   value: SearchBarFilters;
@@ -69,13 +77,18 @@ const FALLBACK_EQUIPMENT_TYPES = [
   "Cycling",
 ];
 
-const POPULAR_LOCATIONS = [
-  "San Francisco, CA",
-  "Los Angeles, CA",
-  "Seattle, WA",
-  "Portland, OR",
-  "Denver, CO",
-  "Austin, TX",
+const POPULAR_LOCATIONS: Array<{
+  name: string;
+  type: 'city' | 'park' | 'beach' | 'mountain';
+  emoji: string;
+  coords: { lat: number; lng: number };
+}> = [
+  { name: "San Francisco, CA", type: "city", emoji: "🌉", coords: { lat: 37.7749, lng: -122.4194 } },
+  { name: "Yosemite National Park", type: "park", emoji: "🏔️", coords: { lat: 37.8651, lng: -119.5383 } },
+  { name: "Santa Cruz, CA", type: "beach", emoji: "🌊", coords: { lat: 36.9741, lng: -122.0308 } },
+  { name: "Lake Tahoe, CA", type: "mountain", emoji: "⛷️", coords: { lat: 39.0968, lng: -120.0324 } },
+  { name: "Big Sur, CA", type: "beach", emoji: "🌅", coords: { lat: 36.2704, lng: -121.8081 } },
+  { name: "Joshua Tree, CA", type: "park", emoji: "🌵", coords: { lat: 33.8734, lng: -115.9010 } },
 ];
 
 const POPULAR_CATEGORIES = [
@@ -87,7 +100,51 @@ const POPULAR_CATEGORIES = [
 ];
 
 const RECENT_SEARCHES_KEY = "rentaloo_recent_equipment_searches";
+const RECENT_LOCATIONS_KEY = "rentaloo_recent_locations";
 const MAX_RECENT_SEARCHES = 5;
+const MAX_RECENT_LOCATIONS = 3;
+
+// Helper to calculate distance between two coordinates (Haversine formula)
+const calculateDistanceMiles = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number => {
+  const R = 3959; // Earth's radius in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+};
+
+// Helper functions for recent locations
+const getRecentLocations = (): string[] => {
+  try {
+    const stored = localStorage.getItem(RECENT_LOCATIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addRecentLocation = (location: string) => {
+  try {
+    const recent = getRecentLocations();
+    const filtered = recent.filter((s) => s !== location);
+    const updated = [location, ...filtered].slice(0, MAX_RECENT_LOCATIONS);
+    localStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+};
 
 // Helper function to detect macOS using modern API with fallback
 const isMacOS = (): boolean => {
@@ -159,6 +216,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [recentLocations, setRecentLocations] = useState<string[]>([]);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const equipmentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -166,6 +225,14 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     limit: 10,
     minLength: 2,
     debounceMs: 100,
+  });
+
+  // Fetch listings for the interactive map preview
+  const { data: mapListings = [] } = useQuery({
+    queryKey: ["search-preview-listings"],
+    queryFn: ({ signal }) => fetchListings({ limit: 100 }, signal),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: sheetOpen, // Only fetch when sheet is open
   });
 
   const equipmentAutocomplete = useEquipmentAutocomplete({
@@ -252,9 +319,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         }));
   }, [categories]);
 
-  // Load recent searches on mount
+  // Load recent searches and locations on mount
   useEffect(() => {
     setRecentSearches(getRecentSearches());
+    setRecentLocations(getRecentLocations());
   }, []);
 
   useEffect(() => {
@@ -302,6 +370,9 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     addressAutocomplete.setQuery("");
     setActiveSection("when");
     locationInputRef.current?.blur();
+    // Save to recent locations
+    const updated = addRecentLocation(location);
+    setRecentLocations(updated);
   };
 
   // Focus Command input when location popover opens
@@ -422,17 +493,21 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             heading={options?.popularHeading ?? "Popular"}
             className="animate-suggestions-in"
           >
-            {POPULAR_LOCATIONS.map((loc, idx) => (
-              <CommandItem
-                key={loc}
-                onSelect={() => handleLocationSelect(loc)}
-                className="cursor-pointer animate-suggestion-item"
-                style={{ "--item-index": idx } as React.CSSProperties}
-              >
-                <MapPin className="mr-2 h-4 w-4" />
-                {loc}
-              </CommandItem>
-            ))}
+            {POPULAR_LOCATIONS.map((loc, idx) => {
+              const TypeIcon = loc.type === 'city' ? Building2 : loc.type === 'park' ? Trees : loc.type === 'beach' ? Waves : Mountain;
+              return (
+                <CommandItem
+                  key={loc.name}
+                  onSelect={() => handleLocationSelect(loc.name)}
+                  className="cursor-pointer animate-suggestion-item"
+                  style={{ "--item-index": idx } as React.CSSProperties}
+                >
+                  <TypeIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="mr-1">{loc.emoji}</span>
+                  {loc.name}
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
         </CommandList>
       </Command>
@@ -540,6 +615,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
 
     try {
       const { lat, lon } = await getCurrentPosition();
+      // Save user position for distance badges
+      setUserPosition({ lat, lng: lon });
       const controller = new AbortController();
       const label = await reverseGeocode(lat, lon, {
         signal: controller.signal,
@@ -770,60 +847,99 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 })}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
-              {activeSection === "where" && (
-                <div className="space-y-4 animate-in fade-in-0 slide-in-from-right-2 duration-200">
-                  {renderAutocompleteCommand("Try Yosemite National Park")}
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start"
-                    onClick={handleLocationClick}
-                    disabled={isLocating}
-                    aria-label="Use current location"
-                    aria-busy={isLocating}
-                  >
-                    <Crosshair className="mr-2 h-4 w-4" />
-                    {isLocating
-                      ? "Detecting your location..."
-                      : "Use current location"}
-                  </Button>
-                  <div className="flex flex-wrap gap-2 animate-suggestions-in">
-                    {POPULAR_LOCATIONS.map((loc, idx) => (
-                      <Button
-                        key={`${loc}-chip`}
-                        variant={
-                          value.location === loc ? "default" : "secondary"
-                        }
-                        size="sm"
-                        className="rounded-full animate-suggestion-item"
-                        style={{ animationDelay: `${idx * 40}ms` }}
-                        onClick={() => handleLocationSelect(loc)}
-                      >
-                        {loc}
-                      </Button>
-                    ))}
+            
+            {/* Map-centric Where section */}
+            {activeSection === "where" && (
+              <div className="flex-1 flex flex-col animate-in fade-in-0 duration-200">
+                {/* Interactive Map - Takes ~50% of sheet height */}
+                <div className="relative flex-1 min-h-[280px]">
+                  <SearchPreviewMap
+                    location={value.location || null}
+                    listings={mapListings}
+                    onSelectListing={() => {}}
+                    onOpenListing={() => {}}
+                    onUseCurrentLocation={handleLocationClick}
+                    isLocating={isLocating}
+                    className="h-full w-full"
+                  />
+                  
+                  {/* Overlaid Search Input - Google Maps style */}
+                  <div className="absolute top-3 left-3 right-3 z-20">
+                    <div className="relative">
+                      <div className="bg-background/95 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 overflow-hidden">
+                        {renderAutocompleteCommand("Search location...")}
+                      </div>
+                      {addressAutocomplete.loading && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {/* Selection badge */}
+
+                  {/* Selected location badge - overlaid on map */}
                   {value.location && (
-                    <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium flex-1 truncate">
-                        {value.location}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onChange({ ...value, location: "" })}
-                        className="h-7 w-7 p-0 rounded-full"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="absolute bottom-3 left-3 right-14 z-20">
+                      <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50">
+                        <MapPin className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-sm font-medium flex-1 truncate">
+                          {value.location}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onChange({ ...value, location: "" })}
+                          className="h-6 w-6 p-0 rounded-full hover:bg-muted"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
 
-              {activeSection === "when" && (
+                {/* Merged Recent + Popular chips - compact horizontal scroll */}
+                {(recentLocations.length > 0 || POPULAR_LOCATIONS.length > 0) && (
+                  <div className="px-4 py-3 border-t border-border/50 bg-background">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Quick select
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                      {/* Recent locations first */}
+                      {recentLocations.map((loc) => (
+                        <Button
+                          key={`recent-${loc}`}
+                          variant={value.location === loc ? "default" : "secondary"}
+                          size="sm"
+                          className="rounded-full shrink-0 h-8 text-xs"
+                          onClick={() => handleLocationSelect(loc)}
+                        >
+                          <Clock className="h-3 w-3 mr-1 opacity-60" />
+                          {loc.length > 20 ? loc.slice(0, 20) + "..." : loc}
+                        </Button>
+                      ))}
+                      {/* Popular locations - simplified, no emojis */}
+                      {POPULAR_LOCATIONS.slice(0, 4).map((loc) => (
+                        <Button
+                          key={`pop-${loc.name}`}
+                          variant={value.location === loc.name ? "default" : "secondary"}
+                          size="sm"
+                          className="rounded-full shrink-0 h-8 text-xs"
+                          onClick={() => handleLocationSelect(loc.name)}
+                        >
+                          {loc.name.length > 15 ? loc.name.slice(0, 15) + "..." : loc.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* When and What sections - with scrollable content */}
+            {activeSection !== "where" && (
+              <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+                {activeSection === "when" && (
                 <div className="space-y-3 animate-in fade-in-0 slide-in-from-right-2 duration-200">
                   {/* Always visible calendar - mobile optimized */}
                   <div className="rounded-2xl border bg-card overflow-hidden">
@@ -1106,7 +1222,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   )}
                 </div>
               )}
-            </div>
+              </div>
+            )}
             <SheetFooter className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
               <Button 
                 onClick={handleSearch} 
