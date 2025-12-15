@@ -6,13 +6,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetFooter,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Command,
@@ -56,6 +49,7 @@ import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { highlightMatchingText } from "@/lib/highlightText";
 import SearchPreviewMap from "./SearchPreviewMap";
+import MobileSearchBottomSheet from "./MobileSearchBottomSheet";
 import { fetchListings } from "@/components/equipment/services/listings";
 
 type Props = {
@@ -215,12 +209,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [recentLocations, setRecentLocations] = useState<string[]>([]);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  type SheetSnapPoint = "full" | "peek" | "closed";
-  const [sheetSnapPoint, setSheetSnapPoint] = useState<SheetSnapPoint>("full");
   const locationInputRef = useRef<HTMLInputElement>(null);
   const equipmentInputRef = useRef<HTMLInputElement>(null);
-  const dragStartY = useRef<number | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
@@ -748,137 +738,59 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     return parts.length > 0 ? parts.join(" · ") : "Search equipment";
   };
 
-  // Mobile version with Sheet
+  // Mobile version with custom bottom sheet
   if (!isDesktop) {
     return (
-      <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
-            aria-label="Search equipment"
-          >
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Search
-                </span>
-                <span className="text-sm font-semibold text-foreground truncate">
-                  {value.location || "Where to?"}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {getSearchSummary()}
-                </span>
-              </div>
-            </div>
-            <Badge
-              variant="secondary"
-              className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
-            >
-              {activeFilterCount > 0 ? (
-                activeFilterCount
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Badge>
-          </Button>
-        </SheetTrigger>
-        <SheetContent 
-          side="bottom" 
-          className={cn(
-            "p-0 transition-all duration-200",
-            sheetSnapPoint === "peek" ? "h-16" : "h-[85vh]"
-          )} 
-          hideCloseButton
+      <>
+        {/* Trigger Button */}
+        <Button
+          variant="outline"
+          className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
+          aria-label="Search equipment"
+          onClick={() => setSheetOpen(true)}
         >
-          <div ref={sheetRef} className="flex h-full flex-col">
-            {/* Swipe handle - draggable to dismiss or peek */}
-            <button
-              type="button"
-              className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none select-none"
-              aria-label="Drag to resize or close"
-              onPointerDown={(e) => {
-                if (e.pointerType === "mouse" && e.button !== 0) return;
-                dragStartY.current = e.clientY;
-                e.currentTarget.setPointerCapture(e.pointerId);
-              }}
-              onPointerMove={(e) => {
-                if (dragStartY.current === null) return;
-                const deltaY = e.clientY - dragStartY.current;
-                // Visual feedback: translate sheet down as user drags
-                const sheet = e.currentTarget.closest('[data-slot="sheet-content"]') as HTMLElement;
-                if (sheet && deltaY > 0) {
-                  sheet.style.transform = `translateY(${deltaY}px)`;
-                  sheet.style.transition = 'none';
-                }
-              }}
-              onPointerUp={(e) => {
-                if (dragStartY.current === null) return;
-                const deltaY = e.clientY - dragStartY.current;
-                const sheet = e.currentTarget.closest('[data-slot="sheet-content"]') as HTMLElement;
-                
-                // Determine snap point based on drag distance
-                if (sheetSnapPoint === "full") {
-                  if (deltaY > 200) {
-                    // Dragged far down - close completely
-                    setSheetOpen(false);
-                    setSheetSnapPoint("full"); // Reset for next open
-                  } else if (deltaY > 100) {
-                    // Dragged medium - go to peek
-                    setSheetSnapPoint("peek");
-                  }
-                } else if (sheetSnapPoint === "peek") {
-                  if (deltaY > 50) {
-                    // Dragged down from peek - close
-                    setSheetOpen(false);
-                    setSheetSnapPoint("full"); // Reset for next open
-                  } else if (deltaY < -30) {
-                    // Dragged up from peek - expand to full
-                    setSheetSnapPoint("full");
-                  }
-                }
-                
-                // Reset transform
-                if (sheet) {
-                  sheet.style.transform = '';
-                  sheet.style.transition = 'transform 200ms ease';
-                }
-                dragStartY.current = null;
-              }}
-              onPointerCancel={() => {
-                dragStartY.current = null;
-                const sheet = document.querySelector('[data-slot="sheet-content"]') as HTMLElement;
-                if (sheet) {
-                  sheet.style.transform = '';
-                  sheet.style.transition = 'transform 200ms ease';
-                }
-              }}
-              onClick={() => {
-                // Tap to toggle between peek and full
-                if (sheetSnapPoint === "peek") {
-                  setSheetSnapPoint("full");
-                }
-              }}
-            >
-              <div className="w-12 h-1.5 rounded-full bg-muted-foreground/40" />
-              {/* Show search summary in peek mode */}
-              {sheetSnapPoint === "peek" && (
-                <span className="text-xs text-muted-foreground mt-1">
-                  Tap to search • {value.location || "Where"} • {value.dateRange?.from ? "Dates set" : "When"} • {value.equipmentType || "What"}
-                </span>
-              )}
-            </button>
-            
-            {/* Full content - only show when not in peek mode */}
-            {sheetSnapPoint !== "peek" && (
-            <>
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                Search
+              </span>
+              <span className="text-sm font-semibold text-foreground truncate">
+                {value.location || "Where to?"}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">
+                {getSearchSummary()}
+              </span>
+            </div>
+          </div>
+          <Badge
+            variant="secondary"
+            className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
+          >
+            {activeFilterCount > 0 ? (
+              activeFilterCount
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+          </Badge>
+        </Button>
+
+        {/* Custom Bottom Sheet */}
+        <MobileSearchBottomSheet
+          isOpen={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          peekContent={
+            <span className="text-xs text-muted-foreground mt-1">
+              {value.location || "Where"} • {value.dateRange?.from ? "Dates set" : "When"} • {value.equipmentType || "What"}
+            </span>
+          }
+        >
             {/* Compact header with integrated tabs */}
             <div className="px-4 pb-3 sticky top-0 bg-background z-10">
               <div className="flex items-center justify-between mb-3">
-                <SheetTitle className="text-base font-semibold">
+                <h2 className="text-base font-semibold">
                   Search
-                </SheetTitle>
+                </h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1286,7 +1198,8 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               )}
               </div>
             )}
-            <SheetFooter className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
+            {/* Footer with Search button */}
+            <div className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
               <Button 
                 onClick={handleSearch} 
                 className="w-full h-12 text-base font-semibold rounded-full shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
@@ -1294,12 +1207,9 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                 <Search className="mr-2 h-5 w-5" />
                 Search{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               </Button>
-            </SheetFooter>
-            </>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            </div>
+        </MobileSearchBottomSheet>
+      </>
     );
   }
 
