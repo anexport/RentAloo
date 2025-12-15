@@ -690,10 +690,10 @@ const ExplorePage = () => {
         <Separator className="hidden md:block" />
 
         {/* Results: map-first */}
-        <div className="mt-6">
+        <div className="mt-0 md:mt-6">
           {isMobile ? (
             <div className="relative -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="relative h-[calc(100dvh-260px)] min-h-[420px] border-y border-border lg:border rounded-none lg:rounded-lg overflow-hidden">
+              <div className="relative h-[calc(100dvh-200px)] min-h-[400px] border-y border-border lg:border rounded-none lg:rounded-lg overflow-hidden">
                 <MapView
                   listings={sortedListings}
                   selectedListingId={selectedListingId}
