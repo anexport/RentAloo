@@ -8,7 +8,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetFooter,
   SheetTrigger,
@@ -693,17 +692,27 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             </Badge>
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[85vh] p-0">
+        <SheetContent side="bottom" className="h-[85vh] p-0" hideCloseButton>
           <div className="flex h-full flex-col">
-            <SheetHeader className="px-6 pt-6 pb-4 text-left border-b sticky top-0 bg-background z-10">
-              <SheetTitle className="text-lg font-semibold">
-                Plan your next outing
-              </SheetTitle>
-              <p className="text-sm text-muted-foreground">
-                Browse gear by destination, dates, and activity.
-              </p>
-            </SheetHeader>
-            <div className="px-6 py-4 border-b sticky top-[88px] bg-background z-10">
+            {/* Swipe handle indicator */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            {/* Compact header with integrated tabs */}
+            <div className="px-4 pb-3 sticky top-0 bg-background z-10">
+              <div className="flex items-center justify-between mb-3">
+                <SheetTitle className="text-base font-semibold">
+                  Search
+                </SheetTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </Button>
+              </div>
               <div className="flex items-center rounded-full bg-muted p-1">
                 {MOBILE_SECTIONS.map((section) => {
                   // Use dynamic icon for "What" section based on selection type
@@ -716,6 +725,11 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     Icon = Wrench;
                   }
                   const isActive = activeSection === section.key;
+                  // Determine if this section has data for progress indicator
+                  const hasData =
+                    (section.key === "where" && value.location) ||
+                    (section.key === "when" && value.dateRange?.from) ||
+                    (section.key === "what" && value.equipmentType);
                   return (
                     <button
                       key={section.key}
@@ -738,31 +752,27 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         }, 150);
                       }}
                       className={cn(
-                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
+                        "relative flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-background shadow-sm text-foreground"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                       aria-pressed={isActive}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-5 w-5" />
                       {section.label}
+                      {/* Progress indicator dot */}
+                      {hasData && !isActive && (
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-in zoom-in-50 duration-200" />
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
               {activeSection === "where" && (
-                <div className="space-y-5 animate-in fade-in-0 duration-200">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-1">
-                      Where do you need gear?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Search cities or choose a popular destination.
-                    </p>
-                  </div>
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-right-2 duration-200">
                   {renderAutocompleteCommand("Try Yosemite National Park")}
                   <Button
                     variant="secondary"
@@ -793,21 +803,20 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       </Button>
                     ))}
                   </div>
+                  {/* Selection badge */}
                   {value.location && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium flex-1 truncate">
                         {value.location}
-                      </Badge>
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onChange({ ...value, location: "" })}
-                        className="h-7 text-xs"
+                        className="h-7 w-7 p-0 rounded-full"
                       >
-                        Clear
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
@@ -815,42 +824,9 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               )}
 
               {activeSection === "when" && (
-                <div className="space-y-5 animate-in fade-in-0 duration-200">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-1">
-                      When will you pick it up?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Add a flexible range to see availability.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 animate-suggestions-in">
-                    {quickDateRanges.map((option, idx) => (
-                      <Button
-                        key={option.label}
-                        variant={
-                          value.dateRange?.from &&
-                          value.dateRange.to &&
-                          startOfDay(value.dateRange.from).getTime() ===
-                            option.range.from?.getTime() &&
-                          startOfDay(value.dateRange.to).getTime() ===
-                            option.range.to?.getTime()
-                            ? "default"
-                            : "secondary"
-                        }
-                        size="sm"
-                        className="rounded-full animate-suggestion-item"
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                        onClick={() => handlePresetDateSelect(option.range)}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                  <div
-                    className="rounded-2xl border p-4 animate-suggestions-in"
-                    style={{ animationDelay: "100ms" }}
-                  >
+                <div className="space-y-3 animate-in fade-in-0 slide-in-from-right-2 duration-200">
+                  {/* Always visible calendar - mobile optimized */}
+                  <div className="rounded-2xl border bg-card overflow-hidden">
                     <Calendar
                       mode="range"
                       selected={value.dateRange}
@@ -859,50 +835,40 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       disabled={(date) =>
                         startOfDay(date) < startOfDay(new Date())
                       }
+                      className="w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:w-[14.28%] [&_.rdp-head_cell]:w-[14.28%] [&_.rdp-day]:h-10 [&_.rdp-day]:w-full"
                     />
                   </div>
-                  {value.dateRange?.from && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
+                  {/* Selection summary */}
+                  {value.dateRange?.from ? (
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
                         {value.dateRange.to
-                          ? `${format(
-                              value.dateRange.from,
-                              "MMM d"
-                            )} - ${format(value.dateRange.to, "MMM d")}`
-                          : format(value.dateRange.from, "MMM d")}
-                      </Badge>
+                          ? `${format(value.dateRange.from, "EEE, MMM d")} → ${format(value.dateRange.to, "EEE, MMM d")}`
+                          : `Starting ${format(value.dateRange.from, "EEE, MMM d")} – select end date`}
+                      </p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          onChange({ ...value, dateRange: undefined })
-                        }
-                        className="h-7 text-xs"
+                        className="h-7 text-xs text-muted-foreground"
+                        onClick={() => onChange({ ...value, dateRange: undefined })}
                       >
                         Clear
                       </Button>
                     </div>
+                  ) : (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Select a start date
+                    </p>
                   )}
                 </div>
               )}
 
               {activeSection === "what" && (
-                <div className="space-y-5 animate-in fade-in-0 duration-200">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-1">
-                      What are you planning?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Search for equipment or browse categories.
-                    </p>
-                  </div>
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-right-2 duration-200">
                   <Command shouldFilter={false} className="rounded-2xl border">
                     <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
                       <CommandInput
-                        placeholder="What are you looking for?"
+                        placeholder="Search equipment or categories..."
                         value={equipmentAutocomplete.query}
                         onValueChange={equipmentAutocomplete.setQuery}
                         className="h-12 text-base"
@@ -1086,14 +1052,13 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       )}
                     </CommandList>
                   </Command>
+                  {/* Selection badge */}
                   {value.equipmentType && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
+                      <Package className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium flex-1 truncate">
                         {value.equipmentType}
-                      </Badge>
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1105,25 +1070,22 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                             search: "",
                           })
                         }
-                        className="h-7 text-xs"
+                        className="h-7 w-7 p-0 rounded-full"
                       >
-                        Clear
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            <SheetFooter className="mt-auto gap-3 px-6 pb-6 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
-              <Button
-                variant="ghost"
-                onClick={handleClearAll}
-                className="flex-1"
+            <SheetFooter className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
+              <Button 
+                onClick={handleSearch} 
+                className="w-full h-12 text-base font-semibold rounded-full shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
               >
-                Clear all
-              </Button>
-              <Button onClick={handleSearch} className="flex-1">
-                Search
+                <Search className="mr-2 h-5 w-5" />
+                Search{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               </Button>
             </SheetFooter>
           </div>
