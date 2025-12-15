@@ -11,7 +11,7 @@ type Props = {
   peekContent?: React.ReactNode;
 };
 
-const CLOSED_HEIGHT_PX = 0;
+const CLOSED_HEIGHT_PX = 20; // Small handle always visible
 const PEEK_HEIGHT_PX = 64;
 const FULL_HEIGHT_RATIO = 0.85;
 
@@ -209,7 +209,7 @@ const MobileSearchBottomSheet = ({
     snapTo(nextSnap);
   };
 
-  if (!isOpen && snap === "closed") return null;
+  // Always render the sheet - even when "closed" shows a small handle
 
   return (
     <>
