@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-type SnapPoint = "peek" | "mid" | "full";
+type SnapPoint = "closed" | "peek" | "mid" | "full";
 
 type Props = {
   title: string;
@@ -10,6 +10,7 @@ type Props = {
   className?: string;
 };
 
+const CLOSED_HEIGHT_PX = 16; // Just a tiny sliver visible to pull back up
 const MID_HEIGHT_RATIO = 0.28;
 const FULL_HEIGHT_RATIO = 0.6;
 // 48px base + 64px for mobile bottom nav = 112px minimum peek height
@@ -35,7 +36,8 @@ const MobileListingsBottomSheet = ({
   const [snap, setSnap] = useState<SnapPoint>(defaultSnap);
   const snapRef = useRef<SnapPoint>(defaultSnap);
 
-  const metricsRef = useRef<{ peek: number; mid: number; full: number }>({
+  const metricsRef = useRef<{ closed: number; peek: number; mid: number; full: number }>({
+    closed: CLOSED_HEIGHT_PX,
     peek: MIN_PEEK_PX,
     mid: Math.round(getViewportHeightPx() * MID_HEIGHT_RATIO),
     full: Math.round(getViewportHeightPx() * FULL_HEIGHT_RATIO),
@@ -54,8 +56,8 @@ const MobileListingsBottomSheet = ({
       const sheet = sheetRef.current;
       if (!sheet) return;
 
-      const { peek, full } = metricsRef.current;
-      const nextVisible = clamp(visibleHeight, peek, full);
+      const { closed, full } = metricsRef.current;
+      const nextVisible = clamp(visibleHeight, closed, full);
       visibleHeightRef.current = nextVisible;
 
       sheet.style.height = `${full}px`;
@@ -69,9 +71,11 @@ const MobileListingsBottomSheet = ({
 
   const snapTo = useCallback(
     (nextSnap: SnapPoint, opts?: { animate?: boolean }) => {
-      const { peek, mid, full } = metricsRef.current;
+      const { closed, peek, mid, full } = metricsRef.current;
       const targetHeight =
-        nextSnap === "peek" ? peek : nextSnap === "mid" ? mid : full;
+        nextSnap === "closed" ? closed :
+        nextSnap === "peek" ? peek : 
+        nextSnap === "mid" ? mid : full;
 
       snapRef.current = nextSnap;
       setSnap(nextSnap);
@@ -82,6 +86,7 @@ const MobileListingsBottomSheet = ({
 
   const recomputeMetrics = useCallback(() => {
     const viewportHeight = getViewportHeightPx();
+    const closed = CLOSED_HEIGHT_PX;
     const peek = MIN_PEEK_PX;
 
     const rawFull = Math.round(viewportHeight * FULL_HEIGHT_RATIO);
@@ -90,11 +95,13 @@ const MobileListingsBottomSheet = ({
     const rawMid = Math.round(viewportHeight * MID_HEIGHT_RATIO);
     const mid = clamp(rawMid, peek + 64, full - 64);
 
-    metricsRef.current = { peek, mid, full };
+    metricsRef.current = { closed, peek, mid, full };
 
     const currentSnap = snapRef.current;
     const targetHeight =
-      currentSnap === "peek" ? peek : currentSnap === "mid" ? mid : full;
+      currentSnap === "closed" ? closed :
+      currentSnap === "peek" ? peek : 
+      currentSnap === "mid" ? mid : full;
     applyVisibleHeight(targetHeight, { animate: false });
   }, [applyVisibleHeight]);
 
@@ -139,10 +146,10 @@ const MobileListingsBottomSheet = ({
     const deltaY = event.clientY - dragRef.current.startY;
     if (Math.abs(deltaY) > 6) dragRef.current.didMove = true;
 
-    const { peek, full } = metricsRef.current;
+    const { closed, full } = metricsRef.current;
     const nextVisible = clamp(
       dragRef.current.startVisibleHeight - deltaY,
-      peek,
+      closed,
       full
     );
     applyVisibleHeight(nextVisible, { animate: false });
@@ -152,12 +159,15 @@ const MobileListingsBottomSheet = ({
     if (dragRef.current.pointerId !== event.pointerId) return;
     dragRef.current.pointerId = null;
 
-    const { peek, mid, full } = metricsRef.current;
+    const { closed, peek, mid, full } = metricsRef.current;
     const currentVisible = visibleHeightRef.current;
 
     if (!dragRef.current.didMove) {
+      // Toggle: closed→mid, peek→mid, mid→full, full→mid
       const nextSnap =
-        snapRef.current === "peek"
+        snapRef.current === "closed"
+          ? "mid"
+          : snapRef.current === "peek"
           ? "mid"
           : snapRef.current === "mid"
           ? "full"
@@ -167,6 +177,7 @@ const MobileListingsBottomSheet = ({
     }
 
     const candidates: Array<{ snap: SnapPoint; height: number }> = [
+      { snap: "closed", height: closed },
       { snap: "peek", height: peek },
       { snap: "mid", height: mid },
       { snap: "full", height: full },
@@ -189,7 +200,9 @@ const MobileListingsBottomSheet = ({
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     const nextSnap =
-      snapRef.current === "peek"
+      snapRef.current === "closed"
+        ? "mid"
+        : snapRef.current === "peek"
         ? "mid"
         : snapRef.current === "mid"
         ? "full"
@@ -215,14 +228,18 @@ const MobileListingsBottomSheet = ({
         onKeyDown={handleKeyDown}
         className={cn(
           "flex-shrink-0 touch-none select-none flex flex-col items-center",
+          snap === "closed" ? "h-4 justify-center" :
           snap === "peek" ? "h-12 justify-center" : "pt-3 pb-2"
         )}
         aria-label="Drag to view listings"
         aria-controls={contentId}
-        aria-expanded={snap !== "peek"}
+        aria-expanded={snap !== "peek" && snap !== "closed"}
       >
-        <div className="w-12 h-1 bg-muted-foreground/30 rounded-full" />
-        {snap !== "peek" && (
+        <div className={cn(
+          "rounded-full bg-muted-foreground/30",
+          snap === "closed" ? "w-16 h-1" : "w-12 h-1"
+        )} />
+        {snap !== "peek" && snap !== "closed" && (
           <div className="text-center mt-2 text-sm font-semibold">{title}</div>
         )}
       </button>
@@ -231,7 +248,7 @@ const MobileListingsBottomSheet = ({
         id={contentId}
         className={cn(
           "flex-1 min-h-0 overflow-y-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] overscroll-contain",
-          snap === "peek" && "pointer-events-none"
+          (snap === "peek" || snap === "closed") && "pointer-events-none"
         )}
       >
         {children}
