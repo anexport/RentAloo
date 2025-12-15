@@ -725,6 +725,15 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     Icon = Wrench;
                   }
                   const isActive = activeSection === section.key;
+                  
+                  // Dynamic label based on selection
+                  let label = section.label;
+                  if (section.key === "when" && value.dateRange?.from) {
+                    label = value.dateRange.to
+                      ? `${format(value.dateRange.from, "MMM d")}-${format(value.dateRange.to, "d")}`
+                      : format(value.dateRange.from, "MMM d");
+                  }
+                  
                   return (
                     <button
                       key={section.key}
@@ -747,15 +756,15 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         }, 150);
                       }}
                       className={cn(
-                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                        "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-background shadow-sm text-foreground"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                       aria-pressed={isActive}
                     >
-                      <Icon className="h-5 w-5" />
-                      {section.label}
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{label}</span>
                     </button>
                   );
                 })}
