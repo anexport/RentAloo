@@ -725,11 +725,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     Icon = Wrench;
                   }
                   const isActive = activeSection === section.key;
-                  // Determine if this section has data for progress indicator
-                  const hasData =
-                    (section.key === "where" && value.location) ||
-                    (section.key === "when" && value.dateRange?.from) ||
-                    (section.key === "what" && value.equipmentType);
                   return (
                     <button
                       key={section.key}
@@ -752,7 +747,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                         }, 150);
                       }}
                       className={cn(
-                        "relative flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200",
+                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-background shadow-sm text-foreground"
                           : "text-muted-foreground hover:text-foreground"
@@ -761,10 +756,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     >
                       <Icon className="h-5 w-5" />
                       {section.label}
-                      {/* Progress indicator dot */}
-                      {hasData && !isActive && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full animate-in zoom-in-50 duration-200" />
-                      )}
                     </button>
                   );
                 })}
