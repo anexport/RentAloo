@@ -840,25 +840,53 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   </div>
                   {/* Selection summary */}
                   {value.dateRange?.from ? (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        {value.dateRange.to
-                          ? `${format(value.dateRange.from, "EEE, MMM d")} → ${format(value.dateRange.to, "EEE, MMM d")}`
-                          : `Starting ${format(value.dateRange.from, "EEE, MMM d")} – select end date`}
-                      </p>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-in fade-in-0 zoom-in-95 duration-200">
+                      {/* Start date */}
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <CalendarIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Start</p>
+                          <p className="text-sm font-medium truncate">{format(value.dateRange.from, "EEE, MMM d")}</p>
+                        </div>
+                      </div>
+                      {/* Arrow */}
+                      <div className="text-muted-foreground">→</div>
+                      {/* End date */}
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className={cn(
+                          "h-8 w-8 rounded-full flex items-center justify-center",
+                          value.dateRange.to ? "bg-primary/10" : "bg-muted border-2 border-dashed border-muted-foreground/30"
+                        )}>
+                          <CalendarIcon className={cn("h-4 w-4", value.dateRange.to ? "text-primary" : "text-muted-foreground/50")} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">End</p>
+                          <p className={cn("text-sm font-medium truncate", !value.dateRange.to && "text-muted-foreground")}>
+                            {value.dateRange.to ? format(value.dateRange.to, "EEE, MMM d") : "Select date"}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Clear button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs text-muted-foreground"
+                        className="h-8 w-8 p-0 rounded-full shrink-0"
                         onClick={() => onChange({ ...value, dateRange: undefined })}
                       >
-                        Clear
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ) : (
-                    <p className="text-center text-sm text-muted-foreground">
-                      Select a start date
-                    </p>
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-muted-foreground/30">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Tap a date to start
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
