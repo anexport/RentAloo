@@ -33,10 +33,6 @@ import {
   X,
   Wrench,
   Loader2,
-  Building2,
-  Trees,
-  Waves,
-  Mountain,
   Clock,
 } from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
@@ -218,6 +214,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentLocations, setRecentLocations] = useState<string[]>([]);
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const equipmentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -435,7 +432,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     placeholder: string,
     options?: {
       className?: string;
-      popularHeading?: string;
     }
   ) => {
     const commandClassName =
@@ -449,67 +445,83 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             placeholder={placeholder}
             value={addressAutocomplete.query}
             onValueChange={addressAutocomplete.setQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => {
+              // Delay to allow click on suggestion to register
+              setTimeout(() => setIsSearchFocused(false), 150);
+            }}
             className="h-12 text-base"
           />
         </div>
-        <CommandList aria-busy={addressAutocomplete.loading}>
-          <CommandEmpty>
-            {addressAutocomplete.loading
-              ? "Searching..."
-              : addressAutocomplete.query.trim().length === 0
-              ? "Start typing to search locations."
-              : addressAutocomplete.error
-              ? `Error: ${addressAutocomplete.error}`
-              : "No locations found."}
-          </CommandEmpty>
-          {addressAutocomplete.query.trim().length >= 2 &&
-            addressAutocomplete.suggestions.length > 0 && (
+        {/* Only show dropdown when focused/typing */}
+        {(isSearchFocused || addressAutocomplete.query.trim().length > 0) && (
+          <CommandList aria-busy={addressAutocomplete.loading}>
+            <CommandEmpty>
+              {addressAutocomplete.loading
+                ? "Searching..."
+                : addressAutocomplete.query.trim().length === 0
+                ? recentLocations.length > 0 
+                  ? null  // Don't show empty message if we have recent locations
+                  : "Start typing to search locations."
+                : addressAutocomplete.error
+                ? `Error: ${addressAutocomplete.error}`
+                : "No locations found."}
+            </CommandEmpty>
+
+            {/* Recent Locations - shown when focused and query is empty */}
+            {addressAutocomplete.query.trim().length === 0 && recentLocations.length > 0 && isSearchFocused && (
               <CommandGroup
-                heading="Suggestions"
+                heading="Recent"
                 className="animate-suggestions-in"
               >
-                {addressAutocomplete.suggestions.map((s, idx) => (
+                {recentLocations.map((loc, idx) => (
                   <CommandItem
-                    key={s.id}
+                    key={`recent-loc-${loc}`}
                     onSelect={() => {
-                      handleLocationSelect(s.label);
-                      addressAutocomplete.setQuery("");
+                      handleLocationSelect(loc);
+                      setIsSearchFocused(false);
                     }}
                     className="cursor-pointer animate-suggestion-item"
                     style={{ "--item-index": idx } as React.CSSProperties}
                   >
-                    <MapPin className="mr-2 h-4 w-4" />
-                    <span className="truncate">
-                      {highlightMatchingText(
-                        s.label,
-                        addressAutocomplete.query
-                      )}
-                    </span>
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span className="truncate">{loc}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
             )}
-          <CommandGroup
-            heading={options?.popularHeading ?? "Popular"}
-            className="animate-suggestions-in"
-          >
-            {POPULAR_LOCATIONS.map((loc, idx) => {
-              const TypeIcon = loc.type === 'city' ? Building2 : loc.type === 'park' ? Trees : loc.type === 'beach' ? Waves : Mountain;
-              return (
-                <CommandItem
-                  key={loc.name}
-                  onSelect={() => handleLocationSelect(loc.name)}
-                  className="cursor-pointer animate-suggestion-item"
-                  style={{ "--item-index": idx } as React.CSSProperties}
+
+            {/* Google Places Suggestions - shown when typing */}
+            {addressAutocomplete.query.trim().length >= 2 &&
+              addressAutocomplete.suggestions.length > 0 && (
+                <CommandGroup
+                  heading="Suggestions"
+                  className="animate-suggestions-in"
                 >
-                  <TypeIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="mr-1">{loc.emoji}</span>
-                  {loc.name}
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        </CommandList>
+                  {addressAutocomplete.suggestions.map((s, idx) => (
+                    <CommandItem
+                      key={s.id}
+                      onSelect={() => {
+                        handleLocationSelect(s.label);
+                        addressAutocomplete.setQuery("");
+                        setIsSearchFocused(false);
+                      }}
+                      className="cursor-pointer animate-suggestion-item"
+                      style={{ "--item-index": idx } as React.CSSProperties}
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span className="truncate">
+                        {highlightMatchingText(
+                          s.label,
+                          addressAutocomplete.query
+                        )}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+          </CommandList>
+        )}
       </Command>
     );
   };
@@ -897,42 +909,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     </div>
                   )}
                 </div>
-
-                {/* Merged Recent + Popular chips - compact horizontal scroll */}
-                {(recentLocations.length > 0 || POPULAR_LOCATIONS.length > 0) && (
-                  <div className="px-4 py-3 border-t border-border/50 bg-background">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">
-                      Quick select
-                    </p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                      {/* Recent locations first */}
-                      {recentLocations.map((loc) => (
-                        <Button
-                          key={`recent-${loc}`}
-                          variant={value.location === loc ? "default" : "secondary"}
-                          size="sm"
-                          className="rounded-full shrink-0 h-8 text-xs"
-                          onClick={() => handleLocationSelect(loc)}
-                        >
-                          <Clock className="h-3 w-3 mr-1 opacity-60" />
-                          {loc.length > 20 ? loc.slice(0, 20) + "..." : loc}
-                        </Button>
-                      ))}
-                      {/* Popular locations - simplified, no emojis */}
-                      {POPULAR_LOCATIONS.slice(0, 4).map((loc) => (
-                        <Button
-                          key={`pop-${loc.name}`}
-                          variant={value.location === loc.name ? "default" : "secondary"}
-                          size="sm"
-                          className="rounded-full shrink-0 h-8 text-xs"
-                          onClick={() => handleLocationSelect(loc.name)}
-                        >
-                          {loc.name.length > 15 ? loc.name.slice(0, 15) + "..." : loc.name}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1368,7 +1344,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             </div>
             {renderAutocompleteCommand("Search locations...", {
               className: undefined,
-              popularHeading: "Popular destinations",
             })}
           </PopoverContent>
         </Popover>
