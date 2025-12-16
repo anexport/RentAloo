@@ -17,16 +17,15 @@ import {
 import { Upload, ImageIcon } from "lucide-react";
 import SmartTip from "../components/SmartTip";
 import PhotoSortable from "../components/PhotoSortable";
-import type { WizardPhoto } from "../hooks/useListingWizard";
-
-const MAX_PHOTOS = 5;
+import { MAX_PHOTOS, type WizardPhoto } from "../hooks/useListingWizard";
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
 
 interface PhotosStepProps {
   photos: WizardPhoto[];
   onPhotosChange: (photos: WizardPhoto[]) => void;
   onAddPhotos: (photos: WizardPhoto[]) => void;
   onRemovePhoto: (id: string) => void;
-  onReorderPhotos: (fromIndex: number, toIndex: number) => void;
 }
 
 export default function PhotosStep({
@@ -53,46 +52,87 @@ export default function PhotosStep({
       if (over && active.id !== over.id) {
         const oldIndex = photos.findIndex((p) => p.id === active.id);
         const newIndex = photos.findIndex((p) => p.id === over.id);
-        onPhotosChange(arrayMove(photos, oldIndex, newIndex));
+        if (oldIndex >= 0 && newIndex >= 0) {
+          onPhotosChange(arrayMove(photos, oldIndex, newIndex));
+        }
       }
     },
     [photos, onPhotosChange]
   );
 
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
+  const processFiles = useCallback(
+    async (files: File[]) => {
       if (files.length === 0) return;
 
       const remainingSlots = MAX_PHOTOS - photos.length;
-      const filesToAdd = files.slice(0, remainingSlots);
+      if (remainingSlots <= 0) return;
 
+      const validFiles = files
+        .filter((file) => {
+          const isAllowedType =
+            ALLOWED_MIME_TYPES.has(file.type) ||
+            (file.type === "" && /\.(jpe?g|png|webp)$/i.test(file.name));
+
+          if (!isAllowedType) {
+            console.error("Invalid photo file type:", { name: file.name, type: file.type });
+            return false;
+          }
+
+          if (file.size > MAX_FILE_SIZE_BYTES) {
+            console.error("Photo file too large:", { name: file.name, size: file.size });
+            return false;
+          }
+
+          return true;
+        })
+        .slice(0, remainingSlots);
+
+      if (validFiles.length === 0) return;
+
+      const readAsDataUrl = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            typeof reader.result === "string"
+              ? resolve(reader.result)
+              : reject(new Error("Unexpected file reader result"));
+          reader.onerror = () =>
+            reject(reader.error ?? new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+
+      const results = await Promise.allSettled(validFiles.map(readAsDataUrl));
       const newPhotos: WizardPhoto[] = [];
 
-      filesToAdd.forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            newPhotos.push({
-              id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              file,
-              preview: reader.result,
-              isExisting: false,
-            });
-
-            // When all files are read, add them
-            if (newPhotos.length === filesToAdd.length) {
-              onAddPhotos(newPhotos);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          newPhotos.push({
+            id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+            file: validFiles[index],
+            preview: result.value,
+            isExisting: false,
+          });
+        } else {
+          console.error("Failed to read selected photo:", result.reason);
+        }
       });
+
+      if (newPhotos.length > 0) {
+        onAddPhotos(newPhotos);
+      }
+    },
+    [photos.length, onAddPhotos]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      void processFiles(files);
 
       // Reset input
       e.target.value = "";
     },
-    [photos.length, onAddPhotos]
+    [processFiles]
   );
 
   const handleDrop = useCallback(
@@ -100,36 +140,10 @@ export default function PhotosStep({
       e.preventDefault();
       e.stopPropagation();
 
-      const files = Array.from(e.dataTransfer.files).filter((f) =>
-        f.type.startsWith("image/")
-      );
-      if (files.length === 0) return;
-
-      const remainingSlots = MAX_PHOTOS - photos.length;
-      const filesToAdd = files.slice(0, remainingSlots);
-
-      const newPhotos: WizardPhoto[] = [];
-
-      filesToAdd.forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            newPhotos.push({
-              id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              file,
-              preview: reader.result,
-              isExisting: false,
-            });
-
-            if (newPhotos.length === filesToAdd.length) {
-              onAddPhotos(newPhotos);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      const files = Array.from(e.dataTransfer.files);
+      void processFiles(files);
     },
-    [photos.length, onAddPhotos]
+    [processFiles]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -152,8 +166,8 @@ export default function PhotosStep({
 
       {/* Smart Tip */}
       <SmartTip variant="boost">
-        Listings with 5 high-quality photos get <strong>3x more bookings</strong>. Show different
-        angles, close-ups of details, and the equipment in use.
+        Listings with {MAX_PHOTOS} high-quality photos get <strong>3x more bookings</strong>. Show
+        different angles, close-ups of details, and the equipment in use.
       </SmartTip>
 
       {/* Photo Grid with Drag and Drop */}
@@ -224,10 +238,12 @@ export default function PhotosStep({
                 {photos.length} of {MAX_PHOTOS} photos
               </span>
             </div>
-            {photos.length < 5 && (
-              <span className="text-muted-foreground">Add {5 - photos.length} more for best results</span>
+            {photos.length < MAX_PHOTOS && (
+              <span className="text-muted-foreground">
+                Add {MAX_PHOTOS - photos.length} more for best results
+              </span>
             )}
-            {photos.length === 5 && (
+            {photos.length === MAX_PHOTOS && (
               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                 Perfect! You have the ideal number of photos
               </span>

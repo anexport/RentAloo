@@ -23,6 +23,10 @@ import LocationStep from "./steps/LocationStep";
 import ReviewStep from "./steps/ReviewStep";
 import { useListingWizard, type WizardPhoto } from "./hooks/useListingWizard";
 
+class PhotoSyncError extends Error {
+  name = "PhotoSyncError";
+}
+
 interface ListingWizardProps {
   equipment?: Database["public"]["Tables"]["equipment"]["Row"];
   onSuccess?: () => void;
@@ -34,7 +38,9 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
   const [categories, setCategories] = useState<Database["public"]["Tables"]["categories"]["Row"][]>(
     []
   );
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>([]);
+  const [existingPhotosError, setExistingPhotosError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -61,6 +67,11 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       onCancel?.();
     }
   }, [wizard.isDirty, wizard.isEditMode, onCancel]);
+
+  const handleExitKeepingDraft = useCallback(() => {
+    setShowExitDialog(false);
+    onCancel?.();
+  }, [onCancel]);
 
   const handleConfirmExit = useCallback(() => {
     wizard.clearDraft();
@@ -94,44 +105,119 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
 
   // Fetch categories
   useEffect(() => {
+    let cancelled = false;
     const fetchCategories = async () => {
-      const { data, error } = await supabase.from("categories").select("*").order("name");
-      if (!error && data) {
-        setCategories(data);
+      try {
+        const { data, error } = await supabase.from("categories").select("*").order("name");
+        if (error) {
+          console.error("Error fetching categories:", error);
+          if (!cancelled) setCategoriesError("Failed to load categories.");
+          return;
+        }
+        if (!cancelled) {
+          setCategoriesError(null);
+          setCategories(data ?? []);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        if (!cancelled) setCategoriesError("Failed to load categories.");
       }
     };
     void fetchCategories();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fetch existing photos for edit mode
   useEffect(() => {
+    let cancelled = false;
     const fetchExistingPhotos = async () => {
       if (!equipment) return;
 
-      const { data, error } = await supabase
-        .from("equipment_photos")
-        .select("id, photo_url")
-        .eq("equipment_id", equipment.id)
-        .order("order_index");
+      try {
+        const { data, error } = await supabase
+          .from("equipment_photos")
+          .select("id, photo_url")
+          .eq("equipment_id", equipment.id)
+          .order("order_index");
 
-      if (!error && data) {
-        setExistingPhotos(data.map((p) => ({ id: p.id, url: p.photo_url })));
+        if (error) {
+          console.error("Error fetching existing photos:", error);
+          if (!cancelled) setExistingPhotosError("Failed to load existing photos.");
+          return;
+        }
+
+        if (!cancelled) {
+          setExistingPhotosError(null);
+          setExistingPhotos((data ?? []).map((p) => ({ id: p.id, url: p.photo_url })));
+        }
+      } catch (error) {
+        console.error("Error fetching existing photos:", error);
+        if (!cancelled) setExistingPhotosError("Failed to load existing photos.");
       }
     };
     void fetchExistingPhotos();
+    return () => {
+      cancelled = true;
+    };
   }, [equipment]);
 
-  const uploadPhotos = async (equipmentId: string, photos: WizardPhoto[]) => {
+  const syncPhotos = async (equipmentId: string, photos: WizardPhoto[]) => {
     if (!user) return;
 
-    const newPhotos = photos.filter((p) => !p.isExisting && p.file);
+    const keptExistingIds = new Set(photos.filter((p) => p.isExisting).map((p) => p.id));
+    const removedExistingIds = existingPhotos
+      .map((p) => p.id)
+      .filter((id) => !keptExistingIds.has(id));
 
-    for (let i = 0; i < newPhotos.length; i++) {
-      const photo = newPhotos[i];
-      if (!photo.file) continue;
+    const insertedPhotoIds: string[] = [];
+    const uploadedPaths: string[] = [];
+    const insertedIdByTempId = new Map<string, string>();
 
-      const fileExt = photo.file.name.split(".").pop();
-      const fileName = `${user.id}/${equipmentId}/${Date.now()}_${i}.${fileExt}`;
+    const rollbackInserted = async () => {
+      if (insertedPhotoIds.length > 0) {
+        const { error } = await supabase
+          .from("equipment_photos")
+          .delete()
+          .in("id", insertedPhotoIds);
+        if (error) {
+          console.error("Failed to rollback inserted photo rows:", error);
+        }
+      }
+      if (uploadedPaths.length > 0) {
+        const { error } = await supabase.storage.from("equipment-photos").remove(uploadedPaths);
+        if (error) {
+          console.error("Failed to rollback uploaded photo files:", error);
+        }
+      }
+    };
+
+    const extensionFromMimeType = (mimeType: string) => {
+      switch (mimeType) {
+        case "image/png":
+          return "png";
+        case "image/webp":
+          return "webp";
+        case "image/jpeg":
+        default:
+          return "jpg";
+      }
+    };
+
+    const newPhotosWithIndex = photos
+      .map((photo, index) => ({ photo, index }))
+      .filter(({ photo }) => !photo.isExisting);
+
+    for (const { photo, index } of newPhotosWithIndex) {
+      if (!photo.file) {
+        await rollbackInserted();
+        throw new PhotoSyncError("One or more new photos are missing file data. Please re-add them.");
+      }
+
+      const rawExt = photo.file.name.split(".").pop()?.toLowerCase();
+      const fileExt = rawExt || extensionFromMimeType(photo.file.type);
+      const fileName = `${user.id}/${equipmentId}/${Date.now()}_${index}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("equipment-photos")
@@ -139,31 +225,72 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
 
       if (uploadError) {
         console.error("Error uploading photo:", uploadError);
-        continue;
+        await rollbackInserted();
+        throw new PhotoSyncError("Failed to upload one or more photos. Please try again.");
       }
+
+      uploadedPaths.push(fileName);
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("equipment-photos").getPublicUrl(fileName);
 
-      await supabase.from("equipment_photos").insert({
-        equipment_id: equipmentId,
-        photo_url: publicUrl,
-        is_primary: i === 0 && existingPhotos.length === 0,
-        order_index: existingPhotos.length + i,
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from("equipment_photos")
+        .insert({
+          equipment_id: equipmentId,
+          photo_url: publicUrl,
+          is_primary: false,
+          order_index: 1000 + index,
+        })
+        .select("id")
+        .single();
+
+      if (insertError || !insert) {
+        console.error("Error inserting uploaded photo record:", insertError);
+        await rollbackInserted();
+        throw new PhotoSyncError("Failed to save one or more photos. Please try again.");
+      }
+
+      insertedPhotoIds.push(inserted.id);
+      insertedIdByTempId.set(photo.id, inserted.id);
     }
 
-    // Update photo order for existing photos
-    const existingInOrder = photos.filter((p) => p.isExisting);
-    for (let i = 0; i < existingInOrder.length; i++) {
-      await supabase
+    const orderedPhotoIds: string[] = [];
+    for (const photo of photos) {
+      if (photo.isExisting) {
+        orderedPhotoIds.push(photo.id);
+        continue;
+      }
+      const insertedId = insertedIdByTempId.get(photo.id);
+      if (!insertedId) {
+        throw new PhotoSyncError("Failed to resolve uploaded photo IDs. Please try again.");
+      }
+      orderedPhotoIds.push(insertedId);
+    }
+
+    for (let i = 0; i < orderedPhotoIds.length; i++) {
+      const photoId = orderedPhotoIds[i];
+      const { error } = await supabase
         .from("equipment_photos")
         .update({
           order_index: i,
           is_primary: i === 0,
         })
-        .eq("id", existingInOrder[i].id);
+        .eq("id", photoId);
+
+      if (error) {
+        console.error("Error updating photo order:", error);
+        throw new PhotoSyncError("Failed to update photo order. Please try again.");
+      }
+    }
+
+    if (removedExistingIds.length > 0) {
+      const { error } = await supabase.from("equipment_photos").delete().in("id", removedExistingIds);
+      if (error) {
+        console.error("Error deleting removed photos:", error);
+        throw new PhotoSyncError("Failed to remove deleted photos. Please try again.");
+      }
     }
   };
 
@@ -228,12 +355,16 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       }
 
       // Upload/update photos
-      await uploadPhotos(equipmentId, photos);
+      await syncPhotos(equipmentId, photos);
 
       wizard.handleComplete();
     } catch (error) {
       console.error("Error saving equipment:", error);
-      setSubmitError("Failed to save equipment. Please try again.");
+      if (error instanceof PhotoSyncError) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError("Failed to save equipment. Please try again.");
+      }
     } finally {
       wizard.setSubmitting(false);
     }
@@ -241,6 +372,19 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
 
   const currentErrors = wizard.stepErrors[wizard.currentStep] || [];
   const savedText = formatLastSaved(wizard.lastSavedAt);
+  const fetchErrors = [
+    ...(categoriesError && (wizard.currentStep === 2 || wizard.currentStep === 5)
+      ? [categoriesError]
+      : []),
+    ...(existingPhotosError && wizard.isEditMode && wizard.currentStep === 1
+      ? [existingPhotosError]
+      : []),
+  ];
+  const alertMessages = [
+    ...(submitError ? [submitError] : []),
+    ...currentErrors,
+    ...fetchErrors,
+  ];
 
   // Success overlay
   if (showSuccess) {
@@ -312,11 +456,15 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Error Alert */}
-          {(currentErrors.length > 0 || submitError) && (
+          {alertMessages.length > 0 && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {submitError || currentErrors.join(". ")}
+                <div className="space-y-1">
+                  {alertMessages.map((message, index) => (
+                    <div key={index}>{message}</div>
+                  ))}
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -340,7 +488,6 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
                   onPhotosChange={wizard.setPhotos}
                   onAddPhotos={wizard.addPhotos}
                   onRemovePhoto={wizard.removePhoto}
-                  onReorderPhotos={wizard.reorderPhotos}
                 />
               )}
               {wizard.currentStep === 2 && (
@@ -394,8 +541,8 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
             <Button variant="outline" onClick={() => setShowExitDialog(false)}>
               Keep editing
             </Button>
-            <Button variant="ghost" onClick={onCancel}>
-              Save draft & exit
+            <Button variant="ghost" onClick={handleExitKeepingDraft}>
+              Exit (draft saved)
             </Button>
             <Button variant="destructive" onClick={handleConfirmExit}>
               Discard changes

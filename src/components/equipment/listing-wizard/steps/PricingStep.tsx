@@ -246,7 +246,7 @@ export default function PricingStep({ formData, onUpdate }: PricingStepProps) {
             <Select
               value={formData.deposit_refund_timeline_hours.toString()}
               onValueChange={(value) =>
-                onUpdate("deposit_refund_timeline_hours", parseInt(value))
+                onUpdate("deposit_refund_timeline_hours", Number(value))
               }
             >
               <SelectTrigger className="max-w-xs">

@@ -20,8 +20,10 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [mapImageFailed, setMapImageFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const isInitialized = useRef(false);
 
   const { query, setQuery, suggestions, loading, error } = useAddressAutocomplete({
     limit: 5,
@@ -31,10 +33,16 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
 
   // Sync location field with query
   useEffect(() => {
-    if (formData.location && !query) {
+    if (formData.location && !isInitialized.current) {
       setQuery(formData.location);
+      isInitialized.current = true;
     }
-  }, [formData.location, query, setQuery]);
+  }, [formData.location, setQuery]);
+
+  // Reset map preview error when coordinates change
+  useEffect(() => {
+    setMapImageFailed(false);
+  }, [formData.latitude, formData.longitude]);
 
   const handleSelectSuggestion = (suggestion: { label: string; lat: number; lon: number }) => {
     onUpdate("location", suggestion.label);
@@ -101,8 +109,13 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
         if (result?.label) {
           onUpdate("location", result.label);
           setQuery(result.label);
+          return;
         }
       }
+
+      const fallbackLocation = `${position.lat.toFixed(4)}, ${position.lon.toFixed(4)}`;
+      onUpdate("location", fallbackLocation);
+      setQuery(fallbackLocation);
     } catch (err) {
       if (err instanceof GeolocationError) {
         setGeoError(err.message);
@@ -229,18 +242,18 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
               <img
                 src={`https://maps.googleapis.com/maps/api/staticmap?center=${formData.latitude},${formData.longitude}&zoom=15&size=600x340&scale=2&maptype=roadmap&markers=color:red%7C${formData.latitude},${formData.longitude}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`}
                 alt="Location map preview"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Hide broken image and show fallback
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
+                className={cn("w-full h-full object-cover", mapImageFailed && "hidden")}
+                onLoad={() => setMapImageFailed(false)}
+                onError={() => setMapImageFailed(true)}
               />
             ) : null}
             {/* Fallback if no API key or image fails */}
-            <div className={cn(
-              "absolute inset-0 flex items-center justify-center bg-muted",
-              import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? "opacity-0" : "opacity-100"
-            )}>
+            <div
+              className={cn(
+                "absolute inset-0 flex items-center justify-center bg-muted transition-opacity",
+                import.meta.env.VITE_GOOGLE_MAPS_API_KEY && !mapImageFailed ? "opacity-0" : "opacity-100"
+              )}
+            >
               <div className="text-center text-muted-foreground">
                 <MapPin className="w-12 h-12 mx-auto mb-2 text-primary" />
                 <p className="text-sm font-medium">{formData.location}</p>

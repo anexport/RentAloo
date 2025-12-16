@@ -38,6 +38,7 @@ export interface WizardState {
 }
 
 const STORAGE_KEY = "rentaloo_listing_draft";
+export const MAX_PHOTOS = 5;
 
 const defaultFormData: WizardFormData = {
   title: "",
@@ -93,8 +94,8 @@ export function useListingWizard({
             lastSavedAt: Date.now(),
           };
         }
-      } catch {
-        // Ignore parse errors
+      } catch (error) {
+        console.error("Failed to restore listing draft:", error);
       }
     }
 
@@ -208,7 +209,7 @@ export function useListingWizard({
   const addPhotos = useCallback((newPhotos: WizardPhoto[]) => {
     setState((prev) => ({
       ...prev,
-      photos: [...prev.photos, ...newPhotos].slice(0, 5), // Max 5
+      photos: [...prev.photos, ...newPhotos].slice(0, MAX_PHOTOS),
       stepErrors: {},
     }));
   }, []);
