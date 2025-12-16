@@ -1,0 +1,267 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X, AlertCircle } from "lucide-react";
+import WizardProgress from "./WizardProgress";
+import WizardNavigation from "./WizardNavigation";
+import PhotosStep from "./steps/PhotosStep";
+import BasicsStep from "./steps/BasicsStep";
+import PricingStep from "./steps/PricingStep";
+import LocationStep from "./steps/LocationStep";
+import ReviewStep from "./steps/ReviewStep";
+import { useListingWizard, type WizardPhoto } from "./hooks/useListingWizard";
+
+interface ListingWizardProps {
+  equipment?: Database["public"]["Tables"]["equipment"]["Row"];
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export default function ListingWizard({ equipment, onSuccess, onCancel }: ListingWizardProps) {
+  const { user } = useAuth();
+  const [categories, setCategories] = useState<Database["public"]["Tables"]["categories"]["Row"][]>(
+    []
+  );
+  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const wizard = useListingWizard({
+    equipment,
+    existingPhotos,
+    onComplete: onSuccess,
+  });
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("name");
+      if (!error && data) {
+        setCategories(data);
+      }
+    };
+    void fetchCategories();
+  }, []);
+
+  // Fetch existing photos for edit mode
+  useEffect(() => {
+    const fetchExistingPhotos = async () => {
+      if (!equipment) return;
+
+      const { data, error } = await supabase
+        .from("equipment_photos")
+        .select("id, photo_url")
+        .eq("equipment_id", equipment.id)
+        .order("order_index");
+
+      if (!error && data) {
+        setExistingPhotos(data.map((p) => ({ id: p.id, url: p.photo_url })));
+      }
+    };
+    void fetchExistingPhotos();
+  }, [equipment]);
+
+  const uploadPhotos = async (equipmentId: string, photos: WizardPhoto[]) => {
+    if (!user) return;
+
+    const newPhotos = photos.filter((p) => !p.isExisting && p.file);
+
+    for (let i = 0; i < newPhotos.length; i++) {
+      const photo = newPhotos[i];
+      if (!photo.file) continue;
+
+      const fileExt = photo.file.name.split(".").pop();
+      const fileName = `${user.id}/${equipmentId}/${Date.now()}_${i}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("equipment-photos")
+        .upload(fileName, photo.file);
+
+      if (uploadError) {
+        console.error("Error uploading photo:", uploadError);
+        continue;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("equipment-photos").getPublicUrl(fileName);
+
+      await supabase.from("equipment_photos").insert({
+        equipment_id: equipmentId,
+        photo_url: publicUrl,
+        is_primary: i === 0 && existingPhotos.length === 0,
+        order_index: existingPhotos.length + i,
+      });
+    }
+
+    // Update photo order for existing photos
+    const existingInOrder = photos.filter((p) => p.isExisting);
+    for (let i = 0; i < existingInOrder.length; i++) {
+      await supabase
+        .from("equipment_photos")
+        .update({
+          order_index: i,
+          is_primary: i === 0,
+        })
+        .eq("id", existingInOrder[i].id);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!user) return;
+
+    // Final validation
+    const errors = wizard.validateStep(5);
+    if (errors.length > 0) {
+      setSubmitError(errors[0]);
+      return;
+    }
+
+    wizard.setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const { formData, photos } = wizard;
+
+      const equipmentData = {
+        owner_id: user.id,
+        title: formData.title,
+        description: formData.description,
+        category_id: formData.category_id,
+        daily_rate: Number(formData.daily_rate),
+        condition: formData.condition,
+        location: formData.location,
+        latitude: formData.latitude ? Number(formData.latitude) : null,
+        longitude: formData.longitude ? Number(formData.longitude) : null,
+        damage_deposit_amount:
+          formData.damage_deposit_type === "fixed" ? Number(formData.damage_deposit_amount) : null,
+        damage_deposit_percentage:
+          formData.damage_deposit_type === "percentage"
+            ? Number(formData.damage_deposit_percentage)
+            : null,
+        deposit_refund_timeline_hours:
+          formData.damage_deposit_type !== "none" ? formData.deposit_refund_timeline_hours : 48,
+      };
+
+      let equipmentId: string;
+
+      if (equipment) {
+        // Update existing
+        const { error } = await supabase
+          .from("equipment")
+          .update(equipmentData)
+          .eq("id", equipment.id);
+
+        if (error) throw error;
+        equipmentId = equipment.id;
+      } else {
+        // Create new
+        const { data: newEquipment, error } = await supabase
+          .from("equipment")
+          .insert({ ...equipmentData, is_available: true })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (!newEquipment) throw new Error("Failed to create equipment");
+        equipmentId = newEquipment.id;
+      }
+
+      // Upload/update photos
+      await uploadPhotos(equipmentId, photos);
+
+      wizard.handleComplete();
+    } catch (error) {
+      console.error("Error saving equipment:", error);
+      setSubmitError("Failed to save equipment. Please try again.");
+    } finally {
+      wizard.setSubmitting(false);
+    }
+  };
+
+  const currentErrors = wizard.stepErrors[wizard.currentStep] || [];
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-semibold text-foreground">
+              {wizard.isEditMode ? "Edit Listing" : "Create New Listing"}
+            </h1>
+            <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Close">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <WizardProgress
+            currentStep={wizard.currentStep}
+            onStepClick={wizard.isEditMode ? wizard.goToStep : undefined}
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Error Alert */}
+          {(currentErrors.length > 0 || submitError) && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {submitError || currentErrors.join(". ")}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Step Content */}
+          <div className="min-h-[400px]">
+            {wizard.currentStep === 1 && (
+              <PhotosStep
+                photos={wizard.photos}
+                onPhotosChange={wizard.setPhotos}
+                onAddPhotos={wizard.addPhotos}
+                onRemovePhoto={wizard.removePhoto}
+                onReorderPhotos={wizard.reorderPhotos}
+              />
+            )}
+            {wizard.currentStep === 2 && (
+              <BasicsStep
+                formData={wizard.formData}
+                categories={categories}
+                onUpdate={wizard.updateFormData}
+              />
+            )}
+            {wizard.currentStep === 3 && (
+              <PricingStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+            )}
+            {wizard.currentStep === 4 && (
+              <LocationStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+            )}
+            {wizard.currentStep === 5 && (
+              <ReviewStep
+                formData={wizard.formData}
+                photos={wizard.photos}
+                categories={categories}
+                onEditStep={wizard.goToStep}
+              />
+            )}
+          </div>
+
+          {/* Navigation */}
+          <WizardNavigation
+            currentStep={wizard.currentStep}
+            isSubmitting={wizard.isSubmitting}
+            isEditMode={wizard.isEditMode}
+            onBack={wizard.prevStep}
+            onNext={wizard.nextStep}
+            onSubmit={handleSubmit}
+            onCancel={onCancel || (() => {})}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

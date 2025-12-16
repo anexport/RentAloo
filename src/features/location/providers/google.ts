@@ -25,6 +25,7 @@ export interface GooglePlacesAutocompleteOptions {
   apiKey: string;
   limit?: number; // Max number of results (default 5)
   locationBias?: string; // Optional: country code(s) separated by |, e.g., "us|ca"
+  includeFullAddress?: boolean; // If true, return full address text instead of normalized "City, State"
 }
 
 export interface GooglePlacePrediction {
@@ -176,6 +177,7 @@ export async function searchGooglePlaces(
     apiKey,
     limit = 5,
     locationBias,
+    includeFullAddress = false,
   } = opts;
 
   if (!apiKey) {
@@ -280,6 +282,17 @@ export async function searchGooglePlaces(
           const lng = place.location instanceof google.maps.LatLng
             ? place.location.lng()
             : place.location.lng;
+
+          // If includeFullAddress is true, return the full text from Google Places
+          // This is useful for listing creation where users need to specify exact addresses
+          if (includeFullAddress) {
+            return {
+              id: placeId,
+              label: text,
+              lat,
+              lon: lng,
+            };
+          }
 
           // Normalize location label to "City, State" format for database compatibility
           // This ensures user searches match equipment locations in the database

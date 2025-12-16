@@ -5,15 +5,15 @@ export type Suggestion = { id: string; label: string; lat: number; lon: number }
 const cache = new Map<string, { ts: number; items: Suggestion[] }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-function key(query: string, lang?: string, locationBias?: string, limit?: number) {
-  return `${query.trim().toLowerCase()}|${lang || 'en'}|${locationBias || ''}|${limit ?? 'undefined'}`;
+function key(query: string, lang?: string, locationBias?: string, limit?: number, includeFullAddress?: boolean) {
+  return `${query.trim().toLowerCase()}|${lang || 'en'}|${locationBias || ''}|${limit ?? 'undefined'}|${includeFullAddress ? 'full' : 'norm'}`;
 }
 
 export function getCachedSuggestions(
   query: string,
-  opts: { language?: string; locationBias?: string; limit?: number } = {}
+  opts: { language?: string; locationBias?: string; limit?: number; includeFullAddress?: boolean } = {}
 ): Suggestion[] | null {
-  const k = key(query, opts.language, opts.locationBias, opts.limit);
+  const k = key(query, opts.language, opts.locationBias, opts.limit, opts.includeFullAddress);
   const hit = cache.get(k);
   if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.items;
   return null;
@@ -27,10 +27,11 @@ export async function suggestLocations(
     language: opts.language,
     locationBias: opts.locationBias,
     limit: opts.limit,
+    includeFullAddress: opts.includeFullAddress,
   });
   if (cached) return cached;
 
-  const k = key(query, opts.language, opts.locationBias, opts.limit);
+  const k = key(query, opts.language, opts.locationBias, opts.limit, opts.includeFullAddress);
   const items = await searchGooglePlaces(query, opts);
   cache.set(k, { ts: Date.now(), items });
   return items;
