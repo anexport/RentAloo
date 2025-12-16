@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 // Lazy-loaded page components
 const EmailVerification = lazy(() => import("@/pages/auth/EmailVerification"));
@@ -189,6 +190,7 @@ function App() {
                   <Route path="/admin" element={<AdminRoute />} />
                 </Routes>
               </Suspense>
+              <MobileBottomNav />
               <Toaster />
             </div>
           </NuqsAdapter>
