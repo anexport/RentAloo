@@ -58,6 +58,8 @@ const SearchPreviewMap = ({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
+  // Cache for geocoded location text -> coordinates
+  const geocodeCacheRef = useRef<Map<string, { lat: number; lng: number } | null>>(new Map());
   const markerLibraryRef = useRef<{
     AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
     PinElement: typeof google.maps.marker.PinElement;
@@ -66,13 +68,52 @@ const SearchPreviewMap = ({
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
-  // Get listings with coordinates
-  const listingsWithCoords = listings.filter(
+  // Get listings that can be placed on map (have coords OR have text location to geocode)
+  const listingsForMap = listings.filter(
     (l) =>
-      typeof l.latitude === "number" &&
-      typeof l.longitude === "number" &&
-      Number.isFinite(l.latitude) &&
-      Number.isFinite(l.longitude)
+      // Has valid coordinates
+      (typeof l.latitude === "number" &&
+        typeof l.longitude === "number" &&
+        Number.isFinite(l.latitude) &&
+        Number.isFinite(l.longitude)) ||
+      // OR has a text location that can be geocoded
+      (typeof l.location === "string" && l.location.trim().length > 0)
+  );
+
+  // Helper to get coordinates for a listing (from data or geocode cache)
+  const getListingCoords = useCallback(
+    async (listing: Listing): Promise<{ lat: number; lng: number } | null> => {
+      // If listing has coordinates, use them
+      if (
+        typeof listing.latitude === "number" &&
+        typeof listing.longitude === "number" &&
+        Number.isFinite(listing.latitude) &&
+        Number.isFinite(listing.longitude)
+      ) {
+        return { lat: listing.latitude, lng: listing.longitude };
+      }
+
+      // Otherwise, try to geocode the text location
+      const locationText = listing.location?.trim();
+      if (!locationText || !apiKey) return null;
+
+      // Check cache first
+      if (geocodeCacheRef.current.has(locationText)) {
+        return geocodeCacheRef.current.get(locationText) ?? null;
+      }
+
+      // Geocode and cache
+      try {
+        const coords = await geocodeAddress(locationText, apiKey);
+        geocodeCacheRef.current.set(locationText, coords);
+        return coords;
+      } catch (err) {
+        console.warn(`Failed to geocode "${locationText}":`, err);
+        geocodeCacheRef.current.set(locationText, null);
+        return null;
+      }
+    },
+    [apiKey]
   );
 
   const getMarkerLibrary = useCallback(async () => {
@@ -160,7 +201,7 @@ const SearchPreviewMap = ({
 
     const syncMarkers = async () => {
       // Remove markers that no longer exist
-      const nextIds = new Set(listingsWithCoords.map((l) => l.id));
+      const nextIds = new Set(listingsForMap.map((l) => l.id));
       for (const [id, entry] of markersRef.current.entries()) {
         if (!nextIds.has(id)) {
           entry.clickListener.remove();
@@ -169,9 +210,22 @@ const SearchPreviewMap = ({
         }
       }
 
+      // Collect all coordinates (geocoding as needed)
+      const listingCoordsMap = new Map<string, { lat: number; lng: number }>();
+      await Promise.all(
+        listingsForMap.map(async (listing) => {
+          const coords = await getListingCoords(listing);
+          if (coords) {
+            listingCoordsMap.set(listing.id, coords);
+          }
+        })
+      );
+
       // Add/update markers
-      for (const listing of listingsWithCoords) {
-        const coords = { lat: listing.latitude!, lng: listing.longitude! };
+      for (const listing of listingsForMap) {
+        const coords = listingCoordsMap.get(listing.id);
+        if (!coords) continue; // Skip if we couldn't get coordinates
+
         const existing = markersRef.current.get(listing.id);
         
         if (existing) {
@@ -230,17 +284,17 @@ const SearchPreviewMap = ({
       }
 
       // Fit bounds to markers if we have any
-      if (listingsWithCoords.length > 0) {
+      if (listingCoordsMap.size > 0) {
         const bounds = new google.maps.LatLngBounds();
-        listingsWithCoords.forEach((l) => {
-          bounds.extend({ lat: l.latitude!, lng: l.longitude! });
+        listingCoordsMap.forEach((coords) => {
+          bounds.extend(coords);
         });
         map.fitBounds(bounds, { top: 60, bottom: 60, left: 20, right: 20 });
       }
     };
 
     void syncMarkers();
-  }, [listingsWithCoords, mapState, getMarkerLibrary, createInfoWindowContent, onSelectListing, onOpenListing]);
+  }, [listingsForMap, mapState, getMarkerLibrary, getListingCoords, createInfoWindowContent, onSelectListing, onOpenListing]);
 
   // Pan to location when selected
   useEffect(() => {
@@ -329,10 +383,10 @@ const SearchPreviewMap = ({
       )}
 
       {/* Listings count badge */}
-      {mapState === "ready" && listingsWithCoords.length > 0 && (
+      {mapState === "ready" && listingsForMap.length > 0 && (
         <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm rounded-full px-2.5 py-1 shadow-sm z-20">
           <p className="text-xs font-medium">
-            {listingsWithCoords.length} available
+            {listingsForMap.length} available
           </p>
         </div>
       )}
