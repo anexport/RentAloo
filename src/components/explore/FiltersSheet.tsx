@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,11 +37,11 @@ type Props = {
   activeFilterCount: number;
 };
 
-const CONDITIONS: Array<{ value: EquipmentCondition; label: string; description: string }> = [
-  { value: "new", label: "condition.new", description: "Brand new, never used" },
-  { value: "excellent", label: "condition.excellent", description: "Like new condition" },
-  { value: "good", label: "condition.good", description: "Minor signs of use" },
-  { value: "fair", label: "condition.fair", description: "Normal wear and tear" },
+const CONDITIONS: Array<{ value: EquipmentCondition; label: string; descriptionKey: string }> = [
+  { value: "new", label: "condition.new", descriptionKey: "condition.new_description" },
+  { value: "excellent", label: "condition.excellent", descriptionKey: "condition.excellent_description" },
+  { value: "good", label: "condition.good", descriptionKey: "condition.good_description" },
+  { value: "fair", label: "condition.fair", descriptionKey: "condition.fair_description" },
 ];
 
 const FiltersSheet = ({
@@ -86,19 +86,22 @@ const FiltersSheet = ({
     setLocalValue(cleared);
   };
 
-  const handleConditionToggle = (condition: EquipmentCondition) => {
-    const next = localValue.conditions.includes(condition)
-      ? localValue.conditions.filter((c) => c !== condition)
-      : [...localValue.conditions, condition];
-    setLocalValue({ ...localValue, conditions: next });
-  };
+  const handleConditionToggle = useCallback((condition: EquipmentCondition) => {
+    setLocalValue((prev) => {
+      const next = prev.conditions.includes(condition)
+        ? prev.conditions.filter((c) => c !== condition)
+        : [...prev.conditions, condition];
+      return { ...prev, conditions: next };
+    });
+  }, []);
 
   // Check if any filters are applied
-  const hasActiveFilters = 
+  const hasActiveFilters = useMemo(() =>
     localValue.priceRange[0] !== DEFAULT_PRICE_MIN ||
     localValue.priceRange[1] !== DEFAULT_PRICE_MAX ||
     localValue.conditions.length > 0 ||
-    localValue.verified;
+    localValue.verified,
+  [localValue.priceRange, localValue.conditions.length, localValue.verified]);
 
   // Mobile filter content - completely redesigned
   const MobileFiltersContent = () => (
@@ -232,7 +235,7 @@ const FiltersSheet = ({
                   {t(condition.label)}
                 </span>
                 <span className="text-xs text-muted-foreground mt-0.5 pr-6">
-                  {condition.description}
+                  {t(condition.descriptionKey, { defaultValue: condition.value === "new" ? "Brand new, never used" : condition.value === "excellent" ? "Like new condition" : condition.value === "good" ? "Minor signs of use" : "Normal wear and tear" })}
                 </span>
               </button>
             );
@@ -278,7 +281,7 @@ const FiltersSheet = ({
               {t("filters_sheet.verified_owners_only")}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              Only show equipment from verified owners
+              {t("filters_sheet.verified_description", { defaultValue: "Only show equipment from verified owners" })}
             </div>
           </div>
         </button>
@@ -467,15 +470,12 @@ const FiltersSheet = ({
 
           {/* Sticky footer CTA */}
           <div className="flex-shrink-0 px-5 py-4 border-t border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <Button 
+            <Button
               onClick={handleApply}
               size="lg"
               className="w-full h-14 text-base font-semibold rounded-2xl shadow-lg"
             >
-              {resultCount > 0 
-                ? `Show ${resultCount} ${resultCount === 1 ? 'result' : 'results'}`
-                : 'No results found'
-              }
+              {t("filters_sheet.show_results", { count: resultCount, defaultValue: `Show ${resultCount} result${resultCount !== 1 ? "s" : ""}` })}
             </Button>
             
             {/* Safe area padding for iPhone */}

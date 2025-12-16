@@ -325,7 +325,7 @@ const MessageInput = ({
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="hidden sm:block">
                   Press Enter to send • Shift+Enter for newline
                 </TooltipContent>
               </Tooltip>

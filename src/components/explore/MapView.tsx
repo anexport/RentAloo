@@ -53,6 +53,7 @@ const MapView = ({
     PinElement: typeof google.maps.marker.PinElement;
   } | null>(null);
   const [mapState, setMapState] = useState<MapState>("loading");
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -247,6 +248,7 @@ const MapView = ({
     }
 
     // Collect all coordinates (geocoding as needed)
+    setIsGeocoding(true);
     const listingCoordsMap = new Map<string, { lat: number; lng: number }>();
     await Promise.all(
       listingsForMap.map(async (listing) => {
@@ -256,6 +258,7 @@ const MapView = ({
         }
       })
     );
+    setIsGeocoding(false);
 
     // Add/update markers
     for (const listing of listingsForMap) {
@@ -420,7 +423,15 @@ const MapView = ({
         role="application"
         aria-label="Map showing available equipment"
       />
-      {mapState === "ready" && !hasMapMarkers && (
+      {mapState === "ready" && isGeocoding && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+          <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading locations...</p>
+          </div>
+        </div>
+      )}
+      {mapState === "ready" && !hasMapMarkers && !isGeocoding && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/70 z-10">
           <p className="text-sm text-muted-foreground">
             No listings with map coordinates.

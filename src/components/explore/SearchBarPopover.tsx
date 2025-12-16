@@ -94,26 +94,6 @@ const RECENT_LOCATIONS_KEY = "rentaloo_recent_locations";
 const MAX_RECENT_SEARCHES = 5;
 const MAX_RECENT_LOCATIONS = 3;
 
-// Helper to calculate distance between two coordinates (Haversine formula)
-const calculateDistanceMiles = (
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number => {
-  const R = 3959; // Earth's radius in miles
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c);
-};
-
 // Helper functions for recent locations
 const getRecentLocations = (): string[] => {
   try {
@@ -131,7 +111,8 @@ const addRecentLocation = (location: string) => {
     const updated = [location, ...filtered].slice(0, MAX_RECENT_LOCATIONS);
     localStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(updated));
     return updated;
-  } catch {
+  } catch (error) {
+    console.error("Failed to save recent location:", error);
     return [];
   }
 };
@@ -207,7 +188,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentLocations, setRecentLocations] = useState<string[]>([]);
-  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
   const equipmentInputRef = useRef<HTMLInputElement>(null);
@@ -620,8 +600,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
 
     try {
       const { lat, lon } = await getCurrentPosition();
-      // Save user position for distance badges
-      setUserPosition({ lat, lng: lon });
       const controller = new AbortController();
       const label = await reverseGeocode(lat, lon, {
         signal: controller.signal,

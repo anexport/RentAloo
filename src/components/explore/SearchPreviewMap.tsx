@@ -253,23 +253,13 @@ const SearchPreviewMap = ({
 
           const clickListener = marker.addListener("click", () => {
             onSelectListing?.(listing);
-            
+
             // Show info window
             if (!infoWindowRef.current) {
               infoWindowRef.current = new google.maps.InfoWindow();
             }
             infoWindowRef.current.setContent(createInfoWindowContent(listing));
             infoWindowRef.current.open({ anchor: marker, map });
-
-            // Handle "View" click in info window
-            google.maps.event.addListenerOnce(infoWindowRef.current, "domready", () => {
-              const viewBtn = document.querySelector<HTMLButtonElement>(
-                `button[data-listing-id="${listing.id}"]`
-              );
-              if (viewBtn) {
-                viewBtn.onclick = () => onOpenListing?.(listing);
-              }
-            });
           });
 
           markersRef.current.set(listing.id, {

@@ -228,11 +228,9 @@ const MobileSearchBottomSheet = ({
     <>
       {/* Backdrop overlay */}
       {snap !== "closed" && snap !== "peek" && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-black/50 animate-in fade-in-0"
           onClick={() => snapTo("peek")}
-          onKeyDown={(e) => e.key === "Escape" && snapTo("peek")}
-          tabIndex={-1}
           role="presentation"
           aria-hidden="true"
         />
