@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAddressAutocomplete } from "@/features/location/useAddressAutocomplete";
 import { getCurrentPosition, GeolocationError } from "@/features/location/useGeolocation";
+import { reverseGeocodeGoogle } from "@/features/location/providers/google";
 import SmartTip from "../components/SmartTip";
 import type { WizardFormData } from "../hooks/useListingWizard";
 
@@ -89,8 +90,19 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
       const position = await getCurrentPosition();
       onUpdate("latitude", position.lat);
       onUpdate("longitude", position.lon);
-      // Note: We'd ideally reverse geocode here to get the address
-      // For now, user needs to enter location name manually
+
+      // Reverse geocode to get the address
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+      if (apiKey) {
+        const result = await reverseGeocodeGoogle(position.lat, position.lon, {
+          apiKey,
+          language: navigator.language,
+        });
+        if (result?.label) {
+          onUpdate("location", result.label);
+          setQuery(result.label);
+        }
+      }
     } catch (err) {
       if (err instanceof GeolocationError) {
         setGeoError(err.message);
@@ -100,7 +112,7 @@ export default function LocationStep({ formData, onUpdate }: LocationStepProps) 
     } finally {
       setGeoLoading(false);
     }
-  }, [onUpdate]);
+  }, [onUpdate, setQuery]);
 
   const hasValidCoordinates =
     formData.latitude !== "" &&

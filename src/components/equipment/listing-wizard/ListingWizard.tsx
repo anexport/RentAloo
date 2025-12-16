@@ -1,10 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { X, AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { X, AlertCircle, Cloud, CheckCircle2, PartyPopper } from "lucide-react";
+import { cn } from "@/lib/utils";
 import WizardProgress from "./WizardProgress";
 import WizardNavigation from "./WizardNavigation";
 import PhotosStep from "./steps/PhotosStep";
@@ -27,12 +36,61 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
   );
   const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [prevStep, setPrevStep] = useState(1);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const wizard = useListingWizard({
     equipment,
     existingPhotos,
-    onComplete: onSuccess,
+    onComplete: () => {
+      setShowSuccess(true);
+      // Auto-close after animation
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
+    },
   });
+
+  // Handle cancel with unsaved changes warning
+  const handleCancelClick = useCallback(() => {
+    if (wizard.isDirty && !wizard.isEditMode) {
+      setShowExitDialog(true);
+    } else {
+      onCancel?.();
+    }
+  }, [wizard.isDirty, wizard.isEditMode, onCancel]);
+
+  const handleConfirmExit = useCallback(() => {
+    wizard.clearDraft();
+    setShowExitDialog(false);
+    onCancel?.();
+  }, [wizard, onCancel]);
+
+  // Format last saved time
+  const formatLastSaved = useCallback((timestamp: number | null) => {
+    if (!timestamp) return null;
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 5) return "Saved";
+    if (seconds < 60) return `Saved ${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `Saved ${minutes}m ago`;
+  }, []);
+
+  // Track step changes for animations
+  useEffect(() => {
+    if (wizard.currentStep !== prevStep) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => {
+        setPrevStep(wizard.currentStep);
+        setIsAnimating(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [wizard.currentStep, prevStep]);
+
+  const slideDirection = wizard.currentStep > prevStep ? "left" : "right";
 
   // Fetch categories
   useEffect(() => {
@@ -182,6 +240,44 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
   };
 
   const currentErrors = wizard.stepErrors[wizard.currentStep] || [];
+  const savedText = formatLastSaved(wizard.lastSavedAt);
+
+  // Success overlay
+  if (showSuccess) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background">
+        <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
+          <div className="relative">
+            <div className="w-24 h-24 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="absolute -top-2 -right-2 animate-bounce">
+              <PartyPopper className="w-8 h-8 text-amber-500" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">
+              {wizard.isEditMode ? "Listing Updated!" : "Listing Published!"}
+            </h2>
+            <p className="text-muted-foreground">
+              {wizard.isEditMode
+                ? "Your changes have been saved successfully."
+                : "Your equipment is now live and ready for renters to discover."}
+            </p>
+          </div>
+          <div className="flex justify-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+                style={{ animationDelay: `${i * 150}ms` }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col">
@@ -189,10 +285,19 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       <div className="sticky top-0 z-10 bg-background border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-semibold text-foreground">
-              {wizard.isEditMode ? "Edit Listing" : "Create New Listing"}
-            </h1>
-            <Button variant="ghost" size="icon" onClick={onCancel} aria-label="Close">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold text-foreground">
+                {wizard.isEditMode ? "Edit Listing" : "Create New Listing"}
+              </h1>
+              {/* Auto-save indicator */}
+              {savedText && !wizard.isEditMode && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>{savedText}</span>
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleCancelClick} aria-label="Close">
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -217,37 +322,49 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
           )}
 
           {/* Step Content */}
-          <div className="min-h-[400px]">
-            {wizard.currentStep === 1 && (
-              <PhotosStep
-                photos={wizard.photos}
-                onPhotosChange={wizard.setPhotos}
-                onAddPhotos={wizard.addPhotos}
-                onRemovePhoto={wizard.removePhoto}
-                onReorderPhotos={wizard.reorderPhotos}
-              />
-            )}
-            {wizard.currentStep === 2 && (
-              <BasicsStep
-                formData={wizard.formData}
-                categories={categories}
-                onUpdate={wizard.updateFormData}
-              />
-            )}
-            {wizard.currentStep === 3 && (
-              <PricingStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
-            )}
-            {wizard.currentStep === 4 && (
-              <LocationStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
-            )}
-            {wizard.currentStep === 5 && (
-              <ReviewStep
-                formData={wizard.formData}
-                photos={wizard.photos}
-                categories={categories}
-                onEditStep={wizard.goToStep}
-              />
-            )}
+          <div className="min-h-[400px] overflow-hidden">
+            <div
+              key={wizard.currentStep}
+              className={cn(
+                "transition-all duration-300 ease-out",
+                isAnimating
+                  ? slideDirection === "left"
+                    ? "animate-in slide-in-from-right fade-in"
+                    : "animate-in slide-in-from-left fade-in"
+                  : ""
+              )}
+            >
+              {wizard.currentStep === 1 && (
+                <PhotosStep
+                  photos={wizard.photos}
+                  onPhotosChange={wizard.setPhotos}
+                  onAddPhotos={wizard.addPhotos}
+                  onRemovePhoto={wizard.removePhoto}
+                  onReorderPhotos={wizard.reorderPhotos}
+                />
+              )}
+              {wizard.currentStep === 2 && (
+                <BasicsStep
+                  formData={wizard.formData}
+                  categories={categories}
+                  onUpdate={wizard.updateFormData}
+                />
+              )}
+              {wizard.currentStep === 3 && (
+                <PricingStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+              )}
+              {wizard.currentStep === 4 && (
+                <LocationStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+              )}
+              {wizard.currentStep === 5 && (
+                <ReviewStep
+                  formData={wizard.formData}
+                  photos={wizard.photos}
+                  categories={categories}
+                  onEditStep={wizard.goToStep}
+                />
+              )}
+            </div>
           </div>
 
           {/* Navigation */}
@@ -258,10 +375,34 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
             onBack={wizard.prevStep}
             onNext={wizard.nextStep}
             onSubmit={handleSubmit}
-            onCancel={onCancel || (() => {})}
+            onCancel={handleCancelClick}
           />
         </div>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard changes?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. Your draft has been saved and you can continue later, or
+              discard all changes now.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowExitDialog(false)}>
+              Keep editing
+            </Button>
+            <Button variant="ghost" onClick={onCancel}>
+              Save draft & exit
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmExit}>
+              Discard changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

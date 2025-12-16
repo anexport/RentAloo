@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Database } from "@/lib/database.types";
 
 export type EquipmentCondition = Database["public"]["Enums"]["equipment_condition"];
@@ -34,6 +34,7 @@ export interface WizardState {
   photos: WizardPhoto[];
   isSubmitting: boolean;
   stepErrors: Record<number, string[]>;
+  lastSavedAt: number | null;
 }
 
 const STORAGE_KEY = "rentaloo_listing_draft";
@@ -89,6 +90,7 @@ export function useListingWizard({
             photos: [], // Photos can't be restored from storage
             isSubmitting: false,
             stepErrors: {},
+            lastSavedAt: Date.now(),
           };
         }
       } catch {
@@ -126,6 +128,7 @@ export function useListingWizard({
         })),
         isSubmitting: false,
         stepErrors: {},
+        lastSavedAt: null,
       };
     }
 
@@ -135,6 +138,7 @@ export function useListingWizard({
       photos: [],
       isSubmitting: false,
       stepErrors: {},
+      lastSavedAt: null,
     };
   });
 
@@ -160,8 +164,23 @@ export function useListingWizard({
         formData: state.formData,
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      setState((prev) => ({ ...prev, lastSavedAt: Date.now() }));
     }
   }, [state.currentStep, state.formData, isEditMode]);
+
+  // Calculate if form has unsaved changes (any data entered)
+  const isDirty = useMemo(() => {
+    const { formData, photos } = state;
+    // Check if any field differs from default
+    const hasFormChanges =
+      formData.title !== defaultFormData.title ||
+      formData.description !== defaultFormData.description ||
+      formData.category_id !== defaultFormData.category_id ||
+      formData.daily_rate !== defaultFormData.daily_rate ||
+      formData.location !== defaultFormData.location;
+    const hasPhotos = photos.length > 0;
+    return hasFormChanges || hasPhotos;
+  }, [state]);
 
   const clearDraft = useCallback(() => {
     sessionStorage.removeItem(STORAGE_KEY);
@@ -331,6 +350,8 @@ export function useListingWizard({
     isSubmitting: state.isSubmitting,
     stepErrors: state.stepErrors,
     isEditMode,
+    isDirty,
+    lastSavedAt: state.lastSavedAt,
 
     // Actions
     updateFormData,
