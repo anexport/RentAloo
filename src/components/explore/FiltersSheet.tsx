@@ -385,6 +385,7 @@ const FiltersSheet = ({
     <button
       type="button"
       onClick={() => setIsOpen(true)}
+      aria-label={t("filters_sheet.title")}
       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors whitespace-nowrap"
     >
       <Filter className="h-3.5 w-3.5" />
@@ -442,6 +443,7 @@ const FiltersSheet = ({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
+              aria-label={t("common.close", { defaultValue: "Close" })}
               className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
             >
               <X className="h-5 w-5" />
