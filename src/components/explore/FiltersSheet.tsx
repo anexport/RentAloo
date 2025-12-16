@@ -159,7 +159,9 @@ const FiltersSheet = ({
               max={localValue.priceRange[1]}
               value={localValue.priceRange[0]}
               onChange={(e) => {
-                const val = Math.max(DEFAULT_PRICE_MIN, Math.min(Number(e.target.value), localValue.priceRange[1]));
+                const parsed = Number(e.target.value);
+                const safe = Number.isNaN(parsed) ? DEFAULT_PRICE_MIN : parsed;
+                const val = Math.max(DEFAULT_PRICE_MIN, Math.min(safe, localValue.priceRange[1]));
                 setLocalValue({ ...localValue, priceRange: [val, localValue.priceRange[1]] });
               }}
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
@@ -179,7 +181,9 @@ const FiltersSheet = ({
               max={DEFAULT_PRICE_MAX}
               value={localValue.priceRange[1]}
               onChange={(e) => {
-                const val = Math.min(DEFAULT_PRICE_MAX, Math.max(Number(e.target.value), localValue.priceRange[0]));
+                const parsed = Number(e.target.value);
+                const safe = Number.isNaN(parsed) ? DEFAULT_PRICE_MAX : parsed;
+                const val = Math.min(DEFAULT_PRICE_MAX, Math.max(safe, localValue.priceRange[0]));
                 setLocalValue({ ...localValue, priceRange: [localValue.priceRange[0], val] });
               }}
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
@@ -451,12 +455,12 @@ const FiltersSheet = ({
               disabled={!hasActiveFilters}
               className={cn(
                 "text-sm font-medium px-3 py-2 rounded-full transition-colors",
-                hasActiveFilters 
-                  ? "text-primary hover:bg-primary/10" 
+                hasActiveFilters
+                  ? "text-primary hover:bg-primary/10"
                   : "text-muted-foreground/50"
               )}
             >
-              Clear
+              {t("filters_sheet.clear_all")}
             </button>
           </div>
 

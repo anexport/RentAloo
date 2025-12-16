@@ -231,103 +231,103 @@ const MapView = ({
     }
   }, [initializeMap, mapState]);
 
-  // Avoid re-running fitBounds on selection changes (map jitter)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const syncMarkers = useCallback(async () => {
-    const map = mapInstanceRef.current;
-    if (!map || mapState !== "ready") return;
+  // Sync markers with listings (with cancellation for cleanup)
+  useEffect(() => {
+    let cancelled = false;
 
-    // Remove markers that no longer exist
-    const nextIds = new Set(listingsForMap.map((l) => l.id));
-    for (const [id, entry] of markersRef.current.entries()) {
-      if (!nextIds.has(id)) {
-        entry.clickListener.remove();
-        entry.marker.map = null;
-        markersRef.current.delete(id);
-      }
-    }
+    const run = async () => {
+      const map = mapInstanceRef.current;
+      if (!map || mapState !== "ready") return;
 
-    // Collect all coordinates (geocoding as needed)
-    setIsGeocoding(true);
-    const listingCoordsMap = new Map<string, { lat: number; lng: number }>();
-    await Promise.all(
-      listingsForMap.map(async (listing) => {
-        const coords = await getListingCoords(listing);
-        if (coords) {
-          listingCoordsMap.set(listing.id, coords);
+      // Remove markers that no longer exist
+      const nextIds = new Set(listingsForMap.map((l) => l.id));
+      for (const [id, entry] of markersRef.current.entries()) {
+        if (!nextIds.has(id)) {
+          entry.clickListener.remove();
+          entry.marker.map = null;
+          markersRef.current.delete(id);
         }
-      })
-    );
-    setIsGeocoding(false);
-
-    // Add/update markers
-    for (const listing of listingsForMap) {
-      const coords = listingCoordsMap.get(listing.id);
-      if (!coords) continue; // Skip if we couldn't get coordinates
-
-      const existing = markersRef.current.get(listing.id);
-      if (existing) {
-        existing.coords = coords;
-        existing.listing = listing;
-        existing.marker.position = coords;
-        existing.marker.title = listing.title;
-        continue;
       }
 
-      const { AdvancedMarkerElement, PinElement } = await getMarkerLibrary();
-      const isSelected = listing.id === selectedListingId;
-      const pin = new PinElement({
-        background: isSelected ? "#2563eb" : "#ef4444",
-        borderColor: isSelected ? "#1d4ed8" : "#b91c1c",
-        glyphColor: "#ffffff",
-        scale: isSelected ? 1.3 : 1.1,
-      });
-      const marker = new AdvancedMarkerElement({
-        map,
-        position: coords,
-        title: listing.title,
-        content: pin.element,
-      });
+      // Collect all coordinates (geocoding as needed)
+      if (!cancelled) setIsGeocoding(true);
+      const listingCoordsMap = new Map<string, { lat: number; lng: number }>();
+      await Promise.all(
+        listingsForMap.map(async (listing) => {
+          const coords = await getListingCoords(listing);
+          if (coords) {
+            listingCoordsMap.set(listing.id, coords);
+          }
+        })
+      );
+      if (cancelled) return;
+      setIsGeocoding(false);
 
-      const clickListener = marker.addListener("click", () => {
-        onSelectListing?.(listing);
-        openInfoWindowForListing({
+      // Add/update markers
+      for (const listing of listingsForMap) {
+        if (cancelled) return;
+        const coords = listingCoordsMap.get(listing.id);
+        if (!coords) continue;
+
+        const existing = markersRef.current.get(listing.id);
+        if (existing) {
+          existing.coords = coords;
+          existing.listing = listing;
+          existing.marker.position = coords;
+          existing.marker.title = listing.title;
+          continue;
+        }
+
+        const { AdvancedMarkerElement, PinElement } = await getMarkerLibrary();
+        const isSelected = listing.id === selectedListingId;
+        const pin = new PinElement({
+          background: isSelected ? "#2563eb" : "#ef4444",
+          borderColor: isSelected ? "#1d4ed8" : "#b91c1c",
+          glyphColor: "#ffffff",
+          scale: isSelected ? 1.3 : 1.1,
+        });
+        const marker = new AdvancedMarkerElement({
+          map,
+          position: coords,
+          title: listing.title,
+          content: pin.element,
+        });
+
+        const clickListener = marker.addListener("click", () => {
+          onSelectListing?.(listing);
+          openInfoWindowForListing({
+            listing,
+            marker,
+            coords,
+            clickListener,
+          } as MarkerEntry);
+        });
+
+        markersRef.current.set(listing.id, {
           listing,
           marker,
           coords,
           clickListener,
-        } as MarkerEntry);
-      });
+        });
+      }
 
-      markersRef.current.set(listing.id, {
-        listing,
-        marker,
-        coords,
-        clickListener,
-      });
-    }
+      if (listingCoordsMap.size === 0) {
+        infoWindowRef.current?.close();
+        return;
+      }
 
-    if (listingCoordsMap.size === 0) {
-      infoWindowRef.current?.close();
-      return;
-    }
+      // Fit bounds to markers when listings change
+      const bounds = new google.maps.LatLngBounds();
+      listingCoordsMap.forEach((coords) => bounds.extend(coords));
+      map.fitBounds(bounds, 64);
+    };
 
-    // Fit bounds to markers when listings change
-    const bounds = new google.maps.LatLngBounds();
-    listingCoordsMap.forEach((coords) => bounds.extend(coords));
-    map.fitBounds(bounds, 64);
-  }, [
-    getMarkerLibrary,
-    getListingCoords,
-    listingsForMap,
-    mapState,
-    onSelectListing,
-    openInfoWindowForListing,
-  ]);
+    void run();
 
-  useEffect(() => {
-    void syncMarkers();
-  }, [syncMarkers]);
+    return () => {
+      cancelled = true;
+    };
+  }, [getMarkerLibrary, getListingCoords, listingsForMap, mapState, onSelectListing, openInfoWindowForListing, selectedListingId]);
 
   // Update marker styling + pan to selected listing
   useEffect(() => {
