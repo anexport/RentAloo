@@ -13,8 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Edit, Trash2, Eye, EyeOff, Calendar, MapPin } from "lucide-react";
-import EquipmentListingForm from "./EquipmentListingForm";
+import { Edit, Trash2, Eye, EyeOff, Calendar, MapPin, Plus } from "lucide-react";
+import ListingWizard from "./equipment/listing-wizard/ListingWizard";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 
 type EquipmentWithCategory =
@@ -169,7 +169,7 @@ const EquipmentManagement = () => {
 
   if (showForm) {
     return (
-      <EquipmentListingForm
+      <ListingWizard
         equipment={editingEquipment || undefined}
         onSuccess={handleFormSuccess}
         onCancel={handleCancel}
@@ -218,18 +218,31 @@ const EquipmentManagement = () => {
             Manage your equipment listings
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)}>Add New Equipment</Button>
+        <Button onClick={() => setShowForm(true)} size="lg">
+          <Plus className="h-5 w-5 mr-2" />
+          Add New Equipment
+        </Button>
       </div>
 
       {equipment.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <div className="text-gray-500">
-              <p className="text-lg mb-2">No equipment listed yet</p>
-              <p className="text-sm mb-4">
-                Start by adding your first piece of equipment
-              </p>
-              <Button onClick={() => setShowForm(true)}>Add Equipment</Button>
+        <Card className="border-dashed">
+          <CardContent className="text-center py-16">
+            <div className="max-w-sm mx-auto space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Plus className="w-8 h-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-foreground">
+                  List your first equipment
+                </h3>
+                <p className="text-muted-foreground">
+                  Start earning by sharing your equipment with renters in your area.
+                </p>
+              </div>
+              <Button onClick={() => setShowForm(true)} size="lg" className="mt-4">
+                <Plus className="h-5 w-5 mr-2" />
+                Create Your First Listing
+              </Button>
             </div>
           </CardContent>
         </Card>

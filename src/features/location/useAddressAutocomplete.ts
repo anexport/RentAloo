@@ -11,6 +11,7 @@ export function useAddressAutocomplete(params?: {
   countrycodes?: string; // optional bias; omit for global
   minLength?: number; // default 2
   debounceMs?: number; // default 300
+  includeFullAddress?: boolean; // if true, return full address instead of normalized "City, State"
 }) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -32,8 +33,9 @@ export function useAddressAutocomplete(params?: {
       limit: params?.limit ?? 5,
       locationBias: params?.countrycodes, // Map countrycodes to locationBias
       apiKey, // Pass API key to Google provider (can be undefined)
+      includeFullAddress: params?.includeFullAddress ?? false,
     };
-  }, [params?.language, params?.limit, params?.countrycodes]);
+  }, [params?.language, params?.limit, params?.countrycodes, params?.includeFullAddress]);
 
   useEffect(() => {
     const q = query.trim();
@@ -49,6 +51,7 @@ export function useAddressAutocomplete(params?: {
       language: opts.language,
       locationBias: opts.locationBias,
       limit: opts.limit,
+      includeFullAddress: opts.includeFullAddress,
     });
     if (cached) {
       setSuggestions(cached);
