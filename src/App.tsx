@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 
 // Lazy-loaded page components
 const EmailVerification = lazy(() => import("@/pages/auth/EmailVerification"));
@@ -45,6 +46,7 @@ const ManageClaimPage = lazy(() => import("@/pages/claims/ManageClaimPage"));
 const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const OnboardingPage = lazy(() => import("@/pages/auth/OnboardingPage"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -99,6 +101,7 @@ function App() {
           <NuqsAdapter>
             <div className="min-h-screen bg-background">
               <Suspense fallback={<PageLoader />}>
+                <OnboardingGuard>
                 <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<HomePage />} />
@@ -118,6 +121,7 @@ function App() {
                     element={<Navigate to="/?login=true" replace />}
                   />
                   <Route path="/verify" element={<EmailVerification />} />
+                  <Route path="/onboarding" element={<OnboardingPage />} />
                   <Route
                     path="/equipment"
                     element={<Navigate to="/explore" replace />}
@@ -189,6 +193,7 @@ function App() {
                   {/* Admin route - always registered, AdminRoute handles auth */}
                   <Route path="/admin" element={<AdminRoute />} />
                 </Routes>
+                </OnboardingGuard>
               </Suspense>
               <MobileBottomNav />
               <Toaster />
