@@ -30,6 +30,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+
+// Timeout for Edge Function call (30 seconds)
+const ONBOARDING_TIMEOUT_MS = 30000;
 
 // Onboarding form schema - all fields required at final submission
 // Step validation uses trigger() to validate specific fields per step
@@ -88,9 +92,9 @@ const OnboardingPage = () => {
     resolver: zodResolver(onboardingSchema),
     mode: "onBlur",
     defaultValues: {
-      role: undefined,
+      role: undefined as unknown as "renter" | "owner",
       interests: [],
-      experienceLevel: undefined,
+      experienceLevel: undefined as unknown as "beginner" | "intermediate" | "advanced",
     },
   });
 
@@ -151,6 +155,7 @@ const OnboardingPage = () => {
             experienceLevel: data.experienceLevel,
             interests: data.interests,
           }),
+          signal: AbortSignal.timeout(ONBOARDING_TIMEOUT_MS),
         }
       );
 
@@ -241,9 +246,10 @@ const OnboardingPage = () => {
                     <div className="grid gap-4">
                       {/* Renter Option */}
                       <div
-                        className={`flex items-start space-x-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent ${
-                          selectedRole === "renter" ? "border-primary bg-accent" : ""
-                        }`}
+                        className={cn(
+                          "flex items-start space-x-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
+                          selectedRole === "renter" && "border-primary bg-accent"
+                        )}
                         onClick={() => setValue("role", "renter")}
                       >
                         <RadioGroupItem value="renter" id="renter" className="mt-1" />
@@ -262,9 +268,10 @@ const OnboardingPage = () => {
 
                       {/* Owner Option */}
                       <div
-                        className={`flex items-start space-x-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent ${
-                          selectedRole === "owner" ? "border-primary bg-accent" : ""
-                        }`}
+                        className={cn(
+                          "flex items-start space-x-4 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
+                          selectedRole === "owner" && "border-primary bg-accent"
+                        )}
                         onClick={() => setValue("role", "owner")}
                       >
                         <RadioGroupItem value="owner" id="owner" className="mt-1" />
@@ -340,9 +347,10 @@ const OnboardingPage = () => {
                         {EXPERIENCE_LEVELS.map((level) => (
                           <div
                             key={level.value}
-                            className={`flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent ${
-                              experienceLevel === level.value ? "border-primary bg-accent" : ""
-                            }`}
+                            className={cn(
+                              "flex items-center space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
+                              experienceLevel === level.value && "border-primary bg-accent"
+                            )}
                             onClick={() =>
                               setValue("experienceLevel", level.value as "beginner" | "intermediate" | "advanced")
                             }

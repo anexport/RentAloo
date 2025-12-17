@@ -16,7 +16,19 @@ AS $$
 DECLARE
   v_preferences JSONB;
   v_business_info JSONB;
+  v_caller_id UUID;
 BEGIN
+  -- Authorization check: Only allow users to update their own profile
+  -- Service role (Edge Functions) has auth.uid() = null, which is allowed
+  -- Regular users must match p_user_id to their auth.uid()
+  v_caller_id := auth.uid();
+  IF v_caller_id IS NOT NULL AND v_caller_id != p_user_id THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Unauthorized: Cannot modify another user''s profile.'
+    );
+  END IF;
+
   -- Validate role
   IF p_role NOT IN ('renter', 'owner') THEN
     RETURN jsonb_build_object('success', false, 'error', 'Invalid role. Must be renter or owner.');
