@@ -33,10 +33,6 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
       return;
     }
 
-    console.log("[Onboarding] Checking for user:", user.id);
-    console.log("[Onboarding] User metadata:", user.user_metadata);
-    console.log("[Onboarding] App metadata:", user.app_metadata);
-
     try {
       // Check user metadata for role
       const userRole = user.user_metadata?.role;
@@ -44,7 +40,6 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
       // If no role in metadata, user definitely needs onboarding
       // (they signed in with OAuth without going through registration)
       if (!userRole) {
-        console.log("[Onboarding] No role in user_metadata, needs onboarding");
         setNeedsOnboarding(true);
         setLoading(false);
         return;
@@ -59,13 +54,18 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
           .single();
 
         if (error) {
-          console.log("[Onboarding] Error fetching renter profile:", error);
           // If no profile found, needs onboarding
           if (error.code === "PGRST116") {
             setNeedsOnboarding(true);
             setLoading(false);
             return;
           }
+          // For other errors (network, permissions, etc.), fail gracefully
+          // Don't block user access - assume onboarding not needed
+          console.error("[Onboarding] Unexpected error:", error.message);
+          setNeedsOnboarding(false);
+          setLoading(false);
+          return;
         }
 
         // Check if preferences has location and interests
@@ -75,7 +75,6 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
         const hasInterests = preferences?.interests && preferences.interests.length > 0;
 
         if (!hasLocation || !hasInterests) {
-          console.log("[Onboarding] Missing location or interests, needs onboarding", { hasLocation, hasInterests });
           setNeedsOnboarding(true);
           setLoading(false);
           return;
@@ -90,16 +89,24 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
           .eq("profile_id", user.id)
           .single();
 
-        if (error && error.code === "PGRST116") {
-          setNeedsOnboarding(true);
+        if (error) {
+          // If no profile found, needs onboarding
+          if (error.code === "PGRST116") {
+            setNeedsOnboarding(true);
+            setLoading(false);
+            return;
+          }
+          // For other errors (network, permissions, etc.), fail gracefully
+          console.error("[Onboarding] Unexpected error:", error.message);
+          setNeedsOnboarding(false);
           setLoading(false);
           return;
         }
 
         // Check if owner has location in business_info
+        // ownerProfile is guaranteed to exist here since we returned on all errors
         const businessInfo = ownerProfile?.business_info as { location?: string } | null;
         if (!businessInfo?.location) {
-          console.log("[Onboarding] Owner missing location, needs onboarding");
           setNeedsOnboarding(true);
           setLoading(false);
           return;
@@ -107,7 +114,6 @@ export const useOnboardingCheck = (): OnboardingCheckResult => {
       }
 
       // User has completed onboarding
-      console.log("[Onboarding] User has complete profile, no onboarding needed");
       setNeedsOnboarding(false);
     } catch (error) {
       console.error("Error checking onboarding status:", error);

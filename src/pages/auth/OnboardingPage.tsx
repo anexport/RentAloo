@@ -27,27 +27,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StepProgress } from "@/components/ui/step-progress";
 import { CheckboxGroup } from "@/components/ui/checkbox-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
-// Step schemas
-const step1Schema = z.object({
+// Onboarding form schema - all fields required at final submission
+// Step validation uses trigger() to validate specific fields per step
+const onboardingSchema = z.object({
   role: z.enum(["renter", "owner"]),
-});
-
-const step2Schema = z.object({
   location: z.string().min(2, "Please enter your location"),
   experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
-});
-
-const step3Schema = z.object({
   interests: z.array(z.string()).min(1, "Please select at least one interest"),
 });
-
-const onboardingSchema = z.intersection(
-  z.intersection(step1Schema, step2Schema),
-  step3Schema
-);
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
@@ -67,7 +58,7 @@ const INTEREST_OPTIONS = [
   { value: "kayaking", label: "Kayaking", description: "Rivers and lakes" },
   { value: "paddleboarding", label: "Paddleboarding", description: "SUP adventures" },
   { value: "surfing", label: "Surfing", description: "Ocean waves" },
-  { value: "mountain-biking", label: "Mountain Biking", description: "Trails and jumps" },
+  { value: "mountain_biking", label: "Mountain Biking", description: "Trails and jumps" },
   { value: "running", label: "Running", description: "Trail running" },
 ];
 
@@ -81,6 +72,7 @@ const OnboardingPage = () => {
   const { t } = useTranslation("auth");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,54 +128,52 @@ const OnboardingPage = () => {
     setError(null);
 
     try {
-      // 1. Update user metadata with role
-      const { error: metaError } = await supabase.auth.updateUser({
-        data: { role: data.role },
-      });
+      // Get the current session for the auth token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
-      if (metaError) throw metaError;
-
-      // 2. Update profiles table with role
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ role: data.role })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
-
-      // 3. Create/update renter_profiles with preferences
-      const preferences = {
-        location: data.location,
-        interests: data.interests,
-      };
-
-      const { error: renterError } = await supabase
-        .from("renter_profiles")
-        .upsert({
-          profile_id: user.id,
-          experience_level: data.experienceLevel,
-          preferences,
-        }, {
-          onConflict: "profile_id",
-        });
-
-      if (renterError) throw renterError;
-
-      // 4. If owner, also create owner_profiles entry
-      if (data.role === "owner") {
-        const { error: ownerError } = await supabase
-          .from("owner_profiles")
-          .upsert({
-            profile_id: user.id,
-            business_info: { location: data.location },
-          }, {
-            onConflict: "profile_id",
-          });
-
-        if (ownerError) throw ownerError;
+      if (!accessToken) {
+        throw new Error("No active session. Please sign in again.");
       }
 
-      // 5. Navigate to appropriate dashboard
+      // Call the atomic Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/complete-onboarding`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            role: data.role,
+            location: data.location,
+            experienceLevel: data.experienceLevel,
+            interests: data.interests,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to complete onboarding");
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || "Onboarding failed");
+      }
+
+      // Refresh the session to get updated user_metadata
+      await supabase.auth.refreshSession();
+
+      // Show success toast
+      toast({
+        title: "Profile Complete!",
+        description: "Welcome to RentAloo. Your profile has been set up successfully.",
+      });
+
+      // Navigate to appropriate dashboard
       if (data.role === "owner") {
         void navigate("/owner/dashboard");
       } else {
