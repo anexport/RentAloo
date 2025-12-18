@@ -102,17 +102,12 @@ const WelcomeHero = ({
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-sm md:text-base">
-                      {t(
-                        upcomingCount === 1
-                          ? "owner.welcome.upcoming_rentals"
-                          : "owner.welcome.upcoming_rentals_plural",
-                        {
-                          count: upcomingCount,
-                          time: formatDistanceToNow(parseISO(nextStartDate), {
-                            addSuffix: true,
-                          }),
-                        }
-                      )}
+                      {t("owner.welcome.upcoming_rentals", {
+                        count: upcomingCount,
+                        time: formatDistanceToNow(parseISO(nextStartDate), {
+                          addSuffix: true,
+                        }),
+                      })}
                     </span>
                   </div>
                 ) : pendingCount === 0 ? (
