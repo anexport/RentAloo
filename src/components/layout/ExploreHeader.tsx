@@ -24,6 +24,7 @@ import {
   MessageSquare,
   Shield,
   LayoutDashboard,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -50,7 +51,7 @@ const ExploreHeader = ({
   const { user, signOut } = useAuth();
   const { activeMode } = useRoleMode();
   const navigate = useNavigate();
-  const { isAdmin } = useAdminAccess();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
 
   useEffect(() => {
     if (controlledScrolled !== undefined) return;
@@ -226,8 +227,8 @@ const ExploreHeader = ({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="justify-start">
-                            <Settings className="mr-2 h-4 w-4" />
-                            {t("common:language.select")}
+                            <Globe className="mr-2 h-4 w-4" />
+                            {t("menu.preferences")}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56">
@@ -239,7 +240,7 @@ const ExploreHeader = ({
                       {/* Sign Out */}
                       <Button
                         variant="ghost"
-                        className="justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
+                        className="justify-start text-red-600 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-400 dark:hover:bg-red-950"
                         onClick={() => {
                           void handleSignOut();
                         }}
@@ -259,8 +260,8 @@ const ExploreHeader = ({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="justify-start">
-                            <Settings className="mr-2 h-4 w-4" />
-                            {t("common:language.select")}
+                            <Globe className="mr-2 h-4 w-4" />
+                            {t("menu.preferences")}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-56">

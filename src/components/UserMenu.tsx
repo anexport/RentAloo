@@ -163,7 +163,7 @@ const UserMenu = () => {
           onClick={() => {
             void handleSignOut();
           }}
-          className="text-red-600 hover:bg-red-50"
+          className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
         >
           <LogOut className="h-4 w-4" />
           <span>{t("menu.sign_out")}</span>
