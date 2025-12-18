@@ -32,6 +32,7 @@ import LanguageSelector from "@/components/LanguageSelector";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "@/hooks/useToast";
 import { getUserInitials, getDashboardPath } from "@/lib/user-utils";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 type ExploreHeaderProps = {
   scrolled?: boolean;
@@ -49,6 +50,7 @@ const ExploreHeader = ({
   const { user, signOut } = useAuth();
   const { activeMode } = useRoleMode();
   const navigate = useNavigate();
+  const { isAdmin } = useAdminAccess();
 
   useEffect(() => {
     if (controlledScrolled !== undefined) return;
@@ -89,8 +91,9 @@ const ExploreHeader = ({
     }
   };
 
-  const roleLabel =
-    activeMode === "owner"
+  const roleLabel = isAdmin
+    ? t("user_role.admin")
+    : activeMode === "owner"
       ? t("user_role.equipment_owner")
       : t("user_role.renter");
 
