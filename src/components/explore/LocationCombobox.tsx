@@ -29,7 +29,7 @@ const POPULAR_LOCATIONS = [
   "Moab, UT",
 ];
 
-const RECENT_LOCATIONS_KEY = "rentaloo_recent_locations";
+const RECENT_LOCATIONS_KEY = "vaymo_recent_locations";
 
 const LocationCombobox = ({
   value,

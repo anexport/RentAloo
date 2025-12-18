@@ -1,8 +1,8 @@
-# RentAloo - Peer-to-Peer Rental Marketplace
+# Vaymo - Peer-to-Peer Rental Marketplace
 
 ## Description
 
-RentAloo is a modern peer-to-peer rental marketplace platform built with React, TypeScript, and Supabase. The platform enables users to rent and lend equipment across various categories including skiing, photography, camping, construction, and more. 
+Vaymo is a modern peer-to-peer rental marketplace platform built with React, TypeScript, and Supabase. The platform enables users to rent and lend equipment across various categories including skiing, photography, camping, construction, and more. 
 
 ### Key Features
 
@@ -40,7 +40,7 @@ Before running this project, ensure you have the following installed:
 
 ```bash
 git clone <repository-url>
-cd rentaloo-ai
+cd vaymo
 ```
 
 ### 2. Install Dependencies
@@ -157,7 +157,7 @@ npm run test:coverage
 ## Project Structure
 
 ```
-rentaloo-ai/
+vaymo/
 ├── src/
 │   ├── components/       # Reusable UI components
 │   │   ├── booking/      # Booking-related components
