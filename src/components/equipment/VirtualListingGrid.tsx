@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import ListingCard from "@/components/equipment/ListingCard";
 import ListingCardSkeleton from "@/components/equipment/ListingCardSkeleton";
 import type { Listing } from "@/components/equipment/services/listings";
@@ -7,6 +7,16 @@ import {
   VIRTUAL_SCROLL_ROOT_MARGIN,
 } from "@/config/pagination";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+
+// Preload images for upcoming listings
+const preloadImages = (urls: string[]) => {
+  urls.forEach((url) => {
+    if (url) {
+      const img = new Image();
+      img.src = url;
+    }
+  });
+};
 
 type Props = {
   listings: Listing[];
@@ -90,6 +100,21 @@ const VirtualListingGrid = ({
 
   const visibleListings = listings.slice(0, visibleCount);
   const hasMore = visibleCount < listings.length;
+
+  // Preload primary images for the next batch of listings
+  useEffect(() => {
+    if (!hasMore) return;
+
+    // Get the next batch of listings to preload
+    const nextBatch = listings.slice(visibleCount, visibleCount + threshold);
+    const imageUrls = nextBatch
+      .map((listing) => listing.photos?.[0]?.photo_url)
+      .filter((url): url is string => !!url);
+
+    if (imageUrls.length > 0) {
+      preloadImages(imageUrls);
+    }
+  }, [visibleCount, listings, threshold, hasMore]);
 
   return (
     <>

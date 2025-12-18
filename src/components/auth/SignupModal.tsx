@@ -33,7 +33,8 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
     if (!dialogElementRef.current) {
       dialogElementRef.current = document.querySelector('[role="dialog"]');
     }
-    dialogElementRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    // Use instant scroll to avoid disorienting users on step changes
+    dialogElementRef.current?.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
   // Handle state updates when modal opens/closes or initialRole changes
@@ -82,7 +83,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
         {showRoleSelection ? (
           <>
             <DialogHeader className="text-center">

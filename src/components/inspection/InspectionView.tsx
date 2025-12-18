@@ -564,7 +564,7 @@ export default function InspectionView() {
             <img
               src={selectedPhoto}
               alt="Inspection photo"
-              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              className="max-w-full max-h-[85dvh] object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
             <a

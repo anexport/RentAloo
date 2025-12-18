@@ -231,7 +231,7 @@ export default function MobileInspectionSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl px-0">
+      <SheetContent side="bottom" className="h-auto max-h-[85dvh] rounded-t-2xl px-0">
         {/* Drag handle indicator */}
         <div className="flex justify-center pt-2 pb-4">
           <div className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
@@ -265,7 +265,7 @@ export default function MobileInspectionSheet({
         </div>
 
         {/* Steps */}
-        <div className="px-4 space-y-2 overflow-y-auto max-h-[40vh]">
+        <div className="px-4 space-y-2 overflow-y-auto max-h-[40dvh]">
           {steps.map((step, index) => {
             const Icon = step.icon;
             const isComplete = step.status === "complete";
