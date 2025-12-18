@@ -2,12 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -21,15 +18,17 @@ import {
   Menu,
   Mountain,
   Map,
-  User,
   Settings,
   LogOut,
-  Package,
-  Home,
+  MessageSquare,
+  Shield,
+  LayoutDashboard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoleMode } from "@/contexts/RoleModeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelector from "@/components/LanguageSelector";
+import UserMenu from "@/components/UserMenu";
 import { toast } from "@/hooks/useToast";
 
 type Props = {
@@ -46,6 +45,7 @@ const ExploreHeader = ({
   const { t } = useTranslation("navigation");
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
+  const { activeMode } = useRoleMode();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,10 +87,24 @@ const ExploreHeader = ({
     }
   };
 
-  const getUserInitials = () => {
-    if (!user?.email) return "U";
-    return user.email.charAt(0).toUpperCase();
+  const getUserInitials = (email?: string | null) => {
+    if (!email) return "U";
+    const namePart = email.split("@")[0];
+    const parts = namePart.split(/[._-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return namePart.substring(0, 2).toUpperCase();
   };
+
+  const getDashboardPath = () => {
+    return activeMode === "owner" ? "/owner/dashboard" : "/renter/dashboard";
+  };
+
+  const roleLabel =
+    activeMode === "owner"
+      ? t("user_role.equipment_owner")
+      : t("user_role.renter");
 
   return (
     <header
@@ -116,64 +130,7 @@ const ExploreHeader = ({
                     {t("menu.browse_equipment")}
                   </Link>
                 </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="relative h-10 w-10 rounded-full"
-                    >
-                      <Avatar>
-                        <AvatarImage
-                          src={user.user_metadata?.avatar_url || ""}
-                          alt={user.email || ""}
-                        />
-                        <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/renter/dashboard"
-                        className="flex items-center cursor-pointer"
-                      >
-                        <Home className="mr-2 h-4 w-4" />
-                        {t("menu.dashboard")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/owner/dashboard"
-                        className="flex items-center cursor-pointer"
-                      >
-                        <Package className="mr-2 h-4 w-4" />
-                        {t("menu.my_listings")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        to="/settings"
-                        className="flex items-center cursor-pointer"
-                      >
-                        <Settings className="mr-2 h-4 w-4" />
-                        {t("menu.settings")}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <ThemeToggle variant="menu-item" />
-                    <LanguageSelector variant="menu-item" />
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        void handleSignOut();
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t("menu.sign_out")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <UserMenu />
               </>
             ) : (
               <>
@@ -221,24 +178,54 @@ const ExploreHeader = ({
                 <div className="flex flex-col space-y-4 mt-6">
                   {user ? (
                     <>
+                      {/* User Info - matching UserMenu styling */}
+                      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-800">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-white/20 dark:ring-white/10">
+                          {getUserInitials(user.email)}
+                        </div>
+                        <div className="text-sm">
+                          <div className="font-semibold text-foreground truncate">
+                            {user.user_metadata?.fullName || user.email}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate mt-0.5">
+                            {roleLabel}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation Items */}
                       <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/explore">
+                        <Link to={getDashboardPath()}>
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          {t("menu.dashboard")}
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" className="justify-start" asChild>
+                        <Link to="/equipment">
                           <Map className="mr-2 h-4 w-4" />
                           {t("menu.browse_equipment")}
                         </Link>
                       </Button>
-                      <div className="flex items-center space-x-3 pb-4 border-b">
-                        <Avatar>
-                          <AvatarImage
-                            src={user.user_metadata?.avatar_url || ""}
-                            alt={user.email || ""}
-                          />
-                          <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                        </Avatar>
-                        <div className="text-sm">
-                          <div className="font-medium">{user.email}</div>
-                        </div>
-                      </div>
+                      <Button variant="ghost" className="justify-start" asChild>
+                        <Link to="/messages">
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          {t("menu.messages")}
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" className="justify-start" asChild>
+                        <Link to="/verification">
+                          <Shield className="mr-2 h-4 w-4" />
+                          {t("menu.verification")}
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" className="justify-start" asChild>
+                        <Link to="/settings">
+                          <Settings className="mr-2 h-4 w-4" />
+                          {t("menu.settings")}
+                        </Link>
+                      </Button>
+
+                      {/* Theme and Language */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="justify-start">
@@ -251,27 +238,11 @@ const ExploreHeader = ({
                           <LanguageSelector variant="menu-item" />
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/renter/dashboard">
-                          <User className="mr-2 h-4 w-4" />
-                          {t("menu.dashboard")}
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/owner/dashboard">
-                          <Package className="mr-2 h-4 w-4" />
-                          {t("menu.my_listings")}
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/settings">
-                          <Settings className="mr-2 h-4 w-4" />
-                          {t("menu.settings")}
-                        </Link>
-                      </Button>
+
+                      {/* Sign Out */}
                       <Button
                         variant="ghost"
-                        className="justify-start"
+                        className="justify-start text-red-600 hover:text-red-600 hover:bg-red-50"
                         onClick={() => {
                           void handleSignOut();
                         }}
