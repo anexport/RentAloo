@@ -113,12 +113,14 @@ export const MobileSidebarDrawer = ({
 
         <SheetHeader className="flex-shrink-0 text-left px-6 pb-4">
           <SheetTitle>
-            {isPaymentMode ? "Complete Payment" : "Book This Equipment"}
+            {isPaymentMode
+              ? t("drawer.title_payment", { defaultValue: "Complete Payment" })
+              : t("drawer.title_booking", { defaultValue: "Book This Equipment" })}
           </SheetTitle>
           <SheetDescription>
             {isPaymentMode
-              ? "Enter your payment details to confirm your booking"
-              : "Select your dates and confirm your booking"}
+              ? t("drawer.description_payment", { defaultValue: "Enter your payment details to confirm your booking" })
+              : t("drawer.description_booking", { defaultValue: "Select your dates and confirm your booking" })}
           </SheetDescription>
         </SheetHeader>
 
@@ -222,14 +224,12 @@ export const MobileSidebarDrawer = ({
         {/* Sticky footer with CTA - only show for non-payment mode */}
         {!isPaymentMode && (
           <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <div className="flex items-center justify-between mb-3">
-              {sidebarProps.calculation && (
-                <>
-                  <span className="text-sm text-muted-foreground">Total</span>
-                  <span className="text-lg font-bold">${sidebarProps.calculation.total.toFixed(2)}</span>
-                </>
-              )}
-            </div>
+            {sidebarProps.calculation && (
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-muted-foreground">{t("footer.total", { defaultValue: "Total" })}</span>
+                <span className="text-lg font-bold">${sidebarProps.calculation.total.toFixed(2)}</span>
+              </div>
+            )}
             <Button
               onClick={sidebarProps.onBooking}
               disabled={buttonState.disabled}
