@@ -15,7 +15,7 @@ interface RoleModeContextType {
 
 const RoleModeContext = createContext<RoleModeContextType | undefined>(undefined);
 
-const STORAGE_KEY = "rentaloo_active_role_mode";
+const STORAGE_KEY = "vaymo_active_role_mode";
 
 interface RoleModeProviderProps {
   children: React.ReactNode;

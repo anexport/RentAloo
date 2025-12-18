@@ -103,7 +103,7 @@ const ExploreHeader = ({
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <Mountain className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold text-foreground">RentAloo</span>
+            <span className="text-xl font-bold text-foreground">Vaymo</span>
           </Link>
 
           {/* Desktop Navigation */}
