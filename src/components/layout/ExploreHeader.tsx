@@ -208,7 +208,7 @@ const ExploreHeader = ({
                         </Link>
                       </Button>
                       <Button variant="ghost" className="justify-start" asChild>
-                        <Link to="/equipment">
+                        <Link to="/explore">
                           <Map className="mr-2 h-4 w-4" />
                           {t("menu.browse_equipment")}
                         </Link>

@@ -146,7 +146,7 @@ const UserMenu = () => {
           </DropdownMenuItem>
         )}
 
-        <DropdownMenuItem onClick={() => handleNavigation("/equipment")}>
+        <DropdownMenuItem onClick={() => handleNavigation("/explore")}>
           <Search className="h-4 w-4 text-gray-500" />
           <span>{t("menu.browse_equipment")}</span>
         </DropdownMenuItem>
