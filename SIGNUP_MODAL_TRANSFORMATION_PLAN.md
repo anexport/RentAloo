@@ -119,7 +119,7 @@ const [showRoleSelection, setShowRoleSelection] = useState(!initialRole);
    - Back button to return to role selection (on step 1 only)
 
 4. **Role Selection Screen:**
-   - Header with Mountain icon and "Join RentAloo" title
+   - Header with Mountain icon and "Join Vaymo" title
    - Two prominent cards/buttons:
      - "Join as a Renter" - with description and icon
      - "Join as an Owner" - with description and icon

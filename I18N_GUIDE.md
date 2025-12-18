@@ -1,10 +1,10 @@
-# Internationalization (i18n) Guide for RentAloo
+# Internationalization (i18n) Guide for Vaymo
 
-This guide explains how the i18n system works in RentAloo and how to translate remaining components.
+This guide explains how the i18n system works in Vaymo and how to translate remaining components.
 
 ## Overview
 
-RentAloo now supports **4 languages**:
+Vaymo now supports **4 languages**:
 - 🇺🇸 **English** (en) - Default
 - 🇪🇸 **Spanish** (es)
 - 🇫🇷 **French** (fr)

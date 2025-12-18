@@ -379,7 +379,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             >
               <Mountain className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold text-foreground">
-                RentAloo
+                Vaymo
               </span>
             </Link>
           )}

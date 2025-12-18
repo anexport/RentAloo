@@ -37,7 +37,7 @@ export interface WizardState {
   lastSavedAt: number | null;
 }
 
-const STORAGE_KEY = "rentaloo_listing_draft";
+const STORAGE_KEY = "vaymo_listing_draft";
 export const MAX_PHOTOS = 5;
 
 const defaultFormData: WizardFormData = {

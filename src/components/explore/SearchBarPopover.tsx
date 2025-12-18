@@ -89,8 +89,8 @@ const POPULAR_CATEGORIES = [
   "Winter Sports",
 ];
 
-const RECENT_SEARCHES_KEY = "rentaloo_recent_equipment_searches";
-const RECENT_LOCATIONS_KEY = "rentaloo_recent_locations";
+const RECENT_SEARCHES_KEY = "vaymo_recent_equipment_searches";
+const RECENT_LOCATIONS_KEY = "vaymo_recent_locations";
 const MAX_RECENT_SEARCHES = 5;
 const MAX_RECENT_LOCATIONS = 3;
 

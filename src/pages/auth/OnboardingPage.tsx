@@ -47,7 +47,7 @@ const onboardingSchema = z.object({
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 const STEPS = [
-  { id: 1, title: "Role", description: "How will you use RentAloo?" },
+  { id: 1, title: "Role", description: "How will you use Vaymo?" },
   { id: 2, title: "Details", description: "Location & experience" },
   { id: 3, title: "Interests", description: "Your activities" },
 ];
@@ -175,7 +175,7 @@ const OnboardingPage = () => {
       // Show success toast
       toast({
         title: "Profile Complete!",
-        description: "Welcome to RentAloo. Your profile has been set up successfully.",
+        description: "Welcome to Vaymo. Your profile has been set up successfully.",
       });
 
       // Navigate to appropriate dashboard
@@ -232,7 +232,7 @@ const OnboardingPage = () => {
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="text-center mb-6">
                     <h3 className="text-lg font-semibold mb-1">
-                      {t("onboarding.role_title", "How will you use RentAloo?")}
+                      {t("onboarding.role_title", "How will you use Vaymo?")}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {t("onboarding.role_subtitle", "You can always change this later")}
@@ -292,7 +292,7 @@ const OnboardingPage = () => {
 
                   {errors.role && (
                     <p className="text-sm text-destructive">
-                      {t("onboarding.role_required", "Please select how you'll use RentAloo")}
+                      {t("onboarding.role_required", "Please select how you'll use Vaymo")}
                     </p>
                   )}
                 </div>
