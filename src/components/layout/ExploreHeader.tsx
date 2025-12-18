@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,9 +181,15 @@ const ExploreHeader = ({
                     <>
                       {/* User Info - matching UserMenu styling */}
                       <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-800">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-white/20 dark:ring-white/10">
-                          {getUserInitials(user.email)}
-                        </div>
+                        <Avatar className="w-10 h-10 shadow-md ring-2 ring-white/20 dark:ring-white/10">
+                          <AvatarImage
+                            src={user.user_metadata?.avatar_url as string | undefined}
+                            alt={user.user_metadata?.fullName || user.email || ""}
+                          />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white font-semibold text-sm">
+                            {getUserInitials(user.email)}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="text-sm">
                           <div className="font-semibold text-foreground truncate">
                             {user.user_metadata?.fullName || user.email}

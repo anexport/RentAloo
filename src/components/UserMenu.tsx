@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -91,6 +92,7 @@ const UserMenu = () => {
   if (!user) return null;
 
   const initials = getInitials(user.email);
+  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const displayName = user.user_metadata?.fullName || user.email;
   const roleLabel = isAdmin
     ? t("user_role.admin")
@@ -104,11 +106,14 @@ const UserMenu = () => {
         className="flex items-center space-x-2 focus:outline-none"
         aria-label={t("aria.user_menu")}
       >
-        {/* User Avatar with Initials */}
+        {/* User Avatar */}
         <div className="flex items-center space-x-2 hover:opacity-90 transition-opacity">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-white/20 dark:ring-white/10">
-            {initials}
-          </div>
+          <Avatar className="w-10 h-10 shadow-md ring-2 ring-white/20 dark:ring-white/10">
+            <AvatarImage src={avatarUrl} alt={displayName || ""} />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white font-semibold text-sm">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <ChevronDown
             className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform hidden sm:block ${
               isOpen ? "rotate-180" : ""
