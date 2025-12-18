@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleMode } from "@/contexts/RoleModeContext";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
+import { getUserInitials, getDashboardPath } from "@/lib/user-utils";
 import {
   LayoutDashboard,
   Search,
@@ -71,27 +73,9 @@ const UserMenu = () => {
     void navigate(path);
   };
 
-  const getInitials = (email?: string | null) => {
-    if (!email) return "U";
-
-    // Try to get initials from email
-    const namePart = email.split("@")[0];
-    const parts = namePart.split(/[._-]/);
-
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-
-    return namePart.substring(0, 2).toUpperCase();
-  };
-
-  const getDashboardPath = () => {
-    return activeMode === "owner" ? "/owner/dashboard" : "/renter/dashboard";
-  };
-
   if (!user) return null;
 
-  const initials = getInitials(user.email);
+  const initials = getUserInitials(user.email);
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const displayName = user.user_metadata?.fullName || user.email;
   const roleLabel = isAdmin
@@ -115,9 +99,10 @@ const UserMenu = () => {
             </AvatarFallback>
           </Avatar>
           <ChevronDown
-            className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform hidden sm:block ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={cn(
+              "h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform hidden sm:block",
+              isOpen && "rotate-180"
+            )}
           />
         </div>
       </DropdownMenuTrigger>
@@ -133,7 +118,7 @@ const UserMenu = () => {
 
         {/* Navigation Items */}
         <DropdownMenuItem
-          onClick={() => handleNavigation(getDashboardPath())}
+          onClick={() => handleNavigation(getDashboardPath(activeMode))}
         >
           <LayoutDashboard className="h-4 w-4 text-gray-500" />
           <span>{t("menu.dashboard")}</span>

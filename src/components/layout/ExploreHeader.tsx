@@ -31,8 +31,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelector from "@/components/LanguageSelector";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "@/hooks/useToast";
+import { getUserInitials, getDashboardPath } from "@/lib/user-utils";
 
-type Props = {
+type ExploreHeaderProps = {
   scrolled?: boolean;
   onLoginClick?: () => void;
   onSignupClick?: () => void;
@@ -42,7 +43,7 @@ const ExploreHeader = ({
   scrolled: controlledScrolled,
   onLoginClick,
   onSignupClick,
-}: Props) => {
+}: ExploreHeaderProps) => {
   const { t } = useTranslation("navigation");
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
@@ -86,20 +87,6 @@ const ExploreHeader = ({
         variant: "destructive",
       });
     }
-  };
-
-  const getUserInitials = (email?: string | null) => {
-    if (!email) return "U";
-    const namePart = email.split("@")[0];
-    const parts = namePart.split(/[._-]/);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return namePart.substring(0, 2).toUpperCase();
-  };
-
-  const getDashboardPath = () => {
-    return activeMode === "owner" ? "/owner/dashboard" : "/renter/dashboard";
   };
 
   const roleLabel =
@@ -202,7 +189,7 @@ const ExploreHeader = ({
 
                       {/* Navigation Items */}
                       <Button variant="ghost" className="justify-start" asChild>
-                        <Link to={getDashboardPath()}>
+                        <Link to={getDashboardPath(activeMode)}>
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           {t("menu.dashboard")}
                         </Link>
