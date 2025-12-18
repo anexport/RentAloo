@@ -167,7 +167,6 @@ const FiltersSheet = ({
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               placeholder="Min"
             />
-            <span className="absolute -bottom-5 left-0 right-0 text-center text-[11px] text-muted-foreground">min</span>
           </div>
           
           <div className="text-muted-foreground text-sm font-medium">to</div>
@@ -189,11 +188,10 @@ const FiltersSheet = ({
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               placeholder="Max"
             />
-            <span className="absolute -bottom-5 left-0 right-0 text-center text-[11px] text-muted-foreground">max</span>
           </div>
         </div>
-        
-        <div className="text-center text-xs text-muted-foreground pt-4">
+
+        <div className="text-center text-xs text-muted-foreground mt-3">
           {t("filters_sheet.price_per_day")}
         </div>
       </section>
@@ -406,7 +404,7 @@ const FiltersSheet = ({
       <>
         <TriggerButton />
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[500px] max-h-[80dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t("filters_sheet.title")}</DialogTitle>
               <DialogDescription>

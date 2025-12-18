@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, Clock, DollarSign, X } from "lucide-react";
+import { AlertCircle, Clock, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 
-type NotificationType = "pending_booking" | "payout";
+type NotificationType = "pending_booking";
 
 interface Notification {
   id: string;
@@ -37,22 +37,16 @@ const OwnerNotificationsPanel = () => {
       try {
         const newNotifications: Notification[] = [];
 
-        const [pendingBookingsResult, pendingPayoutsResult] =
-          await Promise.allSettled([
-            supabase
-              .from("booking_requests")
-              .select("id, equipment:equipment_id!inner(owner_id)", {
-                count: "exact",
-                head: true,
-              })
-              .eq("equipment.owner_id", user.id)
-              .eq("status", "pending"),
-            supabase
-              .from("payments")
-              .select("id", { count: "exact", head: true })
-              .eq("owner_id", user.id)
-              .or("payout_status.eq.pending,payout_status.is.null"),
-          ]);
+        const [pendingBookingsResult] = await Promise.allSettled([
+          supabase
+            .from("booking_requests")
+            .select("id, equipment:equipment_id!inner(owner_id)", {
+              count: "exact",
+              head: true,
+            })
+            .eq("equipment.owner_id", user.id)
+            .eq("status", "pending"),
+        ]);
 
         if (pendingBookingsResult.status === "fulfilled") {
           if (pendingBookingsResult.value.error) {
@@ -84,38 +78,6 @@ const OwnerNotificationsPanel = () => {
           console.error(
             "Failed to fetch pending bookings:",
             pendingBookingsResult.reason
-          );
-        }
-
-        if (pendingPayoutsResult.status === "fulfilled") {
-          if (pendingPayoutsResult.value.error) {
-            console.error(
-              "Failed to fetch pending payouts:",
-              pendingPayoutsResult.value.error
-            );
-          } else {
-            const pendingCount = pendingPayoutsResult.value.count ?? 0;
-            if (pendingCount > 0) {
-              newNotifications.push({
-                id: "pending-payouts",
-                type: "payout",
-                title: `${pendingCount} Pending ${
-                  pendingCount === 1 ? "Payout" : "Payouts"
-                }`,
-                description:
-                  "You have payouts pending processing. Check your payouts for details.",
-                action: {
-                  label: "View Payouts",
-                  href: "/owner/dashboard?tab=payments",
-                },
-                dismissible: false,
-              });
-            }
-          }
-        } else {
-          console.error(
-            "Failed to fetch pending payouts:",
-            pendingPayoutsResult.reason
           );
         }
 
@@ -153,8 +115,6 @@ const OwnerNotificationsPanel = () => {
     switch (type) {
       case "pending_booking":
         return <Clock className="h-4 w-4" />;
-      case "payout":
-        return <DollarSign className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }

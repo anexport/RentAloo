@@ -29,6 +29,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { isFavorited, toggleFavorite } = useFavorites();
   
@@ -59,9 +60,10 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
     setImageError(false);
   }, [listing.photos, listing.id]);
 
-  // Reset image error when navigating between images
+  // Reset image states when navigating between images
   useEffect(() => {
     setImageError(false);
+    setImageLoaded(false);
   }, [currentImageIndex]);
 
   const handleOpen = () => {
@@ -108,6 +110,24 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
 
   const hasMultipleImages = listing.photos && listing.photos.length > 1;
 
+  // Preload adjacent carousel images for smoother navigation
+  useEffect(() => {
+    if (!listing.photos || listing.photos.length <= 1) return;
+
+    const photosLength = listing.photos.length;
+    const nextIndex = (currentImageIndex + 1) % photosLength;
+    const prevIndex = currentImageIndex === 0 ? photosLength - 1 : currentImageIndex - 1;
+
+    // Preload next and previous images
+    [nextIndex, prevIndex].forEach((idx) => {
+      const url = listing.photos?.[idx]?.photo_url;
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
+  }, [currentImageIndex, listing.photos]);
+
   return (
     <TooltipProvider>
       <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full", className)}>
@@ -126,12 +146,20 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
         >
           {listing.photos && listing.photos.length > 0 && !imageError ? (
             <>
+              {/* Blur placeholder while image loads */}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-muted animate-pulse" />
+              )}
               <img
                 src={listing.photos[currentImageIndex]?.photo_url || ""}
                 alt={listing.title}
-                className="w-full h-full object-cover transition-opacity duration-300"
+                className={cn(
+                  "w-full h-full object-cover transition-opacity duration-300",
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                )}
                 loading="lazy"
                 decoding="async"
+                onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
               />
 
@@ -176,15 +204,15 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                           e.stopPropagation();
                           setCurrentImageIndex(idx);
                         }}
-                        className="min-w-[28px] min-h-[28px] flex items-center justify-center"
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-90 transition-transform"
                         aria-label={t("listing_card.go_to_image", { number: idx + 1 })}
                       >
                         <span
                           className={cn(
-                            "h-2 rounded-full transition-all",
+                            "h-2.5 rounded-full transition-all",
                             idx === currentImageIndex
-                              ? "w-5 bg-white dark:bg-white/90"
-                              : "w-2 bg-white/60 dark:bg-white/40"
+                              ? "w-6 bg-white dark:bg-white/90 shadow-sm"
+                              : "w-2.5 bg-white/60 dark:bg-white/40"
                           )}
                         />
                       </button>
@@ -260,17 +288,13 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
               {listing.description}
             </p>
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-4 w-4" />
-                    <span className="truncate max-w-[120px]">
-                      {listing.location}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>{listing.location}</TooltipContent>
-              </Tooltip>
+              {/* Mobile-friendly location display */}
+              <div className="flex items-center space-x-1 min-w-0 flex-1 mr-2">
+                <MapPin className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate" title={listing.location}>
+                  {listing.location}
+                </span>
+              </div>
               <div className="flex items-center space-x-2">
                 {avgRating > 0 ? (
                   <>

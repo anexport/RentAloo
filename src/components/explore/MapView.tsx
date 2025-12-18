@@ -138,24 +138,28 @@ const MapView = ({
     const safeLocation = escapeHtml(listing.location);
     const photoUrl = listing.photos?.[0]?.photo_url;
 
+    // Mobile-optimized info window with larger touch targets (min 44px)
     return `
-      <div style="max-width: 240px; font-family: system-ui, -apple-system, sans-serif;">
+      <div style="min-width: 260px; max-width: 300px; font-family: system-ui, -apple-system, sans-serif; padding: 4px;">
         ${
           photoUrl
             ? `<img src="${escapeHtml(
                 photoUrl
-              )}" alt="${safeTitle}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />`
+              )}" alt="${safeTitle}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;" />`
             : ""
         }
-        <div style="font-weight: 600; font-size: 14px; color: #111; margin-bottom: 4px;">${safeTitle}</div>
-        <div style="font-size: 12px; color: #666; margin-bottom: 6px;">${safeLocation}</div>
-        <div style="font-size: 14px; font-weight: 700; color: #111; margin-bottom: 8px;">$${
-          listing.daily_rate
-        }/day</div>
+        <div style="font-weight: 600; font-size: 15px; color: #111; margin-bottom: 4px; line-height: 1.3;">${safeTitle}</div>
+        <div style="font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${safeLocation}
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="font-size: 18px; font-weight: 700; color: #111;">$${listing.daily_rate}<span style="font-size: 13px; font-weight: 400; color: #666;">/day</span></div>
+        </div>
         <button data-listing-id="${
           listing.id
-        }" style="width: 100%; padding: 8px 10px; background: #111827; color: white; border: none; border-radius: 6px; font-size: 13px; cursor: pointer;">
-          View details / Book
+        }" style="width: 100%; min-height: 48px; padding: 12px 16px; background: #111827; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
+          View Details
         </button>
       </div>
     `;

@@ -31,13 +31,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
       </div>
 
-      {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-16 border-b border-border bg-card">
+      {/* Mobile Header - Reduced height for more content space */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="flex h-full items-center justify-between gap-2 px-4">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
@@ -55,7 +55,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <main
         className={cn(
           "transition-all duration-300",
-          "pt-16 md:pt-0",
+          "pt-14 md:pt-0",
           sidebarCollapsed ? "md:pl-16" : "md:pl-64"
         )}
       >
@@ -66,8 +66,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20 md:pb-8">
+        {/* Content Area - pb-20 accounts for mobile bottom nav + safe area */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
           {/* Breadcrumb Navigation */}
           <div className="mb-4">
             <BreadcrumbNav />
