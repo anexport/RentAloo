@@ -11,6 +11,7 @@ import Sidebar from "./Sidebar";
 import UserMenu from "@/components/UserMenu";
 import BreadcrumbNav from "./BreadcrumbNav";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -46,6 +47,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Sheet>
           <div className="flex items-center gap-2 flex-1 justify-end">
             <RoleSwitcher variant="header" />
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>
@@ -61,7 +63,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       >
         {/* Top Bar - Desktop Only */}
         <div className="hidden md:block sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <div className="flex h-16 items-center justify-end px-6">
+          <div className="flex h-16 items-center justify-end gap-2 px-6">
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>

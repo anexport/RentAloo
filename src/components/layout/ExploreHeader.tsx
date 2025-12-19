@@ -31,6 +31,7 @@ import { useRoleMode } from "@/contexts/RoleModeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelector from "@/components/LanguageSelector";
 import UserMenu from "@/components/UserMenu";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { toast } from "@/hooks/useToast";
 import { getUserInitials, getDashboardPath } from "@/lib/user-utils";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -122,6 +123,7 @@ const ExploreHeader = ({
                     {t("menu.browse_equipment")}
                   </Link>
                 </Button>
+                <NotificationBell />
                 <UserMenu />
               </>
             ) : (
@@ -171,24 +173,27 @@ const ExploreHeader = ({
                   {user ? (
                     <>
                       {/* User Info - matching UserMenu styling */}
-                      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-800">
-                        <Avatar className="w-10 h-10 shadow-md ring-2 ring-white/20 dark:ring-white/10">
-                          <AvatarImage
-                            src={user.user_metadata?.avatar_url as string | undefined}
-                            alt={user.user_metadata?.fullName || user.email || ""}
-                          />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white font-semibold text-sm">
-                            {getUserInitials(user.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="text-sm">
-                          <div className="font-semibold text-foreground truncate">
-                            {user.user_metadata?.fullName || user.email}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate mt-0.5">
-                            {roleLabel}
+                      <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-10 h-10 shadow-md ring-2 ring-white/20 dark:ring-white/10">
+                            <AvatarImage
+                              src={user.user_metadata?.avatar_url as string | undefined}
+                              alt={user.user_metadata?.fullName || user.email || ""}
+                            />
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 text-white font-semibold text-sm">
+                              {getUserInitials(user.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-sm">
+                            <div className="font-semibold text-foreground truncate">
+                              {user.user_metadata?.fullName || user.email}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate mt-0.5">
+                              {roleLabel}
+                            </div>
                           </div>
                         </div>
+                        <NotificationBell />
                       </div>
 
                       {/* Navigation Items */}

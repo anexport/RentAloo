@@ -104,5 +104,103 @@
   },
   "navigation": {
     "menu": "Menu"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "filters": {
+      "all": "Tous",
+      "bookings": "Réservations",
+      "messages": "Messages",
+      "payments": "Paiements",
+      "reviews": "Avis"
+    },
+    "actions": {
+      "mark_all_read": "Tout marquer comme lu",
+      "delete": "Supprimer la notification"
+    },
+    "empty": {
+      "title": "Aucune notification",
+      "description": "Nous vous notifierons quand quelque chose d'important arrivera"
+    },
+    "toast": {
+      "marked_as_read": "Marqué comme lu",
+      "marked_as_read_description": "{{count}} notification marquée comme lue.",
+      "marked_as_read_description_plural": "{{count}} notifications marquées comme lues."
+    },
+    "settings": {
+      "title": "Paramètres de notification",
+      "description": "Gérez la façon dont vous recevez les notifications",
+      "updated": "Paramètres mis à jour",
+      "updated_description": "Vos préférences de notification ont été enregistrées.",
+      "error": "Erreur",
+      "error_description": "Échec de la mise à jour des préférences. Veuillez réessayer.",
+      "quiet_hours_updated": "Heures calmes mises à jour",
+      "quiet_hours_updated_description": "Vos heures calmes ont été enregistrées.",
+      "quiet_hours_error_description": "Échec de la mise à jour des heures calmes. Veuillez réessayer.",
+      "in_app": {
+        "title": "Notifications dans l'application",
+        "description": "Choisissez les types de notifications que vous souhaitez recevoir"
+      },
+      "toast": {
+        "title": "Popups Toast",
+        "description": "Afficher les notifications popup pour les événements importants"
+      },
+      "quiet_hours": {
+        "title": "Heures calmes",
+        "description": "Supprimer les popups toast pendant des heures spécifiques",
+        "enable": "Activer les heures calmes",
+        "enable_description": "Aucune notification toast pendant ces périodes",
+        "start_time": "Heure de début",
+        "end_time": "Heure de fin"
+      },
+      "categories": {
+        "booking": {
+          "label": "Mises à jour des réservations",
+          "description": "Confirmations, annulations et rappels"
+        },
+        "message": {
+          "label": "Nouveaux messages",
+          "description": "Quand quelqu'un vous envoie un message"
+        },
+        "payment": {
+          "label": "Notifications de paiement",
+          "description": "Paiements reçus, versements et remboursements"
+        },
+        "review": {
+          "label": "Avis",
+          "description": "Quand quelqu'un vous laisse un avis"
+        },
+        "verification": {
+          "label": "Mises à jour de vérification",
+          "description": "Changements de statut de votre vérification"
+        },
+        "equipment": {
+          "label": "Activité de l'équipement",
+          "description": "Quand quelqu'un ajoute votre équipement en favori ou jalons de vues"
+        },
+        "promotion": {
+          "label": "Promotions et annonces",
+          "description": "Offres spéciales et annonces système"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Notifications critiques",
+          "description": "Paiements, versements et remboursements"
+        },
+        "high": {
+          "label": "Priorité haute",
+          "description": "Confirmations de réservation et avis"
+        },
+        "medium": {
+          "label": "Priorité moyenne",
+          "description": "Nouveaux messages et rappels"
+        },
+        "low": {
+          "label": "Priorité basse",
+          "description": "Favoris et jalons de vues"
+        }
+      }
+    }
   }
 }
