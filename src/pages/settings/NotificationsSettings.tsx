@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Bell, Volume2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import type { NotificationPreferences } from "@/types/notification";
 // ============================================================================
 
 const NotificationsSettings = () => {
+  const { t } = useTranslation("common");
   const { preferences, loading, error, updatePreferences } =
     useNotificationPreferences();
 
@@ -31,13 +33,13 @@ const NotificationsSettings = () => {
     const success = await updatePreferences({ [key]: value });
     if (success) {
       toast({
-        title: "Settings updated",
-        description: "Your notification preferences have been saved.",
+        title: t("notifications.settings.updated"),
+        description: t("notifications.settings.updated_description"),
       });
     } else {
       toast({
-        title: "Error",
-        description: "Failed to update preferences. Please try again.",
+        title: t("notifications.settings.error"),
+        description: t("notifications.settings.error_description"),
         variant: "destructive",
       });
     }
@@ -50,13 +52,13 @@ const NotificationsSettings = () => {
     const success = await updatePreferences({ [key]: value });
     if (success) {
       toast({
-        title: "Quiet hours updated",
-        description: "Your quiet hours have been saved.",
+        title: t("notifications.settings.quiet_hours_updated"),
+        description: t("notifications.settings.quiet_hours_updated_description"),
       });
     } else {
       toast({
-        title: "Error",
-        description: "Failed to update quiet hours. Please try again.",
+        title: t("notifications.settings.error"),
+        description: t("notifications.settings.quiet_hours_error_description"),
         variant: "destructive",
       });
     }
@@ -66,8 +68,8 @@ const NotificationsSettings = () => {
     return (
       <div className="container max-w-3xl py-8">
         <PageHeader
-          title="Notification Settings"
-          description="Manage how you receive notifications"
+          title={t("notifications.settings.title")}
+          description={t("notifications.settings.description")}
         />
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -80,8 +82,8 @@ const NotificationsSettings = () => {
     return (
       <div className="container max-w-3xl py-8">
         <PageHeader
-          title="Notification Settings"
-          description="Manage how you receive notifications"
+          title={t("notifications.settings.title")}
+          description={t("notifications.settings.description")}
         />
         <Card>
           <CardContent className="py-12 text-center">
@@ -91,7 +93,7 @@ const NotificationsSettings = () => {
               className="mt-4"
               onClick={() => window.location.reload()}
             >
-              Try again
+              {t("buttons.retry", { defaultValue: "Try again" })}
             </Button>
           </CardContent>
         </Card>
@@ -102,8 +104,8 @@ const NotificationsSettings = () => {
   return (
     <div className="container max-w-3xl py-8">
       <PageHeader
-        title="Notification Settings"
-        description="Manage how you receive notifications"
+        title={t("notifications.settings.title")}
+        description={t("notifications.settings.description")}
       />
 
       <div className="space-y-6">
@@ -112,20 +114,20 @@ const NotificationsSettings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
-              In-App Notifications
+              {t("notifications.settings.in_app.title")}
             </CardTitle>
             <CardDescription>
-              Choose which types of notifications you want to receive
+              {t("notifications.settings.in_app.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="booking_notifications" className="font-medium">
-                  Booking updates
+                  {t("notifications.settings.categories.booking.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Confirmations, cancellations, and reminders
+                  {t("notifications.settings.categories.booking.description")}
                 </p>
               </div>
               <Switch
@@ -142,10 +144,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="message_notifications" className="font-medium">
-                  New messages
+                  {t("notifications.settings.categories.message.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  When someone sends you a message
+                  {t("notifications.settings.categories.message.description")}
                 </p>
               </div>
               <Switch
@@ -162,10 +164,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="payment_notifications" className="font-medium">
-                  Payment notifications
+                  {t("notifications.settings.categories.payment.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Payments received, payouts, and refunds
+                  {t("notifications.settings.categories.payment.description")}
                 </p>
               </div>
               <Switch
@@ -182,10 +184,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="review_notifications" className="font-medium">
-                  Reviews
+                  {t("notifications.settings.categories.review.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  When someone leaves you a review
+                  {t("notifications.settings.categories.review.description")}
                 </p>
               </div>
               <Switch
@@ -205,10 +207,10 @@ const NotificationsSettings = () => {
                   htmlFor="verification_notifications"
                   className="font-medium"
                 >
-                  Verification updates
+                  {t("notifications.settings.categories.verification.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Status changes for your verification
+                  {t("notifications.settings.categories.verification.description")}
                 </p>
               </div>
               <Switch
@@ -225,10 +227,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="equipment_notifications" className="font-medium">
-                  Equipment activity
+                  {t("notifications.settings.categories.equipment.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  When someone favorites your equipment or views milestones
+                  {t("notifications.settings.categories.equipment.description")}
                 </p>
               </div>
               <Switch
@@ -245,10 +247,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="promotion_notifications" className="font-medium">
-                  Promotions & announcements
+                  {t("notifications.settings.categories.promotion.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Special offers and system announcements
+                  {t("notifications.settings.categories.promotion.description")}
                 </p>
               </div>
               <Switch
@@ -267,20 +269,20 @@ const NotificationsSettings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Volume2 className="h-5 w-5" />
-              Toast Popups
+              {t("notifications.settings.toast.title")}
             </CardTitle>
             <CardDescription>
-              Show popup notifications for important events
+              {t("notifications.settings.toast.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="toast_critical" className="font-medium">
-                  Critical notifications
+                  {t("notifications.settings.priority.critical.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Payments, payouts, and refunds
+                  {t("notifications.settings.priority.critical.description")}
                 </p>
               </div>
               <Switch
@@ -297,10 +299,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="toast_high" className="font-medium">
-                  High priority
+                  {t("notifications.settings.priority.high.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Booking confirmations and reviews
+                  {t("notifications.settings.priority.high.description")}
                 </p>
               </div>
               <Switch
@@ -317,10 +319,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="toast_medium" className="font-medium">
-                  Medium priority
+                  {t("notifications.settings.priority.medium.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  New messages and reminders
+                  {t("notifications.settings.priority.medium.description")}
                 </p>
               </div>
               <Switch
@@ -337,10 +339,10 @@ const NotificationsSettings = () => {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="toast_low" className="font-medium">
-                  Low priority
+                  {t("notifications.settings.priority.low.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Favorites and view milestones
+                  {t("notifications.settings.priority.low.description")}
                 </p>
               </div>
               <Switch
@@ -359,20 +361,20 @@ const NotificationsSettings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Quiet Hours
+              {t("notifications.settings.quiet_hours.title")}
             </CardTitle>
             <CardDescription>
-              Suppress toast popups during specific hours
+              {t("notifications.settings.quiet_hours.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="quiet_hours_enabled" className="font-medium">
-                  Enable quiet hours
+                  {t("notifications.settings.quiet_hours.enable")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  No toast notifications during these times
+                  {t("notifications.settings.quiet_hours.enable_description")}
                 </p>
               </div>
               <Switch
@@ -390,7 +392,7 @@ const NotificationsSettings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="quiet_hours_start" className="text-sm">
-                      Start time
+                      {t("notifications.settings.quiet_hours.start_time")}
                     </Label>
                     <Input
                       id="quiet_hours_start"
@@ -404,7 +406,7 @@ const NotificationsSettings = () => {
                   </div>
                   <div>
                     <Label htmlFor="quiet_hours_end" className="text-sm">
-                      End time
+                      {t("notifications.settings.quiet_hours.end_time")}
                     </Label>
                     <Input
                       id="quiet_hours_end"

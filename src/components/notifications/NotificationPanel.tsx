@@ -56,8 +56,10 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
     const count = await markAllAsRead();
     if (count > 0) {
       toast({
-        title: "Marked as read",
-        description: `${count} notification${count > 1 ? "s" : ""} marked as read.`,
+        title: t("notifications.toast.marked_as_read"),
+        description: count > 1
+          ? t("notifications.toast.marked_as_read_description_plural", { count })
+          : t("notifications.toast.marked_as_read_description", { count }),
       });
     }
   };
@@ -67,7 +69,7 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-base">Notifications</h3>
+          <h3 className="font-semibold text-base">{t("notifications.title")}</h3>
           {unreadCount > 0 && (
             <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary text-primary-foreground">
               {unreadCount}
@@ -82,7 +84,7 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
             onClick={handleMarkAllAsRead}
           >
             <Check className="h-3 w-3 mr-1" />
-            Mark all read
+            {t("notifications.actions.mark_all_read")}
           </Button>
         )}
       </div>
@@ -137,10 +139,10 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
                 <Bell className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">
-                No notifications yet
+                {t("notifications.empty.title")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                We'll notify you when something important happens
+                {t("notifications.empty.description")}
               </p>
             </div>
           )}

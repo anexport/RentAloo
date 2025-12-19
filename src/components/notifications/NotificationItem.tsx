@@ -21,7 +21,6 @@ import {
   Megaphone,
   Gift,
   Bell,
-  Trash2,
   X,
 } from "lucide-react";
 import type { NotificationWithActor, NotificationType } from "@/types/notification";
@@ -131,6 +130,7 @@ const NotificationItem = ({
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           handleClick();
         }
       }}

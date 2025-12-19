@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/useToast";
@@ -8,6 +8,7 @@ import type {
   NotificationWithActor,
   NotificationCategory,
   NotificationPreferences,
+  NotificationGroup,
   UseNotificationsReturn,
 } from "@/types/notification";
 import {
@@ -66,6 +67,12 @@ export const useNotifications = (): UseNotificationsReturn => {
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const preferencesLoadedRef = useRef(false);
+  const preferencesRef = useRef<NotificationPreferences | null>(null);
+
+  // Keep preferencesRef in sync with state
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   // ============================================================================
   // FETCH NOTIFICATIONS
@@ -335,7 +342,7 @@ export const useNotifications = (): UseNotificationsReturn => {
   // GROUP NOTIFICATIONS
   // ============================================================================
 
-  const groupedNotifications: NotificationGroup[] = (() => {
+  const groupedNotifications: NotificationGroup[] = useMemo(() => {
     // Filter by category if not 'all'
     const filtered =
       filter === "all"
@@ -395,7 +402,7 @@ export const useNotifications = (): UseNotificationsReturn => {
     );
 
     return result;
-  })();
+  }, [notifications, filter, expandedGroups]);
 
   // ============================================================================
   // REFRESH NOTIFICATIONS
@@ -465,8 +472,8 @@ export const useNotifications = (): UseNotificationsReturn => {
           setNotifications((prev) => [newNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
 
-          // Show toast if appropriate
-          if (shouldShowToast(newNotification, preferences)) {
+          // Show toast if appropriate (use ref to avoid recreating subscription)
+          if (shouldShowToast(newNotification, preferencesRef.current)) {
             toast({
               title: newNotification.title,
               description: newNotification.message,
@@ -486,11 +493,18 @@ export const useNotifications = (): UseNotificationsReturn => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const updatedNotification = payload.new as NotificationWithActor;
+          const updatedBase = payload.new as Notification;
 
+          // Preserve existing actor data since realtime doesn't include it
           setNotifications((prev) =>
             prev.map((n) =>
-              n.id === updatedNotification.id ? updatedNotification : n
+              n.id === updatedBase.id
+                ? {
+                    ...updatedBase,
+                    actor_email: n.actor_email,
+                    actor_avatar_url: n.actor_avatar_url,
+                  }
+                : n
             )
           );
 
@@ -531,7 +545,7 @@ export const useNotifications = (): UseNotificationsReturn => {
         channelRef.current = null;
       }
     };
-  }, [user, fetchNotifications, fetchPreferences, fetchUnreadCount, preferences]);
+  }, [user, fetchNotifications, fetchPreferences, fetchUnreadCount]);
 
   // ============================================================================
   // REFETCH ON FILTER CHANGE
