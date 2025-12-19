@@ -65,7 +65,7 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
   };
 
   return (
-    <div className="w-[380px] max-h-[500px] flex flex-col">
+    <div className="w-[420px] max-h-[500px] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
@@ -90,14 +90,14 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-1 px-3 py-2 border-b overflow-x-auto scrollbar-hide">
+      <div className="flex flex-wrap justify-center gap-1 px-3 py-2 border-b">
         {filterTabs.map((tab) => (
           <Button
             key={tab.value}
             variant={filter === tab.value ? "default" : "ghost"}
             size="sm"
             className={cn(
-              "h-7 px-3 text-xs whitespace-nowrap",
+              "h-7 px-2.5 text-xs whitespace-nowrap",
               filter === tab.value && "shadow-sm"
             )}
             onClick={() => setFilter(tab.value)}
@@ -134,14 +134,14 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
 
           {/* Empty State */}
           {!loading && !error && groupedNotifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                 <Bell className="h-6 w-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-foreground">
                 {t("notifications.empty.title")}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
                 {t("notifications.empty.description")}
               </p>
             </div>
