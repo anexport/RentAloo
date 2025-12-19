@@ -141,7 +141,9 @@ export default function MobileInspectionCTA({
       {/* Sticky bottom CTA bar */}
       <div
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 border-t safe-area-pb",
+          "fixed left-0 right-0 z-50 border-t safe-area-pb",
+          // Lift above mobile bottom nav while keeping desktop flush to bottom
+          "bottom-[4.5rem] md:bottom-0",
           styles.container,
           urgency === "critical" && "animate-pulse"
         )}

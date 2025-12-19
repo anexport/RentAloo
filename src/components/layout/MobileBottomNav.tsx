@@ -1,22 +1,60 @@
+import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Search, Heart, MessageSquare, User } from "lucide-react";
+import {
+  Home,
+  Search,
+  Heart,
+  MessageSquare,
+  User,
+  LayoutDashboard,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMaxWidthQuery } from "@/config/breakpoints";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoleMode } from "@/contexts/RoleModeContext";
+import { getDashboardPath } from "@/lib/user-utils";
 
-const NAV_ITEMS = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/explore", icon: Search, label: "Explore" },
-  { to: "/renter/dashboard?tab=saved", icon: Heart, label: "Favorites" },
-  { to: "/messages", icon: MessageSquare, label: "Messages" },
-  { to: "/profile", icon: User, label: "Profile" },
-] as const;
+type NavItem = {
+  to: string;
+  icon: typeof Home;
+  label: string;
+};
 
 const MobileBottomNav = () => {
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const { user } = useAuth();
+  const { activeMode } = useRoleMode();
   const location = useLocation();
+
+  const navItems = useMemo<NavItem[]>(() => {
+    if (!user) return [];
+
+    const items: NavItem[] = [
+      { to: "/", icon: Home, label: "Home" },
+      { to: "/explore", icon: Search, label: "Explore" },
+    ];
+
+    // Renter: keep quick access to saved items; Owner: jump to dashboard
+    if (activeMode === "renter") {
+      items.push({
+        to: "/renter/dashboard?tab=saved",
+        icon: Heart,
+        label: "Saved",
+      });
+    } else {
+      items.push({
+        to: getDashboardPath(activeMode),
+        icon: LayoutDashboard,
+        label: "Dashboard",
+      });
+    }
+
+    items.push({ to: "/messages", icon: MessageSquare, label: "Messages" });
+    items.push({ to: "/settings", icon: User, label: "Account" });
+
+    return items;
+  }, [activeMode, user]);
 
   // Only show on mobile for authenticated users
   if (!isMobile || !user) return null;
@@ -34,7 +72,7 @@ const MobileBottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex items-stretch justify-around h-16">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}

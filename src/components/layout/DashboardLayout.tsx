@@ -69,8 +69,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        {/* Content Area - pb-20 accounts for mobile bottom nav + safe area */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
+        {/* Content Area - single source of bottom spacing for mobile nav/CTA */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-8">
           {/* Breadcrumb Navigation */}
           <div className="mb-4">
             <BreadcrumbNav />
@@ -84,4 +84,3 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 };
 
 export default DashboardLayout;
-

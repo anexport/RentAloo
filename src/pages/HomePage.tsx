@@ -360,8 +360,8 @@ export default function HomePage() {
           </div>
 
           {/* Filters row and Grid Header */}
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex-1">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 mb-4">
+            <div className="flex-1 space-y-1">
               <h3 className="text-lg font-semibold">
                 {t("browse.items_count", { count: clientFilteredListings.length })}
                 {debouncedFilters.location && (
@@ -375,7 +375,7 @@ export default function HomePage() {
                 {t("browse.available_near_you")}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-end">
               <FiltersSheet
                 value={filterValues}
                 onChange={setFilterValues}

@@ -1,12 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Calendar, AlertTriangle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -21,14 +16,22 @@ import SavedEquipmentTab from "@/components/renter/SavedEquipmentTab";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
 import PendingClaimsList from "@/components/claims/PendingClaimsList";
 import { MobileInspectionCTA } from "@/components/booking/inspection-flow";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/lib/supabase";
-import { differenceInDays, isPast, isFuture } from "date-fns";
+import { differenceInDays, isPast } from "date-fns";
 import type { BookingRequestWithDetails } from "@/types/booking";
 import { useActiveRentals } from "@/hooks/useActiveRental";
 import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button as UIButton } from "@/components/ui/button";
 
 interface InspectionStatus {
   bookingId: string;
@@ -242,7 +245,12 @@ const RenterDashboard = () => {
   return (
     <DashboardLayout>
       {/* Add bottom padding on mobile when CTA is visible */}
-      <div className={`space-y-6 animate-in fade-in duration-500 ${isMobile && urgentInspectionBooking ? "pb-24" : ""}`}>
+      <div
+        className={cn(
+          "space-y-6 animate-in fade-in duration-500",
+          isMobile && urgentInspectionBooking ? "pb-12" : ""
+        )}
+      >
         {/* Welcome Hero Section */}
         <WelcomeHero />
 
@@ -280,15 +288,29 @@ const RenterDashboard = () => {
             </Card>
           )}
 
-        {/* Notifications Panel */}
-        <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
-          <NotificationsPanel />
-        </div>
-
-        {/* Pending Damage Claims */}
-        <div className="animate-in slide-in-from-top-4 duration-500 delay-150">
-          <PendingClaimsList />
-        </div>
+        {/* Notifications / Claims condensed on mobile */}
+        {isMobile ? (
+          <Accordion type="single" collapsible defaultValue="alerts" className="animate-in slide-in-from-top-4 duration-500 delay-100">
+            <AccordionItem value="alerts" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                {t("renter.notifications.title", { defaultValue: "Stay updated" })}
+              </AccordionTrigger>
+              <AccordionContent className="space-y-4 pb-3">
+                <NotificationsPanel />
+                <PendingClaimsList />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <>
+            <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
+              <NotificationsPanel />
+            </div>
+            <div className="animate-in slide-in-from-top-4 duration-500 delay-150">
+              <PendingClaimsList />
+            </div>
+          </>
+        )}
 
         {/* Active Rentals Section */}
         {!activeRentalsLoading && activeRentals.length > 0 && (
@@ -304,32 +326,59 @@ const RenterDashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeRentals.map((rental, index) => (
-                <div
-                  key={rental.id}
-                  className="animate-in slide-in-from-bottom-4 duration-500"
-                  style={{ animationDelay: `${175 + index * 50}ms` }}
-                >
-                  <ActiveRentalCard booking={rental} />
-                </div>
-              ))}
-            </div>
+            {isMobile ? (
+              <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 snap-x snap-mandatory">
+                {activeRentals.map((rental, index) => (
+                  <div
+                    key={rental.id}
+                    className="min-w-[260px] snap-start animate-in slide-in-from-bottom-4 duration-500"
+                    style={{ animationDelay: `${175 + index * 50}ms` }}
+                  >
+                    <ActiveRentalCard booking={rental} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {activeRentals.map((rental, index) => (
+                  <div
+                    key={rental.id}
+                    className="animate-in slide-in-from-bottom-4 duration-500"
+                    style={{ animationDelay: `${175 + index * 50}ms` }}
+                  >
+                    <ActiveRentalCard booking={rental} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Stats Overview Section */}
-        <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-200">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {t("renter.overview.section_title")}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {t("renter.overview.section_description")}
-            </p>
+        {isMobile ? (
+          <Accordion type="single" collapsible defaultValue="stats" className="animate-in slide-in-from-top-4 duration-500 delay-200">
+            <AccordionItem value="stats" className="border rounded-lg px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                {t("renter.overview.section_title")}
+              </AccordionTrigger>
+              <AccordionContent className="pb-3">
+                <StatsOverview />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-200">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                {t("renter.overview.section_title")}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t("renter.overview.section_description")}
+              </p>
+            </div>
+            <StatsOverview />
           </div>
-          <StatsOverview />
-        </div>
+        )}
 
         {/* Main Content Grid - Calendar + Bookings */}
         <div className="grid gap-6 lg:grid-cols-3 animate-in slide-in-from-top-4 duration-500 delay-300">
@@ -368,7 +417,7 @@ const RenterDashboard = () => {
                 <div className="space-y-4">
                   {(activeTab === "bookings"
                     ? renterBookings
-                    : renterBookings.slice(0, 3)
+                    : renterBookings.slice(0, isMobile ? 2 : 3)
                   ).map((booking, index) => (
                     <div
                       key={booking.id}
@@ -384,6 +433,14 @@ const RenterDashboard = () => {
                       />
                     </div>
                   ))}
+
+                  {isMobile && renterBookings.length > 2 && activeTab !== "bookings" && (
+                    <Link to="/renter/dashboard?tab=bookings" className="inline-flex">
+                      <UIButton variant="outline" className="w-full justify-center">
+                        {t("renter.bookings.view_all", { defaultValue: "View all bookings" })}
+                      </UIButton>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
