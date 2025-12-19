@@ -147,9 +147,9 @@ const NotificationItem = ({
 
       {/* Icon or Avatar */}
       <div className="flex-shrink-0 mt-0.5">
-        {notification.actor_id && notification.actor_avatar_url ? (
+        {notification.actor_id ? (
           <Avatar className="h-9 w-9">
-            <AvatarImage src={notification.actor_avatar_url} />
+            <AvatarImage src={notification.actor_avatar_url || undefined} />
             <AvatarFallback className="text-xs">
               {notification.actor_email?.charAt(0).toUpperCase() || "?"}
             </AvatarFallback>

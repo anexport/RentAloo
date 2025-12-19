@@ -395,8 +395,8 @@ const NotificationsSettings = () => {
                     <Input
                       id="quiet_hours_start"
                       type="time"
-                      value={preferences?.quiet_hours_start ?? "22:00"}
-                      onChange={(e) => {
+                      defaultValue={preferences?.quiet_hours_start ?? "22:00"}
+                      onBlur={(e) => {
                         void handleTimeChange("quiet_hours_start", e.target.value);
                       }}
                       className="mt-1"
@@ -409,8 +409,8 @@ const NotificationsSettings = () => {
                     <Input
                       id="quiet_hours_end"
                       type="time"
-                      value={preferences?.quiet_hours_end ?? "07:00"}
-                      onChange={(e) => {
+                      defaultValue={preferences?.quiet_hours_end ?? "07:00"}
+                      onBlur={(e) => {
                         void handleTimeChange("quiet_hours_end", e.target.value);
                       }}
                       className="mt-1"

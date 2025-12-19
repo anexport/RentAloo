@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/useToast";
 import NotificationGroup from "@/components/notifications/NotificationGroup";
 import type {
   NotificationCategory,
@@ -16,25 +17,26 @@ import type {
 
 type NotificationPanelProps = {
   notifications: UseNotificationsReturn;
+  onClose?: () => void;
 };
 
 // ============================================================================
 // FILTER TABS
 // ============================================================================
 
-const filterTabs: { value: NotificationCategory; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "booking", label: "Bookings" },
-  { value: "message", label: "Messages" },
-  { value: "payment", label: "Payments" },
-  { value: "review", label: "Reviews" },
+const filterTabs: { value: NotificationCategory; labelKey: string }[] = [
+  { value: "all", labelKey: "notifications.filters.all" },
+  { value: "booking", labelKey: "notifications.filters.bookings" },
+  { value: "message", labelKey: "notifications.filters.messages" },
+  { value: "payment", labelKey: "notifications.filters.payments" },
+  { value: "review", labelKey: "notifications.filters.reviews" },
 ];
 
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
-const NotificationPanel = ({ notifications }: NotificationPanelProps) => {
+const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) => {
   const { t } = useTranslation("common");
 
   const {
@@ -51,7 +53,13 @@ const NotificationPanel = ({ notifications }: NotificationPanelProps) => {
   } = notifications;
 
   const handleMarkAllAsRead = async () => {
-    await markAllAsRead();
+    const count = await markAllAsRead();
+    if (count > 0) {
+      toast({
+        title: "Marked as read",
+        description: `${count} notification${count > 1 ? "s" : ""} marked as read.`,
+      });
+    }
   };
 
   return (
@@ -92,7 +100,7 @@ const NotificationPanel = ({ notifications }: NotificationPanelProps) => {
             )}
             onClick={() => setFilter(tab.value)}
           >
-            {tab.label}
+            {t(tab.labelKey, { defaultValue: tab.value })}
           </Button>
         ))}
       </div>

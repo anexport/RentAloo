@@ -6,7 +6,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import type {
   Notification,
   NotificationWithActor,
-  NotificationGroup,
   NotificationCategory,
   NotificationPreferences,
   UseNotificationsReturn,
@@ -82,6 +81,7 @@ export const useNotifications = (): UseNotificationsReturn => {
     if (cachedData) {
       setNotifications(cachedData);
       setUnreadCount(cachedData.filter((n) => !n.is_read).length);
+      setLoading(false);
       return;
     }
 
@@ -181,6 +181,10 @@ export const useNotifications = (): UseNotificationsReturn => {
 
         if (updateError) throw updateError;
 
+        // Check if notification was actually unread before decrementing
+        const notification = notifications.find((n) => n.id === notificationId);
+        const wasUnread = notification && !notification.is_read;
+
         // Optimistically update local state
         setNotifications((prev) =>
           prev.map((n) =>
@@ -189,7 +193,11 @@ export const useNotifications = (): UseNotificationsReturn => {
               : n
           )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+
+        // Only decrement if notification was actually unread
+        if (wasUnread) {
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
 
         // Invalidate cache
         notificationCache.delete(`notifications_${user.id}`);
@@ -200,7 +208,7 @@ export const useNotifications = (): UseNotificationsReturn => {
         return false;
       }
     },
-    [user]
+    [user, notifications]
   );
 
   // ============================================================================
@@ -425,8 +433,33 @@ export const useNotifications = (): UseNotificationsReturn => {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          const newNotification = payload.new as NotificationWithActor;
+        async (payload) => {
+          const baseNotification = payload.new as Notification;
+
+          // Realtime payload doesn't include actor details (they come from JOIN)
+          // Initialize with null actor fields, then fetch if actor_id exists
+          let newNotification: NotificationWithActor = {
+            ...baseNotification,
+            actor_email: null,
+            actor_avatar_url: null,
+          };
+
+          // Fetch actor details if present
+          if (baseNotification.actor_id) {
+            const { data: actorData } = await supabase
+              .from("profiles")
+              .select("email, avatar_url")
+              .eq("id", baseNotification.actor_id)
+              .single();
+
+            if (actorData) {
+              newNotification = {
+                ...newNotification,
+                actor_email: actorData.email,
+                actor_avatar_url: actorData.avatar_url,
+              };
+            }
+          }
 
           // Add to state
           setNotifications((prev) => [newNotification, ...prev]);

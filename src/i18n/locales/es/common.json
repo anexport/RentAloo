@@ -104,5 +104,14 @@
   },
   "navigation": {
     "menu": "Menú"
+  },
+  "notifications": {
+    "filters": {
+      "all": "Todos",
+      "bookings": "Reservas",
+      "messages": "Mensajes",
+      "payments": "Pagos",
+      "reviews": "Reseñas"
+    }
   }
 }

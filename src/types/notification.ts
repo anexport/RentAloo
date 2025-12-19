@@ -225,7 +225,7 @@ export const getNotificationPath = (
 
   switch (notification.related_entity_type) {
     case "booking":
-      return `/renter/bookings/${notification.related_entity_id}`;
+      return `/rental/${notification.related_entity_id}`;
     case "equipment":
       return `/equipment/${notification.related_entity_id}`;
     case "conversation":
