@@ -561,7 +561,10 @@ const ExplorePage = () => {
       {/* Sticky Header with Search - collapses on mobile when scrolled */}
       <div
         className={cn(
-          "sticky top-0 z-50 bg-background border-b border-border shadow-sm transition-transform duration-300",
+          "transition-transform duration-300 border-b border-border",
+          isMobile
+            ? "relative bg-background"
+            : "sticky top-0 z-50 bg-background shadow-sm",
           isScrolled && isMobile && "-translate-y-full"
         )}
       >
@@ -594,7 +597,7 @@ const ExplorePage = () => {
         <div
           className={cn(
             "sticky z-40 bg-background py-2 md:py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border transition-all duration-300",
-            isScrolled && isMobile ? "top-0" : "top-[73px]"
+            isMobile ? "top-0" : "top-[73px]"
           )}
         >
           <div className="flex items-center gap-2">
