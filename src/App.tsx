@@ -47,6 +47,9 @@ const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const OnboardingPage = lazy(() => import("@/pages/auth/OnboardingPage"));
+const NotificationsSettings = lazy(
+  () => import("@/pages/settings/NotificationsSettings")
+);
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -167,6 +170,10 @@ function App() {
                         element={<VerifyIdentity />}
                       />
                       <Route path="/settings" element={<ProfileSettings />} />
+                      <Route
+                        path="/settings/notifications"
+                        element={<NotificationsSettings />}
+                      />
                       <Route
                         path="/inspection/:bookingId/:type"
                         element={<EquipmentInspectionPage />}
