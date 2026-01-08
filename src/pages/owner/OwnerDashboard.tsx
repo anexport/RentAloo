@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -228,22 +229,28 @@ const OwnerDashboard = () => {
                 >
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
                     <div className="relative h-36 bg-muted flex-shrink-0">
-                      <Skeleton className="h-full w-full rounded-none" />
-                      <Skeleton className="absolute top-3 left-3 h-5 w-24 rounded-full" />
+                      <Skeleton
+                        shimmer
+                        className="h-full w-full rounded-none"
+                      />
+                      <Skeleton
+                        shimmer
+                        className="absolute top-3 left-3 h-5 w-24 rounded-full"
+                      />
                     </div>
                     <CardContent className="p-4 flex flex-col flex-1">
                       <div className="h-14 mb-4">
-                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton shimmer className="h-6 w-3/4" />
                         <div className="flex items-center gap-2 mt-2">
-                          <Skeleton className="h-5 w-5 rounded-full" />
-                          <Skeleton className="h-4 w-2/3" />
+                          <Skeleton shimmer className="h-5 w-5 rounded-full" />
+                          <Skeleton shimmer className="h-4 w-2/3" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton shimmer className="h-4 w-1/2" />
+                        <Skeleton shimmer className="h-4 w-2/3" />
                       </div>
-                      <Skeleton className="mt-auto h-10 w-full" />
+                      <Skeleton shimmer className="mt-auto h-10 w-full" />
                     </CardContent>
                   </Card>
                 </div>
@@ -297,7 +304,9 @@ const OwnerDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalListings}</div>
+              <div className="text-2xl font-bold">
+                <AnimatedNumber value={stats.totalListings} duration={800} />
+              </div>
               <p className="text-xs text-muted-foreground">
                 {t("owner.stats.total_listings.description")}
               </p>
@@ -311,7 +320,9 @@ const OwnerDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeBookings}</div>
+              <div className="text-2xl font-bold">
+                <AnimatedNumber value={stats.activeBookings} duration={800} />
+              </div>
               <p className="text-xs text-muted-foreground">
                 {t("owner.stats.pending_requests.description")}
               </p>
@@ -326,7 +337,12 @@ const OwnerDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${stats.totalEarnings.toFixed(2)}
+                <AnimatedNumber
+                  value={stats.totalEarnings}
+                  duration={800}
+                  prefix="$"
+                  formatCurrency
+                />
               </div>
               <p className="text-xs text-muted-foreground">
                 {t("owner.stats.total_earnings.description")}
@@ -342,7 +358,15 @@ const OwnerDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : "-"}
+                {stats.averageRating > 0 ? (
+                  <AnimatedNumber
+                    value={stats.averageRating}
+                    duration={800}
+                    decimals={1}
+                  />
+                ) : (
+                  "-"
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 {t("owner.stats.average_rating.description")}

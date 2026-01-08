@@ -153,7 +153,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
         )}
       >
         <div
-          className="aspect-video bg-muted relative overflow-hidden cursor-pointer group flex-shrink-0"
+          className="aspect-video bg-muted relative overflow-hidden cursor-pointer group flex-shrink-0 image-zoom-container"
           onClick={handleOpen}
           role="button"
           tabIndex={0}
@@ -193,7 +193,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                         onClick={handlePrevImage}
                         size="icon"
                         variant="ghost"
-                        className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11 animate-carousel-pulse hover:animate-none"
                         aria-label={t("listing_card.previous_image")}
                       >
                         <ChevronLeft className="h-5 w-5" />
@@ -209,7 +209,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                         onClick={handleNextImage}
                         size="icon"
                         variant="ghost"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11 animate-carousel-pulse hover:animate-none"
                         aria-label={t("listing_card.next_image")}
                       >
                         <ChevronRight className="h-5 w-5" />
@@ -279,7 +279,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                     className={cn(
                       "h-5 w-5 transition-colors",
                       isWishlisted
-                        ? "fill-red-500 text-red-500"
+                        ? "fill-red-500 text-red-500 animate-heartbeat"
                         : "text-gray-700 dark:text-gray-200"
                     )}
                   />
@@ -310,7 +310,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
               {listing.title}
             </h3>
             <div className="text-right">
-              <div className="text-xl font-bold text-primary">
+              <div className="text-xl font-bold text-primary tabular-nums">
                 ${listing.daily_rate}
               </div>
               <div className="text-sm text-muted-foreground">

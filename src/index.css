@@ -229,3 +229,136 @@
 .safe-area-inset-bottom {
   bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Heartbeat animation for wishlist button */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.15);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.2s ease-in-out;
+  animation-iteration-count: 3; /* Limit repeats to avoid distraction */
+  animation-fill-mode: both;
+  will-change: transform;
+}
+
+/* Shimmer effect for enhanced skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  will-change: background-position; /* Optimize animation rendering */
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  will-change: background-position;
+}
+
+/* Carousel button pulse - uses pseudo-element for hardware-accelerated opacity animation */
+@keyframes carousel-pulse-glow {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-carousel-pulse {
+  position: relative;
+}
+
+.animate-carousel-pulse::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 4px 12px -1px rgb(0 0 0 / 0.15);
+  opacity: 0;
+  animation: carousel-pulse-glow 2s ease-in-out infinite;
+  will-change: opacity;
+  pointer-events: none;
+}
+
+/* Success checkmark animation */
+@keyframes success-check {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-success-check {
+  animation: success-check 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Image zoom transition */
+.image-zoom-container {
+  overflow: hidden;
+}
+
+.image-zoom-container img {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform; /* Hint browser to optimize transform animation */
+}
+
+.image-zoom-container:hover img {
+  transform: scale(1.05);
+}
+
+/* Respect reduced motion preferences for all animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-heartbeat,
+  .animate-shimmer,
+  .animate-carousel-pulse,
+  .animate-success-check {
+    animation: none;
+  }
+  
+  .image-zoom-container:hover img {
+    transform: none;
+  }
+}
+
