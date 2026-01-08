@@ -9,7 +9,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MapPin, ChevronLeft, ChevronRight, Heart, Package, Loader2 } from "lucide-react";
+import {
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Package,
+  Loader2,
+} from "lucide-react";
 import StarRating from "@/components/reviews/StarRating";
 import type { Listing } from "@/components/equipment/services/listings";
 import { cn } from "@/lib/utils";
@@ -32,7 +39,7 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { isFavorited, toggleFavorite } = useFavorites();
-  
+
   const isWishlisted = isFavorited(listing.id);
   const avgRating = (() => {
     if (!listing.reviews || listing.reviews.length === 0) return 0;
@@ -77,12 +84,20 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
       await toggleFavorite(listing.id);
       toast.success(
         isWishlisted
-          ? t("listing_card.removed_from_favorites", { defaultValue: "Removed from favorites" })
-          : t("listing_card.added_to_favorites", { defaultValue: "Added to favorites" })
+          ? t("listing_card.removed_from_favorites", {
+              defaultValue: "Removed from favorites",
+            })
+          : t("listing_card.added_to_favorites", {
+              defaultValue: "Added to favorites",
+            })
       );
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
-      toast.error(t("listing_card.favorite_error", { defaultValue: "Failed to update favorites" }));
+      toast.error(
+        t("listing_card.favorite_error", {
+          defaultValue: "Failed to update favorites",
+        })
+      );
     } finally {
       setIsTogglingFavorite(false);
     }
@@ -116,7 +131,8 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
 
     const photosLength = listing.photos.length;
     const nextIndex = (currentImageIndex + 1) % photosLength;
-    const prevIndex = currentImageIndex === 0 ? photosLength - 1 : currentImageIndex - 1;
+    const prevIndex =
+      currentImageIndex === 0 ? photosLength - 1 : currentImageIndex - 1;
 
     // Preload next and previous images
     [nextIndex, prevIndex].forEach((idx) => {
@@ -130,7 +146,12 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
 
   return (
     <TooltipProvider>
-      <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full", className)}>
+      <Card
+        className={cn(
+          "overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col h-full",
+          className
+        )}
+      >
         <div
           className="aspect-video bg-muted relative overflow-hidden cursor-pointer group flex-shrink-0"
           onClick={handleOpen}
@@ -178,7 +199,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                         <ChevronLeft className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>{t("listing_card.previous_photo")}</TooltipContent>
+                    <TooltipContent>
+                      {t("listing_card.previous_photo")}
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -192,7 +215,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                         <ChevronRight className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>{t("listing_card.next_photo")}</TooltipContent>
+                    <TooltipContent>
+                      {t("listing_card.next_photo")}
+                    </TooltipContent>
                   </Tooltip>
 
                   {/* Dot indicators with touch-friendly hit areas */}
@@ -205,7 +230,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                           setCurrentImageIndex(idx);
                         }}
                         className="min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-90 transition-transform"
-                        aria-label={t("listing_card.go_to_image", { number: idx + 1 })}
+                        aria-label={t("listing_card.go_to_image", {
+                          number: idx + 1,
+                        })}
                       >
                         <span
                           className={cn(
@@ -225,7 +252,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
             <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted">
               <Package className="h-12 w-12 mb-2 opacity-50" />
               <span className="text-sm">
-                {imageError ? t("listing_card.image_unavailable") : t("listing_card.no_image")}
+                {imageError
+                  ? t("listing_card.image_unavailable")
+                  : t("listing_card.no_image")}
               </span>
             </div>
           )}
@@ -238,7 +267,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                 disabled={isTogglingFavorite}
                 className="absolute top-2 right-2 h-11 w-11 rounded-full bg-white dark:bg-gray-900 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-all flex items-center justify-center z-10 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label={
-                  isWishlisted ? t("listing_card.wishlist_remove") : t("listing_card.wishlist_add")
+                  isWishlisted
+                    ? t("listing_card.wishlist_remove")
+                    : t("listing_card.wishlist_add")
                 }
               >
                 {isTogglingFavorite ? (
@@ -247,7 +278,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                   <Heart
                     className={cn(
                       "h-5 w-5 transition-colors",
-                      isWishlisted ? "fill-red-500 text-red-500" : "text-gray-700 dark:text-gray-200"
+                      isWishlisted
+                        ? "fill-red-500 text-red-500"
+                        : "text-gray-700 dark:text-gray-200"
                     )}
                   />
                 )}
@@ -280,7 +313,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
               <div className="text-xl font-bold text-primary">
                 ${listing.daily_rate}
               </div>
-              <div className="text-sm text-muted-foreground">{t("listing_card.per_day")}</div>
+              <div className="text-sm text-muted-foreground">
+                {t("listing_card.per_day")}
+              </div>
             </div>
           </div>
           <div className="flex-1">
@@ -302,7 +337,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                     <span className="text-xs">{avgRating.toFixed(1)}</span>
                   </>
                 ) : (
-                  <span className="text-xs">{t("listing_card.no_reviews")}</span>
+                  <span className="text-xs">
+                    {t("listing_card.no_reviews")}
+                  </span>
                 )}
               </div>
             </div>

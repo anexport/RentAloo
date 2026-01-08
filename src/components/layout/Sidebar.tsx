@@ -440,10 +440,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
@@ -480,10 +480,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
@@ -520,10 +520,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   key={item.href}
                   to={item.href}
                   className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
                     active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
                   )}
                   title={collapsed ? item.label : undefined}
                 >

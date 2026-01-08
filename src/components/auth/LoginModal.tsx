@@ -127,15 +127,13 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md shadow-xl">
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Mountain className="h-12 w-12 text-primary" />
           </div>
           <DialogTitle className="text-2xl">{t("login.title")}</DialogTitle>
-          <DialogDescription>
-            {t("login.subtitle")}
-          </DialogDescription>
+          <DialogDescription>{t("login.subtitle")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <form
@@ -188,7 +186,11 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
                   size="icon-sm"
                   className="absolute right-1 top-1/2 -translate-y-1/2 hover:bg-transparent"
                   onClick={handleTogglePassword}
-                  aria-label={showPassword ? t("login.hide_password") : t("login.show_password")}
+                  aria-label={
+                    showPassword
+                      ? t("login.hide_password")
+                      : t("login.show_password")
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
