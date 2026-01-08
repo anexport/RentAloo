@@ -18,6 +18,7 @@ import {
   Sparkles,
   PiggyBank,
   ListChecks,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -288,7 +289,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     {
       label: t("sidebar.watchlist"),
       icon: Heart,
-      href: "/renter/dashboard?tab=saved",
+      href: "/renter/saved",
     },
   ];
 
@@ -297,8 +298,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     {
       label: t("sidebar.my_equipment_listings"),
       icon: Package,
-      href: "/owner/dashboard?tab=equipment",
-      ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
+      href: "/owner/equipment",
     },
   ];
 
@@ -306,7 +306,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     {
       label: t("sidebar.my_bookings"),
       icon: Calendar,
-      href: "/renter/dashboard?tab=bookings",
+      href: "/renter/bookings",
     },
     {
       label: t("sidebar.messages"),
@@ -331,7 +331,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     {
       label: t("sidebar.my_bookings"),
       icon: ListChecks,
-      href: "/owner/dashboard?tab=bookings",
+      href: "/owner/bookings",
       ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
     },
     {
@@ -341,9 +341,14 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       ...(unreadMessages > 0 && { badge: unreadMessages }),
     },
     {
+      label: t("sidebar.reviews"),
+      icon: Star,
+      href: "/owner/reviews",
+    },
+    {
       label: t("sidebar.payouts"),
       icon: PiggyBank,
-      href: "/owner/dashboard?tab=payments",
+      href: "/owner/payments",
       ...(pendingPayouts > 0 && { badge: pendingPayouts }),
     },
     {
@@ -359,8 +364,10 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   ];
 
   // Select navigation items based on active mode
-  const mainNavItems = activeMode === "owner" ? ownerMainNavItems : renterMainNavItems;
-  const activityNavItems = activeMode === "owner" ? ownerActivityNavItems : renterActivityNavItems;
+  const mainNavItems =
+    activeMode === "owner" ? ownerMainNavItems : renterMainNavItems;
+  const activityNavItems =
+    activeMode === "owner" ? ownerActivityNavItems : renterActivityNavItems;
 
   return (
     <aside
@@ -378,9 +385,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
               className="flex items-center space-x-2 rounded-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Mountain className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-foreground">
-                Vaymo
-              </span>
+              <span className="text-lg font-bold text-foreground">Vaymo</span>
             </Link>
           )}
           {collapsed && (
@@ -499,7 +504,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             })}
           </div>
 
-
           {/* Account Section */}
           {!collapsed && (
             <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -575,7 +579,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                     })}
                   </p>
                   <Link
-                    to="/owner/dashboard?tab=payments"
+                    to="/owner/payments"
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
                     {t("sidebar.view_payouts")}{" "}
@@ -586,7 +590,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             </div>
           </div>
         )}
-
 
         <Separator className="my-4" />
 

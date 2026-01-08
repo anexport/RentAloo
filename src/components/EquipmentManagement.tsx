@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "../lib/database.types";
@@ -13,7 +14,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Edit, Trash2, Eye, EyeOff, Calendar, MapPin, Plus } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Calendar,
+  MapPin,
+  Plus,
+} from "lucide-react";
 import ListingWizard from "./equipment/listing-wizard/ListingWizard";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 
@@ -25,6 +34,7 @@ type EquipmentWithCategory =
 
 const EquipmentManagement = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [equipment, setEquipment] = useState<EquipmentWithCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +49,17 @@ const EquipmentManagement = () => {
     null
   );
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  // Handle action=create query param to auto-open form
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      setShowForm(true);
+      // Remove only the "action" param while preserving other query params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("action");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const fetchEquipment = useCallback(async () => {
     if (!user) return;
@@ -236,10 +257,15 @@ const EquipmentManagement = () => {
                   List your first equipment
                 </h3>
                 <p className="text-muted-foreground">
-                  Start earning by sharing your equipment with renters in your area.
+                  Start earning by sharing your equipment with renters in your
+                  area.
                 </p>
               </div>
-              <Button onClick={() => setShowForm(true)} size="lg" className="mt-4">
+              <Button
+                onClick={() => setShowForm(true)}
+                size="lg"
+                className="mt-4"
+              >
                 <Plus className="h-5 w-5 mr-2" />
                 Create Your First Listing
               </Button>
@@ -373,7 +399,10 @@ const EquipmentManagement = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        void handleToggleAvailability(item.id, item.is_available);
+                        void handleToggleAvailability(
+                          item.id,
+                          item.is_available ?? false
+                        );
                       }}
                       className="flex-1"
                     >

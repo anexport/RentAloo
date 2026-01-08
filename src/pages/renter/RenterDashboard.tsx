@@ -1,13 +1,8 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Calendar, AlertTriangle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Link, useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 import { useEffect, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
@@ -17,7 +12,6 @@ import StatsOverview from "@/components/renter/StatsOverview";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
 import WelcomeHero from "@/components/renter/WelcomeHero";
 import UpcomingCalendar from "@/components/renter/UpcomingCalendar";
-import SavedEquipmentTab from "@/components/renter/SavedEquipmentTab";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useToast } from "@/hooks/useToast";
@@ -45,13 +39,13 @@ type InspectionCandidate = {
 const RenterDashboard = () => {
   const { user } = useAuth();
   const { profile, loading: verificationLoading } = useVerification();
-  const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "overview";
   const { t } = useTranslation("dashboard");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Track inspection status for finding urgent bookings
-  const [inspectionStatuses, setInspectionStatuses] = useState<Map<string, InspectionStatus>>(new Map());
+  const [inspectionStatuses, setInspectionStatuses] = useState<
+    Map<string, InspectionStatus>
+  >(new Map());
 
   // Fetch renter bookings
   const {
@@ -75,11 +69,13 @@ const RenterDashboard = () => {
     const fetchInspectionStatuses = async () => {
       if (!user) return;
 
-      const approvedBookings = renterBookings.filter(b => b.status === "approved");
+      const approvedBookings = renterBookings.filter(
+        (b) => b.status === "approved"
+      );
       if (approvedBookings.length === 0) return;
 
-      const bookingIds = approvedBookings.map(b => b.id);
-      
+      const bookingIds = approvedBookings.map((b) => b.id);
+
       try {
         const { data, error } = await supabase
           .from("equipment_inspections")
@@ -100,14 +96,18 @@ const RenterDashboard = () => {
         }
 
         const statusMap = new Map<string, InspectionStatus>();
-        
+
         // Initialize all bookings
-        bookingIds.forEach(id => {
-          statusMap.set(id, { bookingId: id, hasPickup: false, hasReturn: false });
+        bookingIds.forEach((id) => {
+          statusMap.set(id, {
+            bookingId: id,
+            hasPickup: false,
+            hasReturn: false,
+          });
         });
 
         // Update with actual inspection data
-        data?.forEach(inspection => {
+        data?.forEach((inspection) => {
           const current = statusMap.get(inspection.booking_id);
           if (current) {
             if (inspection.inspection_type === "pickup") {
@@ -138,15 +138,17 @@ const RenterDashboard = () => {
   // Find the most urgent booking that needs inspection (for mobile CTA)
   const urgentInspectionBooking = useMemo(() => {
     if (!isMobile) return null;
-    
+
     const today = new Date();
-    
+
     // Filter to approved bookings only
-    const approvedBookings = renterBookings.filter(b => b.status === "approved");
-    
+    const approvedBookings = renterBookings.filter(
+      (b) => b.status === "approved"
+    );
+
     // Find bookings that need inspection, sorted by urgency
     const bookingsNeedingInspection = approvedBookings
-      .map<InspectionCandidate | null>(booking => {
+      .map<InspectionCandidate | null>((booking) => {
         const status = inspectionStatuses.get(booking.id);
         const startDate = new Date(booking.start_date);
         const endDate = new Date(booking.end_date);
@@ -155,7 +157,10 @@ const RenterDashboard = () => {
 
         // Determine what inspection is needed
         const needsPickup = !status?.hasPickup;
-        const needsReturn = status?.hasPickup && !status?.hasReturn && (daysUntilEnd <= 2 || isPast(endDate));
+        const needsReturn =
+          status?.hasPickup &&
+          !status?.hasReturn &&
+          (daysUntilEnd <= 2 || isPast(endDate));
 
         if (!needsPickup && !needsReturn) return null;
 
@@ -188,7 +193,7 @@ const RenterDashboard = () => {
   }, [renterBookings, inspectionStatuses, isMobile]);
 
   // Get inspection status for urgent booking
-  const urgentBookingStatus = urgentInspectionBooking 
+  const urgentBookingStatus = urgentInspectionBooking
     ? inspectionStatuses.get(urgentInspectionBooking.id)
     : null;
 
@@ -228,57 +233,48 @@ const RenterDashboard = () => {
 
   const progress = profile ? getVerificationProgress(profile) : 0;
 
-  // Render saved equipment tab
-  if (activeTab === "saved") {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6 animate-in fade-in duration-500">
-          <SavedEquipmentTab />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       {/* Add bottom padding on mobile when CTA is visible */}
-      <div className={`space-y-6 animate-in fade-in duration-500 ${isMobile && urgentInspectionBooking ? "pb-24" : ""}`}>
+      <div
+        className={`space-y-6 animate-in fade-in duration-500 ${
+          isMobile && urgentInspectionBooking ? "pb-24" : ""
+        }`}
+      >
         {/* Welcome Hero Section */}
         <WelcomeHero />
 
         {/* High-Emphasis Banner for unverified identity */}
-        {!verificationLoading &&
-          profile &&
-          !profile.identityVerified && (
-            <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20 animate-in slide-in-from-top-4 duration-500">
-              <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-full bg-destructive/10">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-base font-semibold text-destructive">
-                      {t("renter.verification.incomplete_title")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("renter.verification.incomplete_message", { progress })}
-                    </p>
-                  </div>
+        {!verificationLoading && profile && !profile.identityVerified && (
+          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20 animate-in slide-in-from-top-4 duration-500">
+            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
                 </div>
-                <Link to="/verification">
-                  <Button
-                    variant="default"
-                    size="lg"
-                    className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
-                    aria-label={t("renter.verification.verify_button")}
-                    data-testid="verify-now-banner"
-                  >
-                    {t("renter.verification.verify_button")}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
+                <div>
+                  <p className="text-base font-semibold text-destructive">
+                    {t("renter.verification.incomplete_title")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("renter.verification.incomplete_message", { progress })}
+                  </p>
+                </div>
+              </div>
+              <Link to="/verification">
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+                  aria-label={t("renter.verification.verify_button")}
+                  data-testid="verify-now-banner"
+                >
+                  {t("renter.verification.verify_button")}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Notifications Panel */}
         <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
@@ -359,17 +355,16 @@ const RenterDashboard = () => {
                         {t("renter.bookings.empty_state.description")}
                       </p>
                       <Link to="/equipment">
-                        <Button size="lg">{t("renter.bookings.empty_state.button")}</Button>
+                        <Button size="lg">
+                          {t("renter.bookings.empty_state.button")}
+                        </Button>
                       </Link>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {(activeTab === "bookings"
-                    ? renterBookings
-                    : renterBookings.slice(0, 3)
-                  ).map((booking, index) => (
+                  {renterBookings.slice(0, 3).map((booking, index) => (
                     <div
                       key={booking.id}
                       className="animate-in slide-in-from-left-4 duration-500"
@@ -384,19 +379,27 @@ const RenterDashboard = () => {
                       />
                     </div>
                   ))}
+                  {renterBookings.length > 3 && (
+                    <div className="text-center pt-2">
+                      <Link to="/renter/bookings">
+                        <Button variant="outline">
+                          {t("renter.bookings.view_all", {
+                            defaultValue: "View All Bookings",
+                          })}
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           {/* Right Column - Calendar Sidebar */}
-          {activeTab !== "bookings" && (
-            <div className="lg:col-span-1 animate-in slide-in-from-right-4 duration-500 delay-300">
-              <UpcomingCalendar />
-            </div>
-          )}
+          <div className="lg:col-span-1 animate-in slide-in-from-right-4 duration-500 delay-300">
+            <UpcomingCalendar />
+          </div>
         </div>
-
       </div>
 
       {/* Mobile Inspection CTA - Sticky bottom bar */}
