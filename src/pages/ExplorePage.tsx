@@ -15,9 +15,11 @@ import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
 import CategoryBar from "@/components/explore/CategoryBar";
 import CategoryBarSkeleton from "@/components/explore/CategoryBarSkeleton";
-import ListingCard from "@/components/equipment/ListingCard";
 import EquipmentDetailDialog from "@/components/equipment/detail/EquipmentDetailDialog";
 import ListingCardSkeleton from "@/components/equipment/ListingCardSkeleton";
+import VirtualListingGrid, {
+  type VirtualListingGridHandle,
+} from "@/components/equipment/VirtualListingGrid";
 import {
   DEFAULT_PRICE_MIN,
   DEFAULT_PRICE_MAX,
@@ -67,6 +69,7 @@ const ExplorePage = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const virtualListingGridRef = useRef<VirtualListingGridHandle>(null);
 
   // Track scroll position for collapsing header on mobile
   useEffect(() => {
@@ -423,9 +426,23 @@ const ExplorePage = () => {
 
   useEffect(() => {
     if (!selectedListingId || isMobile) return;
+    
+    // First try the local refs map (for items already rendered)
     const el = listItemRefs.current.get(selectedListingId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    
+    // If not found in local refs, use the VirtualListingGrid's scrollToItem API
+    // This handles cases where the item isn't rendered yet due to virtualization
+    const success = virtualListingGridRef.current?.scrollToItem(selectedListingId);
+    if (!success) {
+      // Item might need to be loaded first - retry after a short delay
+      const retryTimeout = setTimeout(() => {
+        virtualListingGridRef.current?.scrollToItem(selectedListingId);
+      }, 100);
+      return () => clearTimeout(retryTimeout);
     }
   }, [selectedListingId, isMobile]);
 
@@ -524,27 +541,24 @@ const ExplorePage = () => {
     }
 
     return (
-      <div className="space-y-4 pb-6">
-        {sortedListings.map((item) => (
-          <div
-            key={item.id}
-            ref={(el) => {
-              listItemRefs.current.set(item.id, el);
-            }}
-          >
-            <ListingCard
-              listing={item}
-              onOpen={(listing) => {
-                handleSelectListing(listing);
-                handleOpenListing(listing);
-              }}
-              className={cn(
-                item.id === selectedListingId ? "ring-2 ring-primary" : ""
-              )}
-            />
-          </div>
-        ))}
-      </div>
+      <VirtualListingGrid
+        ref={virtualListingGridRef}
+        listings={sortedListings}
+        onOpenListing={(listing) => {
+          handleSelectListing(listing);
+          handleOpenListing(listing);
+        }}
+        selectedListingId={selectedListingId}
+        onItemRef={(id, el) => {
+          if (el) {
+            listItemRefs.current.set(id, el);
+          } else {
+            listItemRefs.current.delete(id);
+          }
+        }}
+        layout="list"
+        className="pb-6"
+      />
     );
   };
 

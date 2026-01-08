@@ -3,10 +3,11 @@ import { Calendar, AlertTriangle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
+import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatsOverview from "@/components/renter/StatsOverview";
 import NotificationsPanel from "@/components/renter/NotificationsPanel";
@@ -212,6 +213,35 @@ const RenterDashboard = () => {
       });
     }
   }, [fetchRenterBookings, toast]);
+
+  // Extract booking IDs for centralized subscriptions
+  // Use a stable reference that only changes when actual IDs change
+  const prevBookingIdsRef = useRef<string[]>([]);
+  const bookingIds = useMemo(() => {
+    const newIds = renterBookings.map((b) => b.id);
+    const prevIds = prevBookingIdsRef.current;
+    
+    // Check if IDs are actually different (same length and same values)
+    const idsChanged =
+      newIds.length !== prevIds.length ||
+      newIds.some((id, i) => id !== prevIds[i]);
+    
+    if (idsChanged) {
+      prevBookingIdsRef.current = newIds;
+      return newIds;
+    }
+    
+    // Return previous reference if IDs haven't changed
+    return prevIds;
+  }, [renterBookings]);
+
+  // Centralized real-time subscriptions for all booking cards
+  // This replaces individual subscriptions in each BookingRequestCard
+  useBookingSubscriptions({
+    bookingIds,
+    onUpdate: handleBookingStatusChange,
+    enabled: bookingIds.length > 0,
+  });
 
   // Watch for errors from initial/background fetches
   useEffect(() => {

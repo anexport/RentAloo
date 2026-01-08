@@ -14,6 +14,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy-loaded page components
 const EmailVerification = lazy(() => import("@/pages/auth/EmailVerification"));
@@ -112,10 +113,11 @@ function App() {
       <Router>
         <RoleModeProvider>
           <NuqsAdapter>
-            <div className="min-h-screen bg-background">
-              <Suspense fallback={<PageLoader />}>
-                <OnboardingGuard>
-                  <Routes>
+            <ErrorBoundary>
+              <div className="min-h-screen bg-background">
+                <Suspense fallback={<PageLoader />}>
+                  <OnboardingGuard>
+                    <Routes>
                     {/* Public routes */}
                     <Route path="/" element={<HomePage />} />
                     <Route path="/explore" element={<ExplorePage />} />
@@ -237,11 +239,12 @@ function App() {
                     <Route path="/admin" element={<AdminRoute />} />
                   </Routes>
                 </OnboardingGuard>
-              </Suspense>
-              <MobileBottomNav />
-              <Toaster />
-            </div>
-          </NuqsAdapter>
+                </Suspense>
+                <MobileBottomNav />
+                <Toaster />
+              </div>
+            </ErrorBoundary>
+            </NuqsAdapter>
         </RoleModeProvider>
       </Router>
       <Analytics />

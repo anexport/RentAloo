@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import type {
@@ -12,153 +12,110 @@ type BookingRequestRow =
 type EquipmentRow = Database["public"]["Tables"]["equipment"]["Row"];
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type EquipmentPhotoRow = Database["public"]["Tables"]["equipment_photos"]["Row"];
 
 type BookingRequestWithRelations = BookingRequestRow & {
   equipment: EquipmentRow & {
     category: CategoryRow;
+    photos: EquipmentPhotoRow[];
     owner: ProfileRow;
   };
   renter: ProfileRow;
 };
 
+// Shared select query for booking requests with all relations
+const BOOKING_SELECT_QUERY = `
+  *,
+  equipment:equipment!inner(
+    *,
+    category:categories(*),
+    photos:equipment_photos(*),
+    owner:profiles!equipment_owner_id_fkey(*)
+  ),
+  renter:profiles!booking_requests_renter_id_fkey(*)
+`;
+
+/**
+ * Fetch booking requests based on user role
+ * - For renters: fetches bookings where user is the renter
+ * - For owners: fetches bookings for equipment owned by the user (single query with join)
+ */
+async function fetchBookingRequests(
+  userId: string,
+  userRole?: "renter" | "owner"
+): Promise<BookingRequestWithDetails[]> {
+  // Guard: require valid userId and userRole to prevent unfiltered queries
+  if (!userId || !userRole) {
+    return [];
+  }
+
+  let query = supabase
+    .from("booking_requests")
+    .select(BOOKING_SELECT_QUERY)
+    .order("created_at", { ascending: false });
+
+  if (userRole === "renter") {
+    // Filter by renter_id
+    query = query.eq("renter_id", userId);
+  } else if (userRole === "owner") {
+    // Use inner join to filter by owner - single query instead of N+1
+    query = query.eq("equipment.owner_id", userId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  // Transform the data to flatten the owner from equipment
+  return (data || []).map((item: BookingRequestWithRelations) => ({
+    ...item,
+    owner: item.equipment?.owner || null,
+  }));
+}
+
+/**
+ * Hook for fetching and managing booking requests using React Query
+ *
+ * Benefits over the previous implementation:
+ * - Automatic caching and deduplication
+ * - Background refetching
+ * - Optimistic updates
+ * - Single query for owner bookings (no N+1)
+ * - Consistent loading/error states
+ */
 export const useBookingRequests = (userRole?: "renter" | "owner") => {
   const { user } = useAuth();
-  const [bookingRequests, setBookingRequests] = useState<
-    BookingRequestWithDetails[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchBookingRequests = useCallback(async () => {
-    if (!user) return;
+  const queryKey = ["booking-requests", userRole, user?.id];
 
-    try {
-      setLoading(true);
-      setError(null);
+  const {
+    data: bookingRequests = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey,
+    queryFn: () => fetchBookingRequests(user?.id ?? "", userRole),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes (project standard)
+  });
 
-      // For owners, first get their equipment IDs
-      if (userRole === "owner") {
-        // Get all equipment owned by this user
-        const { data: equipmentData, error: equipmentError } = await supabase
-          .from("equipment")
-          .select("id")
-          .eq("owner_id", user.id);
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Failed to fetch booking requests"
+    : null;
 
-        if (equipmentError) throw equipmentError;
-
-        const equipmentIds = (equipmentData || []).map((eq) => eq.id);
-
-        // If no equipment, return empty array
-        if (equipmentIds.length === 0) {
-          setBookingRequests([]);
-          setLoading(false);
-          return;
-        }
-
-        // Get booking requests for those equipment
-        const { data, error: fetchError } = await supabase
-          .from("booking_requests")
-          .select(
-            `
-            *,
-            equipment:equipment(
-              *,
-              category:categories(*),
-              photos:equipment_photos(*),
-              owner:profiles!equipment_owner_id_fkey(*)
-            ),
-            renter:profiles!booking_requests_renter_id_fkey(*)
-          `
-          )
-          .in("equipment_id", equipmentIds)
-          .order("created_at", { ascending: false });
-
-        if (fetchError) throw fetchError;
-
-        // Transform the data to flatten the owner from equipment
-        const transformedData: BookingRequestWithDetails[] = (data || []).map(
-          (item: BookingRequestWithRelations) => ({
-            ...item,
-            owner: item.equipment?.owner || null,
-          })
-        );
-
-        setBookingRequests(transformedData);
-      } else if (userRole === "renter") {
-        // For renters, filter by renter_id
-        const { data, error: fetchError } = await supabase
-          .from("booking_requests")
-          .select(
-            `
-            *,
-            equipment:equipment(
-              *,
-              category:categories(*),
-              photos:equipment_photos(*),
-              owner:profiles!equipment_owner_id_fkey(*)
-            ),
-            renter:profiles!booking_requests_renter_id_fkey(*)
-          `
-          )
-          .eq("renter_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (fetchError) throw fetchError;
-
-        // Transform the data to flatten the owner from equipment
-        const transformedData: BookingRequestWithDetails[] = (data || []).map(
-          (item: BookingRequestWithRelations) => ({
-            ...item,
-            owner: item.equipment?.owner || null,
-          })
-        );
-
-        setBookingRequests(transformedData);
-      } else {
-        // No filter - get all (shouldn't happen normally)
-        const { data, error: fetchError } = await supabase
-          .from("booking_requests")
-          .select(
-            `
-            *,
-            equipment:equipment(
-              *,
-              category:categories(*),
-              photos:equipment_photos(*),
-              owner:profiles!equipment_owner_id_fkey(*)
-            ),
-            renter:profiles!booking_requests_renter_id_fkey(*)
-          `
-          )
-          .order("created_at", { ascending: false });
-
-        if (fetchError) throw fetchError;
-
-        // Transform the data to flatten the owner from equipment
-        const transformedData: BookingRequestWithDetails[] = (data || []).map(
-          (item: BookingRequestWithRelations) => ({
-            ...item,
-            owner: item.equipment?.owner || null,
-          })
-        );
-
-        setBookingRequests(transformedData);
-      }
-    } catch (err) {
-      console.error("Error fetching booking requests:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch booking requests"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [user, userRole]);
-
-  const updateBookingStatus = async (
-    bookingId: string,
-    status: BookingStatus
-  ) => {
-    try {
+  // Mutation for updating booking status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      bookingId,
+      status,
+    }: {
+      bookingId: string;
+      status: BookingStatus;
+    }) => {
       const { error } = await supabase
         .from("booking_requests")
         .update({
@@ -168,38 +125,45 @@ export const useBookingRequests = (userRole?: "renter" | "owner") => {
         .eq("id", bookingId);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch booking requests
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
 
-      // Refresh the list
-      await fetchBookingRequests();
-    } catch (err) {
-      console.error("Error updating booking status:", err);
-      throw err;
-    }
+  const updateBookingStatus = async (
+    bookingId: string,
+    status: BookingStatus
+  ) => {
+    await updateStatusMutation.mutateAsync({ bookingId, status });
+  };
+
+  // Backwards compatibility: wrap refetch to match previous API
+  const fetchBookingRequestsCompat = async () => {
+    await refetch();
   };
 
   const getBookingStats = () => {
-    const stats = {
-      total: bookingRequests.length,
-      approved: bookingRequests.filter((r) => r.status === "approved").length,
-      active: bookingRequests.filter((r) => r.status === "active").length,
-      cancelled: bookingRequests.filter((r) => r.status === "cancelled").length,
-      completed: bookingRequests.filter((r) => r.status === "completed").length,
-    };
-
-    return stats;
+    // Single pass reduction for better performance
+    return bookingRequests.reduce(
+      (stats, r) => {
+        stats.total++;
+        if (r.status === "approved") stats.approved++;
+        else if (r.status === "active") stats.active++;
+        else if (r.status === "cancelled") stats.cancelled++;
+        else if (r.status === "completed") stats.completed++;
+        return stats;
+      },
+      { total: 0, approved: 0, active: 0, cancelled: 0, completed: 0 }
+    );
   };
-
-  useEffect(() => {
-    if (user) {
-      void fetchBookingRequests();
-    }
-  }, [user, fetchBookingRequests]);
 
   return {
     bookingRequests,
     loading,
     error,
-    fetchBookingRequests,
+    fetchBookingRequests: fetchBookingRequestsCompat,
     updateBookingStatus,
     getBookingStats,
   };

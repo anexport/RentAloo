@@ -42,7 +42,6 @@ import {
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, isPast, isFuture } from "date-fns";
 
-type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type InspectionRow = Database["public"]["Tables"]["equipment_inspections"]["Row"];
 
 interface BookingRequestCardProps {
@@ -77,7 +76,8 @@ const BookingRequestCard = ({
   >(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Check if inspections exist for this booking
+  // Check if inspections exist for this booking (initial fetch only)
+  // Real-time updates are handled by useBookingSubscriptions in parent component
   useEffect(() => {
     const checkInspections = async () => {
       try {
@@ -114,28 +114,10 @@ const BookingRequestCard = ({
     };
 
     void checkInspections();
-
-    // Subscribe to real-time inspection updates
-    const inspectionChannel = supabase
-      .channel(`inspections-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "equipment_inspections",
-          filter: `booking_id=eq.${bookingRequest.id}`,
-        },
-        () => void checkInspections()
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(inspectionChannel);
-    };
   }, [bookingRequest.id]);
 
-  // Check if payment exists for this booking and subscribe to real-time updates
+  // Check if payment exists for this booking (initial fetch only)
+  // Real-time updates are handled by useBookingSubscriptions in parent component
   useEffect(() => {
     const checkPayment = async () => {
       try {
@@ -160,53 +142,7 @@ const BookingRequestCard = ({
     };
 
     void checkPayment();
-
-    // Subscribe to real-time payment updates
-    const paymentChannel = supabase
-      .channel(`payment-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "payments",
-          filter: `booking_request_id=eq.${bookingRequest.id}`,
-        },
-        (payload) => {
-          const newPayment = payload.new as Payment | null;
-
-          if (newPayment?.payment_status === "succeeded") {
-            setHasPayment(true);
-            onStatusChange?.();
-          } else if (newPayment?.payment_status === "failed") {
-            setHasPayment(false);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to real-time booking request status updates
-    const bookingChannel = supabase
-      .channel(`booking-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "booking_requests",
-          filter: `id=eq.${bookingRequest.id}`,
-        },
-        () => {
-          onStatusChange?.();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(paymentChannel);
-      void supabase.removeChannel(bookingChannel);
-    };
-  }, [bookingRequest.id, onStatusChange]);
+  }, [bookingRequest.id]);
 
   const handleStatusUpdate = async (newStatus: "cancelled") => {
     if (!user) return;

@@ -1,8 +1,9 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
+import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
@@ -20,6 +21,35 @@ const OwnerBookingsPage = () => {
   const handleBookingStatusChange = useCallback(() => {
     void fetchBookingRequests();
   }, [fetchBookingRequests]);
+
+  // Extract booking IDs for centralized subscriptions
+  // Use a stable reference that only changes when actual IDs change
+  const prevBookingIdsRef = useRef<string[]>([]);
+  const bookingIds = useMemo(() => {
+    const newIds = bookingRequests.map((b) => b.id);
+    const prevIds = prevBookingIdsRef.current;
+    
+    // Check if IDs are actually different (same length and same values)
+    const idsChanged =
+      newIds.length !== prevIds.length ||
+      newIds.some((id, i) => id !== prevIds[i]);
+    
+    if (idsChanged) {
+      prevBookingIdsRef.current = newIds;
+      return newIds;
+    }
+    
+    // Return previous reference if IDs haven't changed
+    return prevIds;
+  }, [bookingRequests]);
+
+  // Centralized real-time subscriptions for all booking cards
+  // This replaces individual subscriptions in each BookingRequestCard
+  useBookingSubscriptions({
+    bookingIds,
+    onUpdate: handleBookingStatusChange,
+    enabled: bookingIds.length > 0,
+  });
 
   useEffect(() => {
     if (bookingsError) {

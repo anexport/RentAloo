@@ -100,35 +100,15 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       queryKey: ["sidebar", "unread-messages", userId],
       enabled: !!userId,
       queryFn: async () => {
-        const { data: participants, error: participantsError } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id, last_read_at")
-          .eq("profile_id", userId as string);
-        if (participantsError) {
-          console.error("Failed to fetch participants:", participantsError);
+        // Use RPC function instead of N+1 queries per conversation
+        const { data, error } = await supabase.rpc("get_unread_messages_count");
+        if (error) {
+          console.error("Failed to fetch unread messages count:", error);
           return 0;
         }
-        if (!participants || participants.length === 0) return 0;
-
-        const results = await Promise.allSettled(
-          participants.map((participant) =>
-            supabase
-              .from("messages")
-              .select("*", { count: "exact", head: true })
-              .eq("conversation_id", participant.conversation_id)
-              .neq("sender_id", userId as string)
-              .gt("created_at", participant.last_read_at || "1970-01-01")
-          )
-        );
-
-        let totalUnread = 0;
-        results.forEach((result) => {
-          if (result.status === "fulfilled") {
-            const { count, error } = result.value;
-            if (!error) totalUnread += count || 0;
-          }
-        });
-        return totalUnread;
+        // Validate returned value is a number before using
+        const count = typeof data === "number" ? data : 0;
+        return count;
       },
       staleTime: 1000 * 30, // 30 seconds
     }

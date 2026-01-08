@@ -1,9 +1,10 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
+import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
@@ -35,6 +36,20 @@ const RenterBookingsPage = () => {
       });
     }
   }, [fetchBookingRequests, toast, t]);
+
+  // Extract booking IDs for centralized subscriptions
+  const bookingIds = useMemo(
+    () => bookingRequests.map((b) => b.id),
+    [bookingRequests]
+  );
+
+  // Centralized real-time subscriptions for all booking cards
+  // This replaces individual subscriptions in each BookingRequestCard
+  useBookingSubscriptions({
+    bookingIds,
+    onUpdate: handleBookingStatusChange,
+    enabled: bookingIds.length > 0,
+  });
 
   useEffect(() => {
     if (bookingsError) {

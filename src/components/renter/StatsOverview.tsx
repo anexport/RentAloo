@@ -90,6 +90,42 @@ const useAnimatedCounter = (target: number, duration = 1000) => {
   return count;
 };
 
+/**
+ * Groups items by month into buckets for sparkline data.
+ * Uses UTC getters to avoid timezone-related misclassification near month boundaries.
+ * @param items - Array of items with a timestamp field
+ * @param getTimestamp - Function to extract timestamp string from each item (defaults to created_at)
+ * @param getValue - Function to extract numeric value from each item (defaults to 1 for counting)
+ * @param now - Reference date for calculating month differences (enables testability)
+ * @returns Array of 3 numbers: [2 months ago, 1 month ago, current month]
+ */
+export const groupByMonth = <T,>(
+  items: T[],
+  getTimestamp: (item: T) => string | null = (item) => (item as { created_at?: string | null }).created_at ?? null,
+  getValue: (item: T) => number = () => 1,
+  now: Date = new Date()
+): number[] => {
+  const monthBuckets = [0, 0, 0]; // [2 months ago, 1 month ago, current month]
+
+  items.forEach((item) => {
+    const timestamp = getTimestamp(item);
+    if (!timestamp) return;
+    const itemDate = new Date(timestamp);
+    // Use UTC getters to avoid timezone-related misclassification near month boundaries
+    const monthDiff =
+      now.getUTCMonth() -
+      itemDate.getUTCMonth() +
+      (now.getUTCFullYear() - itemDate.getUTCFullYear()) * 12;
+
+    if (monthDiff >= 0 && monthDiff <= 2) {
+      // Index: 2 months ago = 0, 1 month ago = 1, current = 2
+      monthBuckets[2 - monthDiff] += getValue(item);
+    }
+  });
+
+  return monthBuckets;
+};
+
 // Simple sparkline component
 const Sparkline = ({
   data,
@@ -174,11 +210,10 @@ const StatsOverview = () => {
         setLoading(true);
 
         const now = new Date();
-        const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        // Use UTC for date boundaries to align with groupByMonth's UTC semantics
+        const oneMonthAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
         const currentMonthStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          1
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
         );
 
         // Fetch all-time stats
@@ -319,68 +354,62 @@ const StatsOverview = () => {
         });
 
         // Generate sparkline data (last 3 months, monthly buckets)
-        const generateSparkline = async (
-          queryFn: (start: Date, end: Date) => Promise<number>
-        ) => {
-          const data: number[] = [];
-          for (let i = 2; i >= 0; i--) {
-            const monthStart = new Date(
-              now.getFullYear(),
-              now.getMonth() - i,
-              1
-            );
-            const monthEnd = new Date(
-              now.getFullYear(),
-              now.getMonth() - i + 1,
-              0
-            );
-            const value = await queryFn(monthStart, monthEnd);
-            data.push(value);
-          }
-          return data;
-        };
+        // Optimized: Fetch all 3 months of data in a single query per metric, then group client-side
+        // This reduces 9 queries to 3 queries
+        // Use UTC for date boundaries to align with groupByMonth's UTC semantics
+        const threeMonthsAgo = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 1)
+        );
 
-        const [activeSparkline, savedItemsSparkline, spentSparkline] =
-          await Promise.all([
-            generateSparkline(async (start, end) => {
-              // Count bookings with status='active' created in this period
-              const { count, error } = await supabase
-                .from("booking_requests")
-                .select("*", { count: "exact", head: true })
-                .eq("renter_id", user.id)
-                .eq("status", "active")
-                .gte("created_at", start.toISOString())
-                .lt("created_at", end.toISOString());
-              if (error) throw error;
-              return count || 0;
-            }),
-            generateSparkline(async (start, end) => {
-              const { count, error } = await supabase
-                .from("user_favorites")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", user.id)
-                .gte("created_at", start.toISOString())
-                .lt("created_at", end.toISOString());
-              if (error) throw error;
-              return count || 0;
-            }),
-            generateSparkline(async (start, end) => {
-              const { data, error } = await supabase
-                .from("payments")
-                .select("total_amount")
-                .eq("renter_id", user.id)
-                .eq("payment_status", "succeeded")
-                .gte("created_at", start.toISOString())
-                .lt("created_at", end.toISOString());
-              if (error) throw error;
-              return (
-                data?.reduce(
-                  (sum, p) => sum + Number(p.total_amount ?? 0),
-                  0
-                ) ?? 0
-              );
-            }),
-          ]);
+        const [bookingsData, favoritesData, paymentsData] = await Promise.all([
+          // Fetch all active bookings from last 3 months in one query
+          // Use activated_at to match trend calculation (when rental actually started)
+          supabase
+            .from("booking_requests")
+            .select("activated_at")
+            .eq("renter_id", user.id)
+            .eq("status", "active")
+            .not("activated_at", "is", null)
+            .gte("activated_at", threeMonthsAgo.toISOString()),
+          // Fetch all favorites from last 3 months in one query
+          supabase
+            .from("user_favorites")
+            .select("created_at")
+            .eq("user_id", user.id)
+            .gte("created_at", threeMonthsAgo.toISOString()),
+          // Fetch all payments from last 3 months in one query
+          supabase
+            .from("payments")
+            .select("created_at, total_amount")
+            .eq("renter_id", user.id)
+            .eq("payment_status", "succeeded")
+            .gte("created_at", threeMonthsAgo.toISOString()),
+        ]);
+
+        if (bookingsData.error) throw bookingsData.error;
+        if (favoritesData.error) throw favoritesData.error;
+        if (paymentsData.error) throw paymentsData.error;
+
+        // Group data by month client-side using extracted helper
+        // Bookings use activated_at to match trend calculation
+        const activeSparkline = groupByMonth(
+          bookingsData.data || [],
+          (item) => item.activated_at,
+          () => 1,
+          now
+        );
+        const savedItemsSparkline = groupByMonth(
+          favoritesData.data || [],
+          (item) => item.created_at,
+          () => 1,
+          now
+        );
+        const spentSparkline = groupByMonth(
+          paymentsData.data || [],
+          (item) => item.created_at,
+          (p) => Number(p.total_amount ?? 0),
+          now
+        );
 
         setSparklines({
           activeBookings: activeSparkline,
