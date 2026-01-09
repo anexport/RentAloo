@@ -139,8 +139,15 @@ const MobileBottomNav = () => {
       {/* Top border */}
       <div className="absolute top-0 left-0 right-0 h-px bg-border" />
 
-      {/* Center circular bump behind button */}
-      <div className="absolute left-1/2 -translate-x-1/2 -top-[28px] w-16 h-16 bg-background/95 backdrop-blur-md rounded-full border border-border" />
+      {/* Center notch cutout effect - layered for smooth blending */}
+      <div className="absolute left-1/2 -translate-x-1/2 -top-[26px] w-[72px] h-[72px]">
+        {/* Outer glow/shadow for depth */}
+        <div className="absolute inset-0 rounded-full bg-background shadow-[0_-4px_12px_-2px_rgba(0,0,0,0.08)]" />
+        {/* Inner fill matching nav background */}
+        <div className="absolute inset-[1px] rounded-full bg-background/95 backdrop-blur-md" />
+        {/* Subtle inner border for definition */}
+        <div className="absolute inset-0 rounded-full border border-border/30" />
+      </div>
 
       <div className="relative flex items-end justify-around h-16 px-2">
         {navItems.map((item) => {
