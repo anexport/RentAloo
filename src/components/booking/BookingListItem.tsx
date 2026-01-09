@@ -40,10 +40,7 @@ type StatusConfig = {
   className: string;
 };
 
-function getStatusConfig(
-  status: string | null,
-  hasPayment?: boolean
-): StatusConfig {
+function getStatusConfig(status: string | null): StatusConfig {
   if (status === "active") {
     return {
       label: "In Progress",
@@ -53,7 +50,7 @@ function getStatusConfig(
   }
   if (status === "approved") {
     return {
-      label: hasPayment ? "Confirmed" : "Approved",
+      label: "Approved",
       className:
         "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
     };

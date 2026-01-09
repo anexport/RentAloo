@@ -9,7 +9,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useCallback, useMemo, useId, useRef } from "react";
+import { useEffect, useCallback, useMemo, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -52,7 +52,7 @@ const OwnerDashboard = () => {
   const progress = profile ? getVerificationProgress(profile) : 0;
 
   // Stable "today" value computed once on mount to avoid date boundary inconsistencies
-  const todayRef = useRef(formatDateForStorage(new Date()));
+  const today = useMemo(() => formatDateForStorage(new Date()), []);
 
   // Redirect non-owners to become-owner page
   useEffect(() => {
@@ -81,8 +81,6 @@ const OwnerDashboard = () => {
 
   // Categorize bookings
   const { pendingRequests, upcomingRentals, historyBookings } = useMemo(() => {
-    const today = todayRef.current;
-
     const pending = bookingRequests.filter((b) => b.status === "pending");
     const upcoming = bookingRequests.filter(
       (b) => b.status === "approved" && b.start_date >= today

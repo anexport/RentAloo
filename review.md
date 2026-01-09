@@ -1,9 +1,3 @@
-Starting CodeRabbit review in plain text mode...
-
-Connecting to review service
-Setting up
-Analyzing
-Reviewing
 
 ============================================================================
 File: src/components/booking/BookingListItem.tsx
@@ -33,6 +27,3 @@ Type: potential_issue
 Prompt for AI Agent:
 In @src/components/layout/MobileBottomNav.tsx around lines 52 - 62, The Listings item and Add item are both marked active because Listings uses matchPaths with prefix matching; update MobileBottomNav to prevent prefix matches from capturing the /owner/equipment/new route by either removing the redundant matchPaths from the Listings item (keep only to: "/owner/equipment" and rely on exact or child-aware matching) or by changing the isItemActive logic to treat matchPaths matches as valid only when the current path startsWith(matchPath) AND is not equal to any other item's exact to (e.g., exclude currentPath === otherItem.to like "/owner/equipment/new"); specifically modify the isItemActive function to check item.to === currentPath first, then check matchPaths but ignore matches where another nav item's to equals the currentPath so only the exact Add item becomes active.
 
-
-
-Review completed ✔

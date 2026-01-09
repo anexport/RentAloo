@@ -103,8 +103,14 @@ const MobileBottomNav = () => {
 
   // Helper to check if a nav item should be active
   const isItemActive = (item: NavItem, currentPath: string): boolean => {
-    // Exact match
+    // Exact match takes priority
     if (currentPath === item.to) return true;
+
+    // If another nav item has an exact match for the current path, don't activate via prefix
+    const hasExactMatchElsewhere = navItems.some(
+      (other) => other !== item && currentPath === other.to
+    );
+    if (hasExactMatchElsewhere) return false;
 
     // Check additional match paths (for nested routes)
     if (item.matchPaths) {
