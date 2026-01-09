@@ -49,11 +49,15 @@ const MapView = ({
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
   // Cache for geocoded location text -> coordinates
-  const geocodeCacheRef = useRef<Map<string, { lat: number; lng: number } | null>>(new Map());
+  const geocodeCacheRef = useRef<
+    Map<string, { lat: number; lng: number } | null>
+  >(new Map());
   const markerLibraryRef = useRef<{
     AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
     PinElement: typeof google.maps.marker.PinElement;
   } | null>(null);
+  // Track previous listing IDs to detect actual listing changes (not just selection changes)
+  const prevListingIdsRef = useRef<string>("");
   const [mapState, setMapState] = useState<MapState>("loading");
   const [isGeocoding, setIsGeocoding] = useState(false);
 
@@ -140,6 +144,15 @@ const MapView = ({
     const safeLocation = escapeHtml(listing.location);
     const photoUrl = listing.photos?.[0]?.photo_url;
 
+    // Calculate average rating from reviews
+    const reviews = listing.reviews ?? [];
+    const avgRating =
+      reviews.length > 0
+        ? (
+            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+          ).toFixed(1)
+        : null;
+
     // Mobile-optimized info window with larger touch targets (min 44px)
     return `
       <div style="min-width: 260px; max-width: 300px; font-family: system-ui, -apple-system, sans-serif; padding: 4px;">
@@ -150,13 +163,25 @@ const MapView = ({
               )}" alt="${safeTitle}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;" />`
             : ""
         }
-        <div style="font-weight: 600; font-size: 15px; color: #111; margin-bottom: 4px; line-height: 1.3;">${safeTitle}</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
+          <div style="font-weight: 600; font-size: 15px; color: #111; line-height: 1.3; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeTitle}</div>
+          ${
+            avgRating
+              ? `<div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span style="font-size: 12px; font-weight: 600; color: #92400e;">${avgRating}</span>
+          </div>`
+              : ""
+          }
+        </div>
         <div style="font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           ${safeLocation}
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-          <div style="font-size: 18px; font-weight: 700; color: #111;">$${listing.daily_rate}<span style="font-size: 13px; font-weight: 400; color: #666;">/day</span></div>
+          <div style="font-size: 18px; font-weight: 700; color: #111;">$${
+            listing.daily_rate
+          }<span style="font-size: 13px; font-weight: 400; color: #666;">/day</span></div>
         </div>
         <button data-listing-id="${
           listing.id
@@ -323,19 +348,30 @@ const MapView = ({
         return;
       }
 
-      // Fit bounds to markers when listings change
-      const bounds = new google.maps.LatLngBounds();
-      listingCoordsMap.forEach((coords) => bounds.extend(coords));
-      map.fitBounds(bounds, 64);
-      
-      // Ensure we don't zoom out beyond Italy view
-      google.maps.event.addListenerOnce(map, "idle", () => {
-        const currentZoom = map.getZoom();
-        if (currentZoom !== undefined && currentZoom < ITALY_ZOOM) {
-          map.setZoom(ITALY_ZOOM);
-          map.setCenter(ITALY_CENTER);
-        }
-      });
+      // Only fit bounds when listings actually change (not on callback/selection changes)
+      const currentListingIds = listingsForMap
+        .map((l) => l.id)
+        .sort()
+        .join(",");
+      const listingsChanged = prevListingIdsRef.current !== currentListingIds;
+
+      if (listingsChanged) {
+        prevListingIdsRef.current = currentListingIds;
+
+        // Fit bounds to markers when listings change
+        const bounds = new google.maps.LatLngBounds();
+        listingCoordsMap.forEach((coords) => bounds.extend(coords));
+        map.fitBounds(bounds, 64);
+
+        // Ensure we don't zoom out beyond Italy view
+        google.maps.event.addListenerOnce(map, "idle", () => {
+          const currentZoom = map.getZoom();
+          if (currentZoom !== undefined && currentZoom < ITALY_ZOOM) {
+            map.setZoom(ITALY_ZOOM);
+            map.setCenter(ITALY_CENTER);
+          }
+        });
+      }
     };
 
     void run();
@@ -343,7 +379,18 @@ const MapView = ({
     return () => {
       cancelled = true;
     };
-  }, [getMarkerLibrary, getListingCoords, listingsForMap, mapState, onSelectListing, openInfoWindowForListing, selectedListingId]);
+    // Note: selectedListingId is intentionally NOT included in dependencies here.
+    // Including it would cause fitBounds() to reset the map view on every selection change.
+    // Selection changes are handled by the separate effect below (lines 349-377).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    getMarkerLibrary,
+    getListingCoords,
+    listingsForMap,
+    mapState,
+    onSelectListing,
+    openInfoWindowForListing,
+  ]);
 
   // Update marker styling + pan to selected listing
   useEffect(() => {
@@ -443,7 +490,9 @@ const MapView = ({
         <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
           <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-sm">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading locations...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading locations...
+            </p>
           </div>
         </div>
       )}
