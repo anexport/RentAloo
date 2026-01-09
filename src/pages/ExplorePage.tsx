@@ -20,10 +20,7 @@ import ListingCardSkeleton from "@/components/equipment/ListingCardSkeleton";
 import VirtualListingGrid, {
   type VirtualListingGridHandle,
 } from "@/components/equipment/VirtualListingGrid";
-import {
-  DEFAULT_PRICE_MIN,
-  DEFAULT_PRICE_MAX,
-} from "@/config/pagination";
+import { DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX } from "@/config/pagination";
 import FiltersSheet, {
   type FilterValues,
 } from "@/components/explore/FiltersSheet";
@@ -240,7 +237,11 @@ const ExplorePage = () => {
         prev.conditions.every(
           (condition, index) => condition === nextConditions[index]
         );
-      if (priceUnchanged && conditionsUnchanged && prev.verified === nextVerified)
+      if (
+        priceUnchanged &&
+        conditionsUnchanged &&
+        prev.verified === nextVerified
+      )
         return prev;
 
       return {
@@ -431,17 +432,18 @@ const ExplorePage = () => {
 
   useEffect(() => {
     if (!selectedListingId || isMobile) return;
-    
+
     // First try the local refs map (for items already rendered)
     const el = listItemRefs.current.get(selectedListingId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "nearest" });
       return;
     }
-    
+
     // If not found in local refs, use the VirtualListingGrid's scrollToItem API
     // This handles cases where the item isn't rendered yet due to virtualization
-    const success = virtualListingGridRef.current?.scrollToItem(selectedListingId);
+    const success =
+      virtualListingGridRef.current?.scrollToItem(selectedListingId);
     if (!success) {
       // Item might need to be loaded first - retry after a short delay
       const retryTimeout = setTimeout(() => {
@@ -476,8 +478,15 @@ const ExplorePage = () => {
     void setConditionsParam(newFilters.conditions);
     void setVerifiedParam(newFilters.verified);
 
-    // Sync dates and equipment from FiltersSheet to URL and searchFilters
-    if (newFilters.dateRange !== filterValues.dateRange) {
+    // Sync dates from FiltersSheet to URL and searchFilters
+    // Use value-based comparison instead of reference equality
+    const dateRangeChanged =
+      newFilters.dateRange?.from?.getTime() !==
+        filterValues.dateRange?.from?.getTime() ||
+      newFilters.dateRange?.to?.getTime() !==
+        filterValues.dateRange?.to?.getTime();
+
+    if (dateRangeChanged) {
       const from = newFilters.dateRange?.from
         ? format(newFilters.dateRange.from, "yyyy-MM-dd")
         : null;
@@ -486,11 +495,20 @@ const ExplorePage = () => {
         : null;
       void setDateFromQuery(from);
       void setDateToQuery(to);
-      setSearchFilters((prev) => ({ ...prev, dateRange: newFilters.dateRange }));
+      setSearchFilters((prev) => ({
+        ...prev,
+        dateRange: newFilters.dateRange,
+      }));
     }
 
-    if (newFilters.equipmentType !== filterValues.equipmentType ||
-        newFilters.equipmentCategoryId !== filterValues.equipmentCategoryId) {
+    // Sync equipment type, category, and search from FiltersSheet to URL and searchFilters
+    // Also check if search has changed independently
+    const equipmentOrSearchChanged =
+      newFilters.equipmentType !== filterValues.equipmentType ||
+      newFilters.equipmentCategoryId !== filterValues.equipmentCategoryId ||
+      newFilters.search !== filterValues.search;
+
+    if (equipmentOrSearchChanged) {
       void setEquipmentTypeQuery(newFilters.equipmentType || null);
       void setEquipmentCategoryIdQuery(newFilters.equipmentCategoryId || null);
       void setSearchQuery(newFilters.search || null);
@@ -635,14 +653,16 @@ const ExplorePage = () => {
         />
 
         {/* Bottom sheet for listings */}
-        {(hasResults || isLoading || isError) ? (
+        {hasResults || isLoading || isError ? (
           <MobileListingsBottomSheet
             title={t("browse.items_count", { count: data?.length ?? 0 })}
           >
             {renderListingsList()}
           </MobileListingsBottomSheet>
         ) : (
-          <MobileListingsBottomSheet title={t("browse.no_results", { defaultValue: "No results" })}>
+          <MobileListingsBottomSheet
+            title={t("browse.no_results", { defaultValue: "No results" })}
+          >
             {renderListingsList()}
           </MobileListingsBottomSheet>
         )}
@@ -697,7 +717,9 @@ const ExplorePage = () => {
             {tNav("pages.home")}
           </Link>
           <ChevronRight className="h-4 w-4 mx-2" />
-          <span className="text-foreground">{tNav("menu.browse_equipment")}</span>
+          <span className="text-foreground">
+            {tNav("menu.browse_equipment")}
+          </span>
           {categoryId !== "all" && (
             <>
               <ChevronRight className="h-4 w-4 mx-2" />
@@ -728,7 +750,9 @@ const ExplorePage = () => {
               {debouncedFilters.location && (
                 <span className="text-muted-foreground font-normal">
                   {" "}
-                  {t("browse.in_location", { location: debouncedFilters.location })}
+                  {t("browse.in_location", {
+                    location: debouncedFilters.location,
+                  })}
                 </span>
               )}
             </h3>
@@ -747,15 +771,28 @@ const ExplorePage = () => {
               value={sortBy}
               onValueChange={(value) => setSortBy(value as SortOption)}
             >
-              <SelectTrigger className="min-w-[180px]" aria-label={t("filters.sort_by")}>
+              <SelectTrigger
+                className="min-w-[180px]"
+                aria-label={t("filters.sort_by")}
+              >
                 <SelectValue placeholder={t("filters.sort_by")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="recommended">{t("filters.recommended")}</SelectItem>
-                <SelectItem value="price-low">{t("filters.price_low_high")}</SelectItem>
-                <SelectItem value="price-high">{t("filters.price_high_low")}</SelectItem>
-                <SelectItem value="newest">{t("filters.newest_first")}</SelectItem>
-                <SelectItem value="rating">{t("filters.highest_rated")}</SelectItem>
+                <SelectItem value="recommended">
+                  {t("filters.recommended")}
+                </SelectItem>
+                <SelectItem value="price-low">
+                  {t("filters.price_low_high")}
+                </SelectItem>
+                <SelectItem value="price-high">
+                  {t("filters.price_high_low")}
+                </SelectItem>
+                <SelectItem value="newest">
+                  {t("filters.newest_first")}
+                </SelectItem>
+                <SelectItem value="rating">
+                  {t("filters.highest_rated")}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +21,17 @@ import {
 } from "@/components/ui/command";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X, Check, Sparkles, ShieldCheck, CalendarIcon, Package, Search, Loader2 } from "lucide-react";
+import {
+  Filter,
+  X,
+  Check,
+  Sparkles,
+  ShieldCheck,
+  CalendarIcon,
+  Package,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -91,11 +98,31 @@ type Props = {
   activeFilterCount: number;
 };
 
-const CONDITIONS: Array<{ value: EquipmentCondition; label: string; descriptionKey: string }> = [
-  { value: "new", label: "condition.new", descriptionKey: "condition.new_description" },
-  { value: "excellent", label: "condition.excellent", descriptionKey: "condition.excellent_description" },
-  { value: "good", label: "condition.good", descriptionKey: "condition.good_description" },
-  { value: "fair", label: "condition.fair", descriptionKey: "condition.fair_description" },
+const CONDITIONS: Array<{
+  value: EquipmentCondition;
+  label: string;
+  descriptionKey: string;
+}> = [
+  {
+    value: "new",
+    label: "condition.new",
+    descriptionKey: "condition.new_description",
+  },
+  {
+    value: "excellent",
+    label: "condition.excellent",
+    descriptionKey: "condition.excellent_description",
+  },
+  {
+    value: "good",
+    label: "condition.good",
+    descriptionKey: "condition.good_description",
+  },
+  {
+    value: "fair",
+    label: "condition.fair",
+    descriptionKey: "condition.fair_description",
+  },
 ];
 
 const FiltersSheet = ({
@@ -122,19 +149,48 @@ const FiltersSheet = ({
   });
 
   const categorySuggestions = useMemo(
-    () => equipmentAutocomplete.suggestions.filter((s) => s.type === "category"),
+    () =>
+      equipmentAutocomplete.suggestions.filter((s) => s.type === "category"),
     [equipmentAutocomplete.suggestions]
   );
 
   const equipmentSuggestions = useMemo(
-    () => equipmentAutocomplete.suggestions.filter((s) => s.type === "equipment"),
+    () =>
+      equipmentAutocomplete.suggestions.filter((s) => s.type === "equipment"),
     [equipmentAutocomplete.suggestions]
   );
+
+  // Helper to normalize category names for comparison
+  const normalizeForComparison = useCallback(
+    (name: string) => name.trim().toLowerCase(),
+    []
+  );
+
+  // Find a category by normalized name comparison
+  const findCategoryByName = useCallback(
+    (name: string) => {
+      const normalized = normalizeForComparison(name);
+      return categories.find(
+        (cat) => normalizeForComparison(cat.name) === normalized
+      );
+    },
+    [categories, normalizeForComparison]
+  );
+
+  // Validated recent searches - only those matching actual categories
+  const validatedRecentSearches = useMemo(() => {
+    return recentSearches.filter((search) => findCategoryByName(search));
+  }, [recentSearches, findCategoryByName]);
+
+  // Validated popular categories - only those matching actual categories
+  const validatedPopularCategories = useMemo(() => {
+    return POPULAR_CATEGORIES.filter((name) => findCategoryByName(name));
+  }, [findCategoryByName]);
 
   // Load categories and recent searches on mount
   useEffect(() => {
     setRecentSearches(getRecentSearches());
-    
+
     const controller = new AbortController();
     const loadCategories = async () => {
       try {
@@ -147,6 +203,13 @@ const FiltersSheet = ({
 
         if (error && !controller.signal.aborted) {
           console.error("Error loading categories", error);
+          toast({
+            title: t("filters_sheet.error_loading_categories", {
+              defaultValue: "Failed to load categories",
+            }),
+            description: error.message,
+            variant: "destructive",
+          });
           return;
         }
 
@@ -156,13 +219,22 @@ const FiltersSheet = ({
       } catch (err) {
         if (!controller.signal.aborted) {
           console.error("Unexpected error loading categories", err);
+          toast({
+            title: t("filters_sheet.error_loading_categories", {
+              defaultValue: "Failed to load categories",
+            }),
+            description: t("common.try_again_later", {
+              defaultValue: "Please try again later",
+            }),
+            variant: "destructive",
+          });
         }
       }
     };
 
     void loadCategories();
     return () => controller.abort();
-  }, []);
+  }, [t, toast]);
 
   // Quick date ranges
   const quickDateRanges = useMemo(() => {
@@ -177,17 +249,30 @@ const FiltersSheet = ({
     const nextWeekendEnd = addDays(nextWeekendStart, 1);
 
     const daysUntilMonday = (1 - dayOfWeek + 7) % 7;
-    const nextWeekStart = addDays(today, daysUntilMonday === 0 ? 7 : daysUntilMonday);
+    const nextWeekStart = addDays(
+      today,
+      daysUntilMonday === 0 ? 7 : daysUntilMonday
+    );
     const nextWeekEnd = addDays(nextWeekStart, 4);
 
     return [
       {
-        label: t("filters_sheet.this_weekend", { defaultValue: "This weekend" }),
-        range: { from: thisWeekendStart, to: thisWeekendEnd } satisfies DateRange,
+        label: t("filters_sheet.this_weekend", {
+          defaultValue: "This weekend",
+        }),
+        range: {
+          from: thisWeekendStart,
+          to: thisWeekendEnd,
+        } satisfies DateRange,
       },
       {
-        label: t("filters_sheet.next_weekend", { defaultValue: "Next weekend" }),
-        range: { from: nextWeekendStart, to: nextWeekendEnd } satisfies DateRange,
+        label: t("filters_sheet.next_weekend", {
+          defaultValue: "Next weekend",
+        }),
+        range: {
+          from: nextWeekendStart,
+          to: nextWeekendEnd,
+        } satisfies DateRange,
       },
       {
         label: t("filters_sheet.next_week", { defaultValue: "Next week" }),
@@ -254,12 +339,18 @@ const FiltersSheet = ({
 
     if (!isSelectingDates) {
       setIsSelectingDates(true);
-      setLocalValue({ ...localValue, dateRange: { from: range.from, to: undefined } });
+      setLocalValue({
+        ...localValue,
+        dateRange: { from: range.from, to: undefined },
+      });
       return;
     }
 
     if (!range.to) {
-      setLocalValue({ ...localValue, dateRange: { from: range.from, to: undefined } });
+      setLocalValue({
+        ...localValue,
+        dateRange: { from: range.from, to: undefined },
+      });
       return;
     }
 
@@ -295,14 +386,22 @@ const FiltersSheet = ({
   };
 
   // Check if any filters are applied
-  const hasActiveFilters = useMemo(() =>
-    localValue.priceRange[0] !== DEFAULT_PRICE_MIN ||
-    localValue.priceRange[1] !== DEFAULT_PRICE_MAX ||
-    localValue.conditions.length > 0 ||
-    localValue.verified ||
-    !!localValue.dateRange?.from ||
-    !!localValue.equipmentType,
-  [localValue.priceRange, localValue.conditions.length, localValue.verified, localValue.dateRange, localValue.equipmentType]);
+  const hasActiveFilters = useMemo(
+    () =>
+      localValue.priceRange[0] !== DEFAULT_PRICE_MIN ||
+      localValue.priceRange[1] !== DEFAULT_PRICE_MAX ||
+      localValue.conditions.length > 0 ||
+      localValue.verified ||
+      !!localValue.dateRange?.from ||
+      !!localValue.equipmentType,
+    [
+      localValue.priceRange,
+      localValue.conditions.length,
+      localValue.verified,
+      localValue.dateRange,
+      localValue.equipmentType,
+    ]
+  );
 
   // Mobile filter content - completely redesigned
   const MobileFiltersContent = () => (
@@ -313,9 +412,11 @@ const FiltersSheet = ({
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">{t("filters_sheet.price_range")}</h3>
+          <h3 className="text-base font-semibold">
+            {t("filters_sheet.price_range")}
+          </h3>
         </div>
-        
+
         {/* Quick preset buttons */}
         <div className="flex flex-wrap gap-2">
           {[
@@ -325,17 +426,19 @@ const FiltersSheet = ({
             { label: "$50-$100", min: 50, max: 100 },
             { label: "$100+", min: 100, max: DEFAULT_PRICE_MAX },
           ].map((preset) => {
-            const isSelected = 
-              localValue.priceRange[0] === preset.min && 
+            const isSelected =
+              localValue.priceRange[0] === preset.min &&
               localValue.priceRange[1] === preset.max;
             return (
               <button
                 key={preset.label}
                 type="button"
-                onClick={() => setLocalValue({
-                  ...localValue,
-                  priceRange: [preset.min, preset.max],
-                })}
+                onClick={() =>
+                  setLocalValue({
+                    ...localValue,
+                    priceRange: [preset.min, preset.max],
+                  })
+                }
                 className={cn(
                   "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
                   isSelected
@@ -352,7 +455,9 @@ const FiltersSheet = ({
         {/* Custom range inputs */}
         <div className="flex items-center gap-3">
           <div className="flex-1 relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+              $
+            </span>
             <input
               type="number"
               inputMode="numeric"
@@ -362,18 +467,26 @@ const FiltersSheet = ({
               onChange={(e) => {
                 const parsed = Number(e.target.value);
                 const safe = Number.isNaN(parsed) ? DEFAULT_PRICE_MIN : parsed;
-                const val = Math.max(DEFAULT_PRICE_MIN, Math.min(safe, localValue.priceRange[1]));
-                setLocalValue({ ...localValue, priceRange: [val, localValue.priceRange[1]] });
+                const val = Math.max(
+                  DEFAULT_PRICE_MIN,
+                  Math.min(safe, localValue.priceRange[1])
+                );
+                setLocalValue({
+                  ...localValue,
+                  priceRange: [val, localValue.priceRange[1]],
+                });
               }}
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               placeholder="Min"
             />
           </div>
-          
+
           <div className="text-muted-foreground text-sm font-medium">to</div>
-          
+
           <div className="flex-1 relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+              $
+            </span>
             <input
               type="number"
               inputMode="numeric"
@@ -383,8 +496,14 @@ const FiltersSheet = ({
               onChange={(e) => {
                 const parsed = Number(e.target.value);
                 const safe = Number.isNaN(parsed) ? DEFAULT_PRICE_MAX : parsed;
-                const val = Math.min(DEFAULT_PRICE_MAX, Math.max(safe, localValue.priceRange[0]));
-                setLocalValue({ ...localValue, priceRange: [localValue.priceRange[0], val] });
+                const val = Math.min(
+                  DEFAULT_PRICE_MAX,
+                  Math.max(safe, localValue.priceRange[0])
+                );
+                setLocalValue({
+                  ...localValue,
+                  priceRange: [localValue.priceRange[0], val],
+                });
               }}
               className="w-full h-12 pl-8 pr-4 rounded-xl border border-border bg-background text-center text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               placeholder="Max"
@@ -403,14 +522,17 @@ const FiltersSheet = ({
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <CalendarIcon className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">{t("filters_sheet.dates", { defaultValue: "Dates" })}</h3>
+          <h3 className="text-base font-semibold">
+            {t("filters_sheet.dates", { defaultValue: "Dates" })}
+          </h3>
         </div>
 
         {/* Quick date presets */}
         <div className="flex flex-wrap gap-2">
           {quickDateRanges.map((preset) => {
-            const isSelected = 
-              localValue.dateRange?.from?.getTime() === preset.range.from.getTime() &&
+            const isSelected =
+              localValue.dateRange?.from?.getTime() ===
+                preset.range.from.getTime() &&
               localValue.dateRange?.to?.getTime() === preset.range.to.getTime();
             return (
               <button
@@ -450,22 +572,48 @@ const FiltersSheet = ({
                 <CalendarIcon className="h-4 w-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("filters_sheet.start_date", { defaultValue: "Start" })}</p>
-                <p className="text-sm font-medium truncate">{format(localValue.dateRange.from, "EEE, MMM d")}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t("filters_sheet.start_date", { defaultValue: "Start" })}
+                </p>
+                <p className="text-sm font-medium truncate">
+                  {format(localValue.dateRange.from, "EEE, MMM d")}
+                </p>
               </div>
             </div>
             <div className="text-muted-foreground">→</div>
             <div className="flex-1 flex items-center gap-2">
-              <div className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center",
-                localValue.dateRange.to ? "bg-primary/10" : "bg-muted border-2 border-dashed border-muted-foreground/30"
-              )}>
-                <CalendarIcon className={cn("h-4 w-4", localValue.dateRange.to ? "text-primary" : "text-muted-foreground/50")} />
+              <div
+                className={cn(
+                  "h-8 w-8 rounded-full flex items-center justify-center",
+                  localValue.dateRange.to
+                    ? "bg-primary/10"
+                    : "bg-muted border-2 border-dashed border-muted-foreground/30"
+                )}
+              >
+                <CalendarIcon
+                  className={cn(
+                    "h-4 w-4",
+                    localValue.dateRange.to
+                      ? "text-primary"
+                      : "text-muted-foreground/50"
+                  )}
+                />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("filters_sheet.end_date", { defaultValue: "End" })}</p>
-                <p className={cn("text-sm font-medium truncate", !localValue.dateRange.to && "text-muted-foreground")}>
-                  {localValue.dateRange.to ? format(localValue.dateRange.to, "EEE, MMM d") : t("filters_sheet.select_date", { defaultValue: "Select date" })}
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {t("filters_sheet.end_date", { defaultValue: "End" })}
+                </p>
+                <p
+                  className={cn(
+                    "text-sm font-medium truncate",
+                    !localValue.dateRange.to && "text-muted-foreground"
+                  )}
+                >
+                  {localValue.dateRange.to
+                    ? format(localValue.dateRange.to, "EEE, MMM d")
+                    : t("filters_sheet.select_date", {
+                        defaultValue: "Select date",
+                      })}
                 </p>
               </div>
             </div>
@@ -473,7 +621,9 @@ const FiltersSheet = ({
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 rounded-full shrink-0"
-              onClick={() => setLocalValue({ ...localValue, dateRange: undefined })}
+              onClick={() =>
+                setLocalValue({ ...localValue, dateRange: undefined })
+              }
             >
               <X className="h-4 w-4" />
             </Button>
@@ -487,13 +637,17 @@ const FiltersSheet = ({
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <Package className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">{t("filters_sheet.equipment", { defaultValue: "Equipment" })}</h3>
+          <h3 className="text-base font-semibold">
+            {t("filters_sheet.equipment", { defaultValue: "Equipment" })}
+          </h3>
         </div>
 
         <Command shouldFilter={false} className="rounded-2xl border">
           <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
             <CommandInput
-              placeholder={t("filters_sheet.search_equipment_placeholder", { defaultValue: "Search equipment or categories..." })}
+              placeholder={t("filters_sheet.search_equipment_placeholder", {
+                defaultValue: "Search equipment or categories...",
+              })}
               value={equipmentAutocomplete.query}
               onValueChange={equipmentAutocomplete.setQuery}
               className="h-12 text-base"
@@ -507,84 +661,96 @@ const FiltersSheet = ({
               {equipmentAutocomplete.loading ? (
                 <div className="flex items-center justify-center gap-2 py-6">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t("common.searching", { defaultValue: "Searching..." })}</span>
+                  <span>
+                    {t("common.searching", { defaultValue: "Searching..." })}
+                  </span>
                 </div>
               ) : equipmentAutocomplete.query.trim().length === 0 ? (
-                t("filters_sheet.start_typing", { defaultValue: "Start typing to search." })
+                t("filters_sheet.start_typing", {
+                  defaultValue: "Start typing to search.",
+                })
               ) : equipmentAutocomplete.error ? (
-                `${t("common.error", { defaultValue: "Error" })}: ${equipmentAutocomplete.error}`
+                `${t("common.error", { defaultValue: "Error" })}: ${
+                  equipmentAutocomplete.error
+                }`
               ) : (
-                t("filters_sheet.no_results", { defaultValue: "No results found." })
+                t("filters_sheet.no_results", {
+                  defaultValue: "No results found.",
+                })
               )}
             </CommandEmpty>
 
-            {/* Recent Searches */}
-            {equipmentAutocomplete.query.trim().length === 0 && recentSearches.length > 0 && (
-              <CommandGroup heading={t("filters_sheet.recent", { defaultValue: "Recent" })}>
-                {recentSearches.map((searchTerm, idx) => (
-                  <CommandItem
-                    key={`recent-${idx}`}
-                    onSelect={() => {
-                      const category = categories.find((cat) => cat.name === searchTerm);
-                      if (category) {
-                        handleEquipmentSuggestionSelect({
-                          id: category.id,
-                          label: category.name,
-                          type: "category",
-                        });
-                      } else {
-                        setLocalValue({
-                          ...localValue,
-                          equipmentType: searchTerm,
-                          equipmentCategoryId: undefined,
-                          search: searchTerm,
-                        });
-                      }
-                    }}
-                    className="cursor-pointer py-3"
-                  >
-                    <Search className="mr-2 h-4 w-4 text-muted-foreground" />
-                    {searchTerm}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+            {/* Recent Searches - only show validated entries that match actual categories */}
+            {equipmentAutocomplete.query.trim().length === 0 &&
+              validatedRecentSearches.length > 0 && (
+                <CommandGroup
+                  heading={t("filters_sheet.recent", {
+                    defaultValue: "Recent",
+                  })}
+                >
+                  {validatedRecentSearches.map((searchTerm, idx) => {
+                    const category = findCategoryByName(searchTerm);
+                    // This should always be truthy since we filtered, but guard anyway
+                    if (!category) return null;
+                    return (
+                      <CommandItem
+                        key={`recent-${idx}`}
+                        onSelect={() => {
+                          handleEquipmentSuggestionSelect({
+                            id: category.id,
+                            label: category.name,
+                            type: "category",
+                          });
+                        }}
+                        className="cursor-pointer py-3"
+                      >
+                        <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                        {category.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
 
-            {/* Popular Categories */}
-            {equipmentAutocomplete.query.trim().length === 0 && (
-              <CommandGroup heading={t("filters_sheet.popular", { defaultValue: "Popular" })}>
-                {POPULAR_CATEGORIES.map((categoryName) => (
-                  <CommandItem
-                    key={categoryName}
-                    onSelect={() => {
-                      const category = categories.find((cat) => cat.name === categoryName);
-                      if (category) {
-                        handleEquipmentSuggestionSelect({
-                          id: category.id,
-                          label: category.name,
-                          type: "category",
-                        });
-                      } else {
-                        setLocalValue({
-                          ...localValue,
-                          equipmentType: categoryName,
-                          equipmentCategoryId: undefined,
-                          search: "",
-                        });
-                      }
-                    }}
-                    className="cursor-pointer py-3"
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    {categoryName}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+            {/* Popular Categories - only show validated entries that match actual categories */}
+            {equipmentAutocomplete.query.trim().length === 0 &&
+              validatedPopularCategories.length > 0 && (
+                <CommandGroup
+                  heading={t("filters_sheet.popular", {
+                    defaultValue: "Popular",
+                  })}
+                >
+                  {validatedPopularCategories.map((categoryName) => {
+                    const category = findCategoryByName(categoryName);
+                    // This should always be truthy since we filtered, but guard anyway
+                    if (!category) return null;
+                    return (
+                      <CommandItem
+                        key={categoryName}
+                        onSelect={() => {
+                          handleEquipmentSuggestionSelect({
+                            id: category.id,
+                            label: category.name,
+                            type: "category",
+                          });
+                        }}
+                        className="cursor-pointer py-3"
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        {category.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
 
             {/* Categories Group */}
             {categorySuggestions.length > 0 && (
-              <CommandGroup heading={t("filters_sheet.categories", { defaultValue: "Categories" })}>
+              <CommandGroup
+                heading={t("filters_sheet.categories", {
+                  defaultValue: "Categories",
+                })}
+              >
                 {categorySuggestions.map((s) => (
                   <CommandItem
                     key={s.id}
@@ -593,7 +759,10 @@ const FiltersSheet = ({
                   >
                     <Package className="mr-2 h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">
-                      {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                      {highlightMatchingText(
+                        s.label,
+                        equipmentAutocomplete.query
+                      )}
                     </span>
                     {typeof s.itemCount === "number" && (
                       <span className="text-xs text-muted-foreground ml-auto pl-2 shrink-0">
@@ -607,7 +776,11 @@ const FiltersSheet = ({
 
             {/* Equipment Items Group */}
             {equipmentSuggestions.length > 0 && (
-              <CommandGroup heading={t("filters_sheet.equipment_items", { defaultValue: "Equipment" })}>
+              <CommandGroup
+                heading={t("filters_sheet.equipment_items", {
+                  defaultValue: "Equipment",
+                })}
+              >
                 {equipmentSuggestions.map((s) => (
                   <CommandItem
                     key={s.id}
@@ -617,11 +790,17 @@ const FiltersSheet = ({
                     <Search className="mr-2 h-4 w-4 shrink-0" />
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="truncate">
-                        {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                        {highlightMatchingText(
+                          s.label,
+                          equipmentAutocomplete.query
+                        )}
                       </span>
                       {s.categoryName && (
                         <span className="text-xs text-muted-foreground truncate">
-                          {t("filters_sheet.in_category", { defaultValue: "in" })} {s.categoryName}
+                          {t("filters_sheet.in_category", {
+                            defaultValue: "in",
+                          })}{" "}
+                          {s.categoryName}
                         </span>
                       )}
                     </div>
@@ -664,9 +843,11 @@ const FiltersSheet = ({
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <Check className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">{t("filters_sheet.condition")}</h3>
+          <h3 className="text-base font-semibold">
+            {t("filters_sheet.condition")}
+          </h3>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-3">
           {CONDITIONS.map((condition) => {
             const isSelected = localValue.conditions.includes(condition.value);
@@ -683,23 +864,38 @@ const FiltersSheet = ({
                 )}
               >
                 {/* Selection indicator */}
-                <div className={cn(
-                  "absolute top-3 right-3 h-5 w-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center",
-                  isSelected
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground/30"
-                )}>
-                  {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                <div
+                  className={cn(
+                    "absolute top-3 right-3 h-5 w-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center",
+                    isSelected
+                      ? "border-primary bg-primary"
+                      : "border-muted-foreground/30"
+                  )}
+                >
+                  {isSelected && (
+                    <Check className="h-3 w-3 text-primary-foreground" />
+                  )}
                 </div>
-                
-                <span className={cn(
-                  "text-sm font-semibold",
-                  isSelected ? "text-primary" : "text-foreground"
-                )}>
+
+                <span
+                  className={cn(
+                    "text-sm font-semibold",
+                    isSelected ? "text-primary" : "text-foreground"
+                  )}
+                >
                   {t(condition.label)}
                 </span>
                 <span className="text-xs text-muted-foreground mt-0.5 pr-6">
-                  {t(condition.descriptionKey, { defaultValue: condition.value === "new" ? "Brand new, never used" : condition.value === "excellent" ? "Like new condition" : condition.value === "good" ? "Minor signs of use" : "Normal wear and tear" })}
+                  {t(condition.descriptionKey, {
+                    defaultValue:
+                      condition.value === "new"
+                        ? "Brand new, never used"
+                        : condition.value === "excellent"
+                        ? "Like new condition"
+                        : condition.value === "good"
+                        ? "Minor signs of use"
+                        : "Normal wear and tear",
+                  })}
                 </span>
               </button>
             );
@@ -713,12 +909,16 @@ const FiltersSheet = ({
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
-          <h3 className="text-base font-semibold">{t("filters_sheet.owner_verification")}</h3>
+          <h3 className="text-base font-semibold">
+            {t("filters_sheet.owner_verification")}
+          </h3>
         </div>
-        
+
         <button
           type="button"
-          onClick={() => setLocalValue({ ...localValue, verified: !localValue.verified })}
+          onClick={() =>
+            setLocalValue({ ...localValue, verified: !localValue.verified })
+          }
           className={cn(
             "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200",
             localValue.verified
@@ -727,25 +927,33 @@ const FiltersSheet = ({
           )}
         >
           {/* Toggle switch */}
-          <div className={cn(
-            "relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0",
-            localValue.verified ? "bg-primary" : "bg-muted"
-          )}>
-            <div className={cn(
-              "absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
-              localValue.verified ? "translate-x-6" : "translate-x-1"
-            )} />
+          <div
+            className={cn(
+              "relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0",
+              localValue.verified ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <div
+              className={cn(
+                "absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+                localValue.verified ? "translate-x-6" : "translate-x-1"
+              )}
+            />
           </div>
-          
+
           <div className="flex-1 text-left">
-            <div className={cn(
-              "text-sm font-semibold",
-              localValue.verified ? "text-primary" : "text-foreground"
-            )}>
+            <div
+              className={cn(
+                "text-sm font-semibold",
+                localValue.verified ? "text-primary" : "text-foreground"
+              )}
+            >
               {t("filters_sheet.verified_owners_only")}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {t("filters_sheet.verified_description", { defaultValue: "Only show equipment from verified owners" })}
+              {t("filters_sheet.verified_description", {
+                defaultValue: "Only show equipment from verified owners",
+              })}
             </div>
           </div>
         </button>
@@ -769,7 +977,10 @@ const FiltersSheet = ({
             const [min, max] = val as [number, number];
             setLocalValue({
               ...localValue,
-              priceRange: [Math.min(min, max), Math.max(min, max)] as [number, number],
+              priceRange: [Math.min(min, max), Math.max(min, max)] as [
+                number,
+                number
+              ],
             });
           }}
           min={DEFAULT_PRICE_MIN}
@@ -777,16 +988,21 @@ const FiltersSheet = ({
           step={10}
           className="w-full"
         />
-        <div className="text-xs text-muted-foreground">{t("filters_sheet.price_per_day")}</div>
+        <div className="text-xs text-muted-foreground">
+          {t("filters_sheet.price_per_day")}
+        </div>
       </div>
 
       {/* Dates */}
       <div className="space-y-3">
-        <h4 className="font-medium">{t("filters_sheet.dates", { defaultValue: "Dates" })}</h4>
+        <h4 className="font-medium">
+          {t("filters_sheet.dates", { defaultValue: "Dates" })}
+        </h4>
         <div className="flex flex-wrap gap-2 mb-3">
           {quickDateRanges.map((preset) => {
-            const isSelected = 
-              localValue.dateRange?.from?.getTime() === preset.range.from.getTime() &&
+            const isSelected =
+              localValue.dateRange?.from?.getTime() ===
+                preset.range.from.getTime() &&
               localValue.dateRange?.to?.getTime() === preset.range.to.getTime();
             return (
               <button
@@ -816,12 +1032,15 @@ const FiltersSheet = ({
           <div className="flex items-center justify-between text-sm">
             <span>
               {format(localValue.dateRange.from, "MMM d")}
-              {localValue.dateRange.to && ` - ${format(localValue.dateRange.to, "MMM d")}`}
+              {localValue.dateRange.to &&
+                ` - ${format(localValue.dateRange.to, "MMM d")}`}
             </span>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocalValue({ ...localValue, dateRange: undefined })}
+              onClick={() =>
+                setLocalValue({ ...localValue, dateRange: undefined })
+              }
             >
               {t("common.clear", { defaultValue: "Clear" })}
             </Button>
@@ -831,55 +1050,69 @@ const FiltersSheet = ({
 
       {/* Equipment Search */}
       <div className="space-y-3">
-        <h4 className="font-medium">{t("filters_sheet.equipment", { defaultValue: "Equipment" })}</h4>
+        <h4 className="font-medium">
+          {t("filters_sheet.equipment", { defaultValue: "Equipment" })}
+        </h4>
         <Command shouldFilter={false} className="rounded-lg border">
           <CommandInput
-            placeholder={t("filters_sheet.search_equipment_placeholder", { defaultValue: "Search equipment or categories..." })}
+            placeholder={t("filters_sheet.search_equipment_placeholder", {
+              defaultValue: "Search equipment or categories...",
+            })}
             value={equipmentAutocomplete.query}
             onValueChange={equipmentAutocomplete.setQuery}
           />
-          <CommandList className="max-h-[200px]" aria-busy={equipmentAutocomplete.loading}>
+          <CommandList
+            className="max-h-[200px]"
+            aria-busy={equipmentAutocomplete.loading}
+          >
             <CommandEmpty>
               {equipmentAutocomplete.loading
                 ? t("common.searching", { defaultValue: "Searching..." })
                 : equipmentAutocomplete.query.trim().length === 0
-                ? t("filters_sheet.start_typing", { defaultValue: "Start typing to search." })
-                : t("filters_sheet.no_results", { defaultValue: "No results found." })}
+                ? t("filters_sheet.start_typing", {
+                    defaultValue: "Start typing to search.",
+                  })
+                : t("filters_sheet.no_results", {
+                    defaultValue: "No results found.",
+                  })}
             </CommandEmpty>
 
-            {equipmentAutocomplete.query.trim().length === 0 && (
-              <CommandGroup heading={t("filters_sheet.popular", { defaultValue: "Popular" })}>
-                {POPULAR_CATEGORIES.map((categoryName) => (
-                  <CommandItem
-                    key={categoryName}
-                    onSelect={() => {
-                      const category = categories.find((cat) => cat.name === categoryName);
-                      if (category) {
-                        handleEquipmentSuggestionSelect({
-                          id: category.id,
-                          label: category.name,
-                          type: "category",
-                        });
-                      } else {
-                        setLocalValue({
-                          ...localValue,
-                          equipmentType: categoryName,
-                          equipmentCategoryId: undefined,
-                          search: "",
-                        });
-                      }
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    {categoryName}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+            {equipmentAutocomplete.query.trim().length === 0 &&
+              validatedPopularCategories.length > 0 && (
+                <CommandGroup
+                  heading={t("filters_sheet.popular", {
+                    defaultValue: "Popular",
+                  })}
+                >
+                  {validatedPopularCategories.map((categoryName) => {
+                    const category = findCategoryByName(categoryName);
+                    if (!category) return null;
+                    return (
+                      <CommandItem
+                        key={categoryName}
+                        onSelect={() => {
+                          handleEquipmentSuggestionSelect({
+                            id: category.id,
+                            label: category.name,
+                            type: "category",
+                          });
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        {category.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
 
             {categorySuggestions.length > 0 && (
-              <CommandGroup heading={t("filters_sheet.categories", { defaultValue: "Categories" })}>
+              <CommandGroup
+                heading={t("filters_sheet.categories", {
+                  defaultValue: "Categories",
+                })}
+              >
                 {categorySuggestions.map((s) => (
                   <CommandItem
                     key={s.id}
@@ -887,14 +1120,21 @@ const FiltersSheet = ({
                     className="cursor-pointer"
                   >
                     <Package className="mr-2 h-4 w-4" />
-                    {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                    {highlightMatchingText(
+                      s.label,
+                      equipmentAutocomplete.query
+                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>
             )}
 
             {equipmentSuggestions.length > 0 && (
-              <CommandGroup heading={t("filters_sheet.equipment_items", { defaultValue: "Equipment" })}>
+              <CommandGroup
+                heading={t("filters_sheet.equipment_items", {
+                  defaultValue: "Equipment",
+                })}
+              >
                 {equipmentSuggestions.map((s) => (
                   <CommandItem
                     key={s.id}
@@ -902,7 +1142,10 @@ const FiltersSheet = ({
                     className="cursor-pointer"
                   >
                     <Search className="mr-2 h-4 w-4" />
-                    {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                    {highlightMatchingText(
+                      s.label,
+                      equipmentAutocomplete.query
+                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -960,7 +1203,9 @@ const FiltersSheet = ({
         <h4 className="font-medium">{t("filters_sheet.owner_verification")}</h4>
         <button
           type="button"
-          onClick={() => setLocalValue({ ...localValue, verified: !localValue.verified })}
+          onClick={() =>
+            setLocalValue({ ...localValue, verified: !localValue.verified })
+          }
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors w-full",
             localValue.verified
@@ -968,13 +1213,21 @@ const FiltersSheet = ({
               : "bg-background border-border hover:border-primary"
           )}
         >
-          <div className={cn(
-            "w-5 h-5 rounded border-2 flex items-center justify-center",
-            localValue.verified ? "bg-primary border-primary" : "border-muted-foreground/50"
-          )}>
-            {localValue.verified && <Check className="h-3 w-3 text-primary-foreground" />}
+          <div
+            className={cn(
+              "w-5 h-5 rounded border-2 flex items-center justify-center",
+              localValue.verified
+                ? "bg-primary border-primary"
+                : "border-muted-foreground/50"
+            )}
+          >
+            {localValue.verified && (
+              <Check className="h-3 w-3 text-primary-foreground" />
+            )}
           </div>
-          <span className="text-sm">{t("filters_sheet.verified_owners_only")}</span>
+          <span className="text-sm">
+            {t("filters_sheet.verified_owners_only")}
+          </span>
         </button>
       </div>
     </div>
@@ -986,7 +1239,12 @@ const FiltersSheet = ({
         {t("filters_sheet.clear_all")}
       </Button>
       <Button onClick={handleApply}>
-        {t("filters_sheet.show_results", { count: resultCount, defaultValue: `Show ${resultCount} result${resultCount !== 1 ? "s" : ""}` })}
+        {t("filters_sheet.show_results", {
+          count: resultCount,
+          defaultValue: `Show ${resultCount} result${
+            resultCount !== 1 ? "s" : ""
+          }`,
+        })}
       </Button>
     </div>
   );
@@ -1038,8 +1296,8 @@ const FiltersSheet = ({
     <>
       <TriggerButton />
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent 
-          side="bottom" 
+        <SheetContent
+          side="bottom"
           hideCloseButton
           className="h-[92dvh] max-h-[92dvh] rounded-t-3xl flex flex-col p-0 bg-background"
         >
@@ -1058,9 +1316,9 @@ const FiltersSheet = ({
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <h2 className="text-lg font-bold">{t("filters_sheet.title")}</h2>
-            
+
             <button
               type="button"
               onClick={handleClear}
@@ -1077,9 +1335,9 @@ const FiltersSheet = ({
           </div>
 
           {/* Scrollable content */}
-          <div 
+          <div
             className="flex-1 min-h-0 overflow-y-auto px-5 pb-6 overscroll-contain"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             <MobileFiltersContent />
           </div>
@@ -1091,9 +1349,14 @@ const FiltersSheet = ({
               size="lg"
               className="w-full h-14 text-base font-semibold rounded-2xl shadow-lg"
             >
-              {t("filters_sheet.show_results", { count: resultCount, defaultValue: `Show ${resultCount} result${resultCount !== 1 ? "s" : ""}` })}
+              {t("filters_sheet.show_results", {
+                count: resultCount,
+                defaultValue: `Show ${resultCount} result${
+                  resultCount !== 1 ? "s" : ""
+                }`,
+              })}
             </Button>
-            
+
             {/* Safe area padding for iPhone */}
             <div className="h-[env(safe-area-inset-bottom)]" />
           </div>
