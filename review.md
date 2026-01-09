@@ -1,29 +1,38 @@
+Starting CodeRabbit review in plain text mode...
 
+Connecting to review service
+Setting up
+Analyzing
+Reviewing
 
 ============================================================================
-File: src/pages/ExplorePage.tsx
-Line: 478 to 504
+File: src/components/booking/MobileSidebarDrawer.tsx
+Line: 75 to 76
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/pages/ExplorePage.tsx around lines 478 - 504, The dateRange comparison using reference inequality (newFilters.dateRange !== filterValues.dateRange) can fire on equivalent objects—replace it with a value-based check (e.g., compare newFilters.dateRange.from/to to filterValues.dateRange.from/to or use a deep-equality helper/isEqual) before calling setDateFromQuery, setDateToQuery and setSearchFilters; likewise, include search in the equipment/search sync condition (check newFilters.equipmentType, newFilters.equipmentCategoryId OR newFilters.search against filterValues.search) so that when only search changes you still call setSearchQuery and update setSearchFilters accordingly (use the same null/coalesce logic already used for search and equipment IDs).
-
-
-
-============================================================================
-File: src/components/explore/FiltersSheet.tsx
-Line: 522 to 575
-Type: potential_issue
-
-Prompt for AI Agent:
-In @src/components/explore/FiltersSheet.tsx around lines 522 - 575, Recent and popular category clicks can point to stale names; update FiltersSheet to validate and normalize names against the loaded categories on mount and before use: on component mount (or when categories change) filter recentSearches and map POPULAR_CATEGORIES to a derived validatedPopular array by matching categories.find using normalized comparisons (trim + toLowerCase) and drop or mark entries that don't match; update the click handlers for recentSearches and POPULAR_CATEGORIES to use validated entries (call handleEquipmentSuggestionSelect with the matched category.id) and, for unmatched names, setLocalValue with a flag/field like equipmentCategoryUnknown=true (or move the item to a stale list) so the UI can show a fallback indicator; ensure all references to recentSearches and POPULAR_CATEGORIES are replaced with the validated/filtered versions and that matching uses normalized comparison to avoid case/spacing mismatches.
+In @src/components/booking/MobileSidebarDrawer.tsx around lines 75 - 76, The prop default for isVerified in MobileSidebarDrawer is insecurely set to true; change the default to false so verification is opt-in rather than assumed, update the MobileSidebarDrawer props/defaults (and any destructuring like "isVerified = true" in the component signature) to "isVerified = false", and ensure any callers that expect the old behavior explicitly pass isVerified={true}; also run a quick grep for other places referencing isVerified to update tests or stories accordingly.
 
 
 
 ============================================================================
-File: src/components/explore/FiltersSheet.tsx
-Line: 135 to 165
+File: src/components/booking/MobileSidebarDrawer.tsx
+Line: 275 to 291
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/components/explore/FiltersSheet.tsx around lines 135 - 165, The category loader in the useEffect (loadCategories) only logs errors to console; update it to call the existing useToast hook to show a user-facing error when loading fails (both for Supabase error and the caught exception) and include a clear message like "Failed to load categories" so users see feedback; ensure you still respect controller.signal.aborted checks, call toast({ title, description, status: 'error' }) (or the component's toast API) where console.error(...) currently occurs, and leave setCategories(data ?? []) unchanged on success.
+In @src/components/booking/MobileSidebarDrawer.tsx around lines 275 - 291, The verification nudge uses a plain  and hardcoded strings; import and use the router Link component (e.g., Link) instead of the  and replace all hardcoded strings ("Verification required", "Complete identity verification to book equipment", "Complete Verification →") with i18n calls using the t() function already used in this component (e.g., t('verification.title'), t('verification.description'), t('verification.cta')), keeping the same classes and structure and ensuring the Link wraps the CTA text and points to "/verification"; also add the Link import at the top of the file.
+
+
+
+============================================================================
+File: src/components/booking/sidebar/BookingButton.tsx
+Line: 92
+Type: potential_issue
+
+Prompt for AI Agent:
+In @src/components/booking/sidebar/BookingButton.tsx at line 92, The aria-label on the BookingButton is static and does not reflect the dynamic buttonText; update the BookingButton component so the aria-label either uses the current buttonText value (e.g., aria-label={buttonText}) or remove the aria-label entirely so the visible button text serves as the accessible label; change the attribute on the element that currently contains aria-label="Book & Pay for this equipment" to reference the dynamic buttonText or delete that attribute.
+
+
+
+Review completed ✔

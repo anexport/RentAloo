@@ -14,12 +14,9 @@ import { useTranslation } from "react-i18next";
 import { useRoleMode } from "@/contexts/RoleModeContext";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useVerification } from "@/hooks/useVerification";
-import { getVerificationProgress } from "@/lib/verification";
 import { formatDateForStorage } from "@/lib/utils";
 import { useActiveRentals } from "@/hooks/useActiveRental";
 import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
-import VerificationBanner from "@/components/verification/VerificationBanner";
 import CompactStats from "@/components/dashboard/CompactStats";
 import CollapsibleSection from "@/components/dashboard/CollapsibleSection";
 import RentalListItem from "@/components/rental/RentalListItem";
@@ -31,7 +28,6 @@ const OwnerDashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation("dashboard");
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
-  const { profile, loading: verificationLoading } = useVerification();
   const { toast } = useToast();
 
   const {
@@ -46,8 +42,6 @@ const OwnerDashboard = () => {
     isLoading: activeRentalsLoading,
     error: activeRentalsError,
   } = useActiveRentals("owner");
-
-  const progress = profile ? getVerificationProgress(profile) : 0;
 
   // Stable "today" value computed once on mount to avoid date boundary inconsistencies
   const today = useMemo(() => formatDateForStorage(new Date()), []);
@@ -125,14 +119,6 @@ const OwnerDashboard = () => {
       <div className="space-y-4">
         {/* Compact Stats - Always visible at top */}
         <CompactStats variant="owner" />
-
-        {/* Verification Alert */}
-        {!verificationLoading && profile && !profile.identityVerified && (
-          <VerificationBanner
-            progress={progress}
-            translationKey="owner.verification.verify_button"
-          />
-        )}
 
         {/* Active Rentals - Expanded by default (items currently rented out) */}
         <CollapsibleSection

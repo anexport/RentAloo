@@ -33,14 +33,22 @@ interface ListingWizardProps {
   onCancel?: () => void;
 }
 
-export default function ListingWizard({ equipment, onSuccess, onCancel }: ListingWizardProps) {
+export default function ListingWizard({
+  equipment,
+  onSuccess,
+  onCancel,
+}: ListingWizardProps) {
   const { user } = useAuth();
-  const [categories, setCategories] = useState<Database["public"]["Tables"]["categories"]["Row"][]>(
-    []
-  );
+  const [categories, setCategories] = useState<
+    Database["public"]["Tables"]["categories"]["Row"][]
+  >([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string }[]>([]);
-  const [existingPhotosError, setExistingPhotosError] = useState<string | null>(null);
+  const [existingPhotos, setExistingPhotos] = useState<
+    { id: string; url: string }[]
+  >([]);
+  const [existingPhotosError, setExistingPhotosError] = useState<string | null>(
+    null
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -108,7 +116,10 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
     let cancelled = false;
     const fetchCategories = async () => {
       try {
-        const { data, error } = await supabase.from("categories").select("*").order("name");
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .order("name");
         if (error) {
           console.error("Error fetching categories:", error);
           if (!cancelled) setCategoriesError("Failed to load categories.");
@@ -144,17 +155,21 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
 
         if (error) {
           console.error("Error fetching existing photos:", error);
-          if (!cancelled) setExistingPhotosError("Failed to load existing photos.");
+          if (!cancelled)
+            setExistingPhotosError("Failed to load existing photos.");
           return;
         }
 
         if (!cancelled) {
           setExistingPhotosError(null);
-          setExistingPhotos((data ?? []).map((p) => ({ id: p.id, url: p.photo_url })));
+          setExistingPhotos(
+            (data ?? []).map((p) => ({ id: p.id, url: p.photo_url }))
+          );
         }
       } catch (error) {
         console.error("Error fetching existing photos:", error);
-        if (!cancelled) setExistingPhotosError("Failed to load existing photos.");
+        if (!cancelled)
+          setExistingPhotosError("Failed to load existing photos.");
       }
     };
     void fetchExistingPhotos();
@@ -166,7 +181,9 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
   const syncPhotos = async (equipmentId: string, photos: WizardPhoto[]) => {
     if (!user) return;
 
-    const keptExistingIds = new Set(photos.filter((p) => p.isExisting).map((p) => p.id));
+    const keptExistingIds = new Set(
+      photos.filter((p) => p.isExisting).map((p) => p.id)
+    );
     const removedExistingIds = existingPhotos
       .map((p) => p.id)
       .filter((id) => !keptExistingIds.has(id));
@@ -186,7 +203,9 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
         }
       }
       if (uploadedPaths.length > 0) {
-        const { error } = await supabase.storage.from("equipment-photos").remove(uploadedPaths);
+        const { error } = await supabase.storage
+          .from("equipment-photos")
+          .remove(uploadedPaths);
         if (error) {
           console.error("Failed to rollback uploaded photo files:", error);
         }
@@ -212,12 +231,16 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
     for (const { photo, index } of newPhotosWithIndex) {
       if (!photo.file) {
         await rollbackInserted();
-        throw new PhotoSyncError("One or more new photos are missing file data. Please re-add them.");
+        throw new PhotoSyncError(
+          "One or more new photos are missing file data. Please re-add them."
+        );
       }
 
       const rawExt = photo.file.name.split(".").pop()?.toLowerCase();
       const fileExt = rawExt || extensionFromMimeType(photo.file.type);
-      const fileName = `${user.id}/${equipmentId}/${Date.now()}_${index}.${fileExt}`;
+      const fileName = `${
+        user.id
+      }/${equipmentId}/${Date.now()}_${index}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("equipment-photos")
@@ -226,7 +249,9 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       if (uploadError) {
         console.error("Error uploading photo:", uploadError);
         await rollbackInserted();
-        throw new PhotoSyncError("Failed to upload one or more photos. Please try again.");
+        throw new PhotoSyncError(
+          "Failed to upload one or more photos. Please try again."
+        );
       }
 
       uploadedPaths.push(fileName);
@@ -246,10 +271,12 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
         .select("id")
         .single();
 
-      if (insertError || !insert) {
+      if (insertError || !inserted) {
         console.error("Error inserting uploaded photo record:", insertError);
         await rollbackInserted();
-        throw new PhotoSyncError("Failed to save one or more photos. Please try again.");
+        throw new PhotoSyncError(
+          "Failed to save one or more photos. Please try again."
+        );
       }
 
       insertedPhotoIds.push(inserted.id);
@@ -264,7 +291,9 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
       }
       const insertedId = insertedIdByTempId.get(photo.id);
       if (!insertedId) {
-        throw new PhotoSyncError("Failed to resolve uploaded photo IDs. Please try again.");
+        throw new PhotoSyncError(
+          "Failed to resolve uploaded photo IDs. Please try again."
+        );
       }
       orderedPhotoIds.push(insertedId);
     }
@@ -281,15 +310,22 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
 
       if (error) {
         console.error("Error updating photo order:", error);
-        throw new PhotoSyncError("Failed to update photo order. Please try again.");
+        throw new PhotoSyncError(
+          "Failed to update photo order. Please try again."
+        );
       }
     }
 
     if (removedExistingIds.length > 0) {
-      const { error } = await supabase.from("equipment_photos").delete().in("id", removedExistingIds);
+      const { error } = await supabase
+        .from("equipment_photos")
+        .delete()
+        .in("id", removedExistingIds);
       if (error) {
         console.error("Error deleting removed photos:", error);
-        throw new PhotoSyncError("Failed to remove deleted photos. Please try again.");
+        throw new PhotoSyncError(
+          "Failed to remove deleted photos. Please try again."
+        );
       }
     }
   };
@@ -321,13 +357,17 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
         latitude: formData.latitude ? Number(formData.latitude) : null,
         longitude: formData.longitude ? Number(formData.longitude) : null,
         damage_deposit_amount:
-          formData.damage_deposit_type === "fixed" ? Number(formData.damage_deposit_amount) : null,
+          formData.damage_deposit_type === "fixed"
+            ? Number(formData.damage_deposit_amount)
+            : null,
         damage_deposit_percentage:
           formData.damage_deposit_type === "percentage"
             ? Number(formData.damage_deposit_percentage)
             : null,
         deposit_refund_timeline_hours:
-          formData.damage_deposit_type !== "none" ? formData.deposit_refund_timeline_hours : 48,
+          formData.damage_deposit_type !== "none"
+            ? formData.deposit_refund_timeline_hours
+            : 48,
       };
 
       let equipmentId: string;
@@ -373,7 +413,8 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
   const currentErrors = wizard.stepErrors[wizard.currentStep] || [];
   const savedText = formatLastSaved(wizard.lastSavedAt);
   const fetchErrors = [
-    ...(categoriesError && (wizard.currentStep === 2 || wizard.currentStep === 5)
+    ...(categoriesError &&
+    (wizard.currentStep === 2 || wizard.currentStep === 5)
       ? [categoriesError]
       : []),
     ...(existingPhotosError && wizard.isEditMode && wizard.currentStep === 1
@@ -441,7 +482,12 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="icon" onClick={handleCancelClick} aria-label="Close">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCancelClick}
+              aria-label="Close"
+            >
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -498,10 +544,16 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
                 />
               )}
               {wizard.currentStep === 3 && (
-                <PricingStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+                <PricingStep
+                  formData={wizard.formData}
+                  onUpdate={wizard.updateFormData}
+                />
               )}
               {wizard.currentStep === 4 && (
-                <LocationStep formData={wizard.formData} onUpdate={wizard.updateFormData} />
+                <LocationStep
+                  formData={wizard.formData}
+                  onUpdate={wizard.updateFormData}
+                />
               )}
               {wizard.currentStep === 5 && (
                 <ReviewStep
@@ -533,8 +585,8 @@ export default function ListingWizard({ equipment, onSuccess, onCancel }: Listin
           <DialogHeader>
             <DialogTitle>Discard changes?</DialogTitle>
             <DialogDescription>
-              You have unsaved changes. Your draft has been saved and you can continue later, or
-              discard all changes now.
+              You have unsaved changes. Your draft has been saved and you can
+              continue later, or discard all changes now.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

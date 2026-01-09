@@ -7,16 +7,13 @@ import { useTranslation } from "react-i18next";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
 import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useVerification } from "@/hooks/useVerification";
-import { getVerificationProgress } from "@/lib/verification";
 import { useToast } from "@/hooks/useToast";
 import { MobileInspectionCTA } from "@/components/booking/inspection-flow";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/lib/supabase";
-import { differenceInDays, isPast, isFuture } from "date-fns";
+import { differenceInDays, isPast } from "date-fns";
 import type { BookingRequestWithDetails } from "@/types/booking";
 import { useActiveRentals } from "@/hooks/useActiveRental";
-import VerificationBanner from "@/components/verification/VerificationBanner";
 import CompactStats from "@/components/dashboard/CompactStats";
 import CollapsibleSection from "@/components/dashboard/CollapsibleSection";
 import RentalListItem from "@/components/rental/RentalListItem";
@@ -37,7 +34,6 @@ type InspectionCandidate = {
 
 const RenterDashboard = () => {
   const { user } = useAuth();
-  const { profile, loading: verificationLoading } = useVerification();
   const { t } = useTranslation("dashboard");
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -179,8 +175,7 @@ const RenterDashboard = () => {
       toast({
         variant: "destructive",
         title: "Failed to refresh bookings",
-        description:
-          err instanceof Error ? err.message : "An error occurred.",
+        description: err instanceof Error ? err.message : "An error occurred.",
       });
     }
   }, [fetchRenterBookings, toast]);
@@ -226,44 +221,40 @@ const RenterDashboard = () => {
   }, [renterError, activeRentalsError, toast]);
 
   // Categorize bookings
-  const { pendingBookings, upcomingBookings, historyBookings, needsAttentionCount } =
-    useMemo(() => {
-      const today = todayRef.current;
-      
-      const pending = renterBookings.filter((b) => b.status === "pending");
-      const upcoming = renterBookings.filter(
-        (b) => b.status === "approved" && b.start_date >= today
-      );
-      const history = renterBookings.filter(
-        (b) => b.status === "completed" || b.status === "cancelled"
-      );
-      
-      return {
-        pendingBookings: pending,
-        upcomingBookings: upcoming,
-        historyBookings: history,
-        // Count only pending bookings since that's what's rendered in the section
-        needsAttentionCount: pending.length,
-      };
-    }, [renterBookings]);
+  const {
+    pendingBookings,
+    upcomingBookings,
+    historyBookings,
+    needsAttentionCount,
+  } = useMemo(() => {
+    const today = todayRef.current;
 
-  const progress = profile ? getVerificationProgress(profile) : 0;
+    const pending = renterBookings.filter((b) => b.status === "pending");
+    const upcoming = renterBookings.filter(
+      (b) => b.status === "approved" && b.start_date >= today
+    );
+    const history = renterBookings.filter(
+      (b) => b.status === "completed" || b.status === "cancelled"
+    );
+
+    return {
+      pendingBookings: pending,
+      upcomingBookings: upcoming,
+      historyBookings: history,
+      // Count only pending bookings since that's what's rendered in the section
+      needsAttentionCount: pending.length,
+    };
+  }, [renterBookings]);
 
   return (
     <DashboardLayout>
       <div
-        className={`space-y-4 ${isMobile && urgentInspectionBooking ? "pb-24" : ""}`}
+        className={`space-y-4 ${
+          isMobile && urgentInspectionBooking ? "pb-24" : ""
+        }`}
       >
         {/* Compact Stats - Always visible at top */}
         <CompactStats variant="renter" />
-
-        {/* Verification Alert */}
-        {!verificationLoading && profile && !profile.identityVerified && (
-          <VerificationBanner
-            progress={progress}
-            translationKey="renter.verification.verify_button"
-          />
-        )}
 
         {/* Active Rentals - Expanded by default (primary use case) */}
         <CollapsibleSection
@@ -281,7 +272,10 @@ const RenterDashboard = () => {
           {activeRentals.length === 0 ? (
             <div className="text-center py-6">
               <p className="text-sm text-muted-foreground mb-3">
-                {t("renter.active_rentals.empty_cta", "Ready to rent some gear?")}
+                {t(
+                  "renter.active_rentals.empty_cta",
+                  "Ready to rent some gear?"
+                )}
               </p>
               <Button asChild size="sm">
                 <Link to="/equipment">
@@ -335,7 +329,11 @@ const RenterDashboard = () => {
           defaultExpanded={false}
           emptyMessage={t("renter.upcoming.empty", "No upcoming bookings")}
           loading={renterLoading}
-          seeAllHref={upcomingBookings.length > 5 ? "/renter/bookings?status=upcoming" : undefined}
+          seeAllHref={
+            upcomingBookings.length > 5
+              ? "/renter/bookings?status=upcoming"
+              : undefined
+          }
         >
           {upcomingBookings.slice(0, 5).map((booking) => {
             const status = inspectionStatuses.get(booking.id);
@@ -361,7 +359,11 @@ const RenterDashboard = () => {
           defaultExpanded={false}
           emptyMessage={t("renter.history.empty", "No past bookings yet")}
           loading={renterLoading}
-          seeAllHref={historyBookings.length > 5 ? "/renter/bookings?status=history" : undefined}
+          seeAllHref={
+            historyBookings.length > 5
+              ? "/renter/bookings?status=history"
+              : undefined
+          }
         >
           {historyBookings.slice(0, 5).map((booking) => (
             <BookingListItem

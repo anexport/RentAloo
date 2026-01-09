@@ -232,13 +232,8 @@ const EquipmentManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">My Equipment</h2>
-          <p className="text-muted-foreground">
-            Manage your equipment listings
-          </p>
-        </div>
+      {/* Desktop-only add button - title already handled by PageShell */}
+      <div className="hidden md:flex justify-end items-center">
         <Button onClick={() => setShowForm(true)} size="lg">
           <Plus className="h-5 w-5 mr-2" />
           Add New Equipment
