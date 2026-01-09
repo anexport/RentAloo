@@ -1,314 +1,325 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+import { useEffect, useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { queryKeys } from "@/lib/queryKeys";
 import type {
   UserVerificationProfile,
   TrustScore,
   VerificationType,
-} from "../types/verification";
-import { calculateTrustScore, calculateAccountAge } from "../lib/verification";
+} from "@/types/verification";
+import { calculateTrustScore, calculateAccountAge } from "@/lib/verification";
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface UseVerificationOptions {
   userId?: string;
 }
 
+// ============================================================================
+// FETCH FUNCTIONS
+// ============================================================================
+
+const fetchVerificationProfile = async (
+  targetUserId: string,
+  authUser: { id: string; email_confirmed_at?: string | null } | null
+): Promise<UserVerificationProfile> => {
+  // Fetch profile, reviews, renter bookings, and equipment IDs in parallel
+  const [
+    { data: profileData, error: profileError },
+    { data: reviews, error: reviewsError },
+    { count: renterCount, error: renterCountError },
+    { data: equipmentData, error: equipmentError },
+  ] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", targetUserId).maybeSingle(),
+    supabase.from("reviews").select("rating").eq("reviewee_id", targetUserId),
+    supabase
+      .from("booking_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "completed")
+      .eq("renter_id", targetUserId),
+    supabase.from("equipment").select("id").eq("owner_id", targetUserId),
+  ]);
+
+  // Profile error is fatal - we cannot proceed without profile data
+  if (profileError) throw profileError;
+
+  // If profile doesn't exist, throw a more descriptive error
+  if (!profileData) {
+    throw new Error(
+      "Profile not found. Please ensure your account is properly set up."
+    );
+  }
+
+  // Non-critical errors: log warnings and default to safe values
+  if (reviewsError) {
+    console.warn("Failed to load reviews for trust score:", reviewsError);
+  }
+  if (renterCountError) {
+    console.warn("Failed to load renter bookings count:", renterCountError);
+  }
+  if (equipmentError) {
+    console.warn("Failed to load equipment list:", equipmentError);
+  }
+
+  // Default to safe values for non-critical data
+  const safeReviews = reviewsError ? [] : reviews || [];
+  const safeRenterCount = renterCountError ? 0 : renterCount || 0;
+  const safeEquipmentData = equipmentError ? [] : equipmentData || [];
+
+  const equipmentIds = safeEquipmentData.map((eq) => eq.id);
+  let ownerCount = 0;
+
+  if (equipmentIds.length > 0) {
+    const { count, error: ownerCountError } = await supabase
+      .from("booking_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "completed")
+      .in("equipment_id", equipmentIds);
+
+    if (ownerCountError) {
+      console.warn("Failed to load owner bookings count:", ownerCountError);
+    } else {
+      ownerCount = count || 0;
+    }
+  }
+
+  const bookingsCount = safeRenterCount + ownerCount;
+
+  // Calculate trust score
+  const accountAgeDays = calculateAccountAge(profileData.created_at);
+  const averageRating =
+    safeReviews.length > 0
+      ? safeReviews.reduce((sum, r) => sum + r.rating, 0) / safeReviews.length
+      : 0;
+
+  // Determine email verification status:
+  // - For own profile: use Supabase Auth's email_confirmed_at (source of truth)
+  // - For other profiles: fall back to profiles.email_verified
+  const emailVerified =
+    authUser && authUser.id === targetUserId
+      ? !!authUser.email_confirmed_at
+      : profileData.email_verified || false;
+
+  const trustScore: TrustScore = calculateTrustScore({
+    identityVerified: profileData.identity_verified || false,
+    phoneVerified: profileData.phone_verified || false,
+    emailVerified,
+    completedBookings: bookingsCount,
+    averageRating,
+    totalReviews: safeReviews.length,
+    averageResponseTimeHours: profileData.average_response_time_hours ?? 12,
+    accountAgeDays,
+  });
+
+  return {
+    userId: targetUserId,
+    identityVerified: profileData.identity_verified || false,
+    phoneVerified: profileData.phone_verified || false,
+    emailVerified,
+    addressVerified: profileData.address_verified || false,
+    trustScore,
+    verifiedAt: profileData.verified_at,
+  };
+};
+
+const uploadDocumentApi = async (params: {
+  userId: string;
+  file: File;
+  type: VerificationType;
+}): Promise<void> => {
+  const { userId, file, type } = params;
+
+  // Upload file to Supabase Storage
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${userId}/${type}_${Date.now()}.${fileExt}`;
+  const { error: uploadError } = await supabase.storage
+    .from("verification-documents")
+    .upload(fileName, file);
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("verification-documents").getPublicUrl(fileName);
+
+  // Update profile with verification status
+  const updateField = `${type}_verification_status`;
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      [updateField]: "pending",
+      [`${type}_verification_url`]: publicUrl,
+    })
+    .eq("id", userId);
+
+  if (updateError) throw updateError;
+};
+
+const requestPhoneVerificationApi = async (params: {
+  userId: string;
+  phoneNumber: string;
+}): Promise<void> => {
+  const { userId, phoneNumber } = params;
+
+  // This would integrate with a phone verification service like Twilio
+  // For now, we'll just update the profile
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      phone: phoneNumber,
+      phone_verification_status: "pending",
+    })
+    .eq("id", userId);
+
+  if (updateError) throw updateError;
+};
+
+// ============================================================================
+// HOOK: useVerification
+// ============================================================================
+
 export const useVerification = (options: UseVerificationOptions = {}) => {
-  const [profile, setProfile] = useState<UserVerificationProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [authUser, setAuthUser] = useState<{
+    id: string;
+    email_confirmed_at?: string | null;
+  } | null>(null);
 
-  const fetchVerificationProfile = useCallback(async () => {
-    // Step 1: Validate and get targetUserId and auth user data
-    let targetUserId = options.userId;
-    let authUser: { email_confirmed_at?: string | null } | null = null;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!targetUserId) {
-      if (!user) {
-        setError("User not authenticated");
-        setLoading(false);
-        return;
-      }
-      targetUserId = user.id;
-    }
-
-    // If viewing own profile, use auth user data for email verification status
-    if (user && user.id === targetUserId) {
-      authUser = user;
-    }
-
-    // Step 2: Validation passed - set up state for the actual fetch
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Fetch profile, reviews, renter bookings, and equipment IDs in parallel
-      const [
-        { data: profileData, error: profileError },
-        { data: reviews, error: reviewsError },
-        { count: renterCount, error: renterCountError },
-        { data: equipmentData, error: equipmentError },
-      ] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", targetUserId).maybeSingle(),
-        supabase.from("reviews").select("rating").eq("reviewee_id", targetUserId),
-        supabase
-          .from("booking_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "completed")
-          .eq("renter_id", targetUserId),
-        supabase
-          .from("equipment")
-          .select("id")
-          .eq("owner_id", targetUserId),
-      ]);
-
-      // Profile error is fatal - we cannot proceed without profile data
-      if (profileError) throw profileError;
-
-      // If profile doesn't exist, throw a more descriptive error
-      if (!profileData) {
-        throw new Error("Profile not found. Please ensure your account is properly set up.");
-      }
-
-      // Non-critical errors: log warnings and default to safe values
-      if (reviewsError) {
-        console.warn("Failed to load reviews for trust score:", reviewsError);
-      }
-      if (renterCountError) {
-        console.warn("Failed to load renter bookings count:", renterCountError);
-      }
-      if (equipmentError) {
-        console.warn("Failed to load equipment list:", equipmentError);
-      }
-
-      // Default to safe values for non-critical data
-      const safeReviews = reviewsError ? [] : reviews || [];
-      const safeRenterCount = renterCountError ? 0 : renterCount || 0;
-      const safeEquipmentData = equipmentError ? [] : equipmentData || [];
-
-      const equipmentIds = safeEquipmentData.map((eq) => eq.id);
-      let ownerCount = 0;
-
-      if (equipmentIds.length > 0) {
-        const { count, error: ownerCountError } = await supabase
-          .from("booking_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "completed")
-          .in("equipment_id", equipmentIds);
-
-        if (ownerCountError) {
-          console.warn("Failed to load owner bookings count:", ownerCountError);
-        } else {
-          ownerCount = count || 0;
-        }
-      }
-
-      const bookingsCount = safeRenterCount + ownerCount;
-
-      // Calculate trust score
-      const accountAgeDays = calculateAccountAge(profileData.created_at);
-      const averageRating =
-        safeReviews.length > 0
-          ? safeReviews.reduce((sum, r) => sum + r.rating, 0) / safeReviews.length
-          : 0;
-
-      // Determine email verification status:
-      // - For own profile: use Supabase Auth's email_confirmed_at (source of truth)
-      // - For other profiles: fall back to profiles.email_verified
-      const emailVerified = authUser
-        ? !!authUser.email_confirmed_at
-        : profileData.email_verified || false;
-
-      const trustScore: TrustScore = calculateTrustScore({
-        identityVerified: profileData.identity_verified || false,
-        phoneVerified: profileData.phone_verified || false,
-        emailVerified,
-        completedBookings: bookingsCount,
-        averageRating,
-        totalReviews: safeReviews.length,
-        averageResponseTimeHours: profileData.average_response_time_hours ?? 12,
-        accountAgeDays,
-      });
-
-      const verificationProfile: UserVerificationProfile = {
-        userId: targetUserId,
-        identityVerified: profileData.identity_verified || false,
-        phoneVerified: profileData.phone_verified || false,
-        emailVerified,
-        addressVerified: profileData.address_verified || false,
-        trustScore,
-        verifiedAt: profileData.verified_at,
-      };
-
-      setProfile(verificationProfile);
-    } catch (err) {
-      console.error("Error fetching verification profile:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to fetch verification profile"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [options.userId]);
-
+  // Get auth user on mount
   useEffect(() => {
-    void fetchVerificationProfile();
-  }, [fetchVerificationProfile]);
+    const getAuthUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setAuthUser({
+          id: user.id,
+          email_confirmed_at: user.email_confirmed_at,
+        });
+      }
+    };
+    void getAuthUser();
+  }, []);
+
+  // Determine target user ID
+  const targetUserId = options.userId || authUser?.id;
+
+  // Query for fetching verification profile
+  const {
+    data: profile = null,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.verification.byUser(targetUserId ?? ""),
+    queryFn: () => fetchVerificationProfile(targetUserId!, authUser),
+    enabled: !!targetUserId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Mutation for uploading verification document
+  const uploadMutation = useMutation({
+    mutationFn: (params: { file: File; type: VerificationType }) => {
+      if (!authUser) throw new Error("User not authenticated");
+      return uploadDocumentApi({ ...params, userId: authUser.id });
+    },
+    onMutate: () => {
+      setUploading(true);
+    },
+    onSettled: () => {
+      setUploading(false);
+    },
+    onSuccess: () => {
+      // Invalidate verification queries
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.verification.all,
+      });
+    },
+  });
+
+  // Mutation for requesting phone verification
+  const phoneVerificationMutation = useMutation({
+    mutationFn: (phoneNumber: string) => {
+      if (!authUser) throw new Error("User not authenticated");
+      return requestPhoneVerificationApi({
+        userId: authUser.id,
+        phoneNumber,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.verification.all,
+      });
+    },
+  });
 
   // Subscribe to trust score updates via Supabase Realtime
   useEffect(() => {
-    let isMounted = true;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    if (!targetUserId) return;
 
-    const setupRealtimeSubscription = async () => {
-      let targetUserId = options.userId;
-      if (!targetUserId) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user || !isMounted) return;
-        targetUserId = user.id;
-      }
-
-      if (!isMounted) return;
-
-      channel = supabase
-        .channel(`profile-trust-${targetUserId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${targetUserId}`,
-          },
-          (payload) => {
-            if (!isMounted) return;
-            // Trust score was updated, refresh profile
-            const newData = payload.new as { trust_score?: number };
-            const oldData = payload.old as { trust_score?: number };
-            if (newData.trust_score !== oldData?.trust_score) {
-              void fetchVerificationProfile();
-            }
+    const channel = supabase
+      .channel(`profile-trust-${targetUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${targetUserId}`,
+        },
+        (payload) => {
+          // Trust score was updated, refresh profile
+          const newData = payload.new as { trust_score?: number };
+          const oldData = payload.old as { trust_score?: number };
+          if (newData.trust_score !== oldData?.trust_score) {
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.verification.byUser(targetUserId),
+            });
           }
-        )
-        .subscribe();
-    };
-
-    void setupRealtimeSubscription();
+        }
+      )
+      .subscribe();
 
     return () => {
-      isMounted = false;
-      if (channel) {
-        void supabase.removeChannel(channel);
-      }
+      void supabase.removeChannel(channel);
     };
-  }, [options.userId, fetchVerificationProfile]);
+  }, [targetUserId, queryClient]);
 
+  // Wrapper functions for API compatibility
   const uploadVerificationDocument = useCallback(
     async (file: File, type: VerificationType): Promise<void> => {
-      setUploading(true);
-      setError(null);
-
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-
-        // Upload file to Supabase Storage
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("verification-documents")
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage
-          .from("verification-documents")
-          .getPublicUrl(fileName);
-
-        // Update profile with verification status
-        const updateField = `${type}_verification_status`;
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            [updateField]: "pending",
-            [`${type}_verification_url`]: publicUrl,
-          })
-          .eq("id", user.id);
-
-        if (updateError) throw updateError;
-
-        // Refresh profile
-        await fetchVerificationProfile();
-      } catch (err) {
-        console.error("Error uploading document:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to upload document"
-        );
-        throw err;
-      } finally {
-        setUploading(false);
-      }
+      await uploadMutation.mutateAsync({ file, type });
     },
-    [fetchVerificationProfile]
+    [uploadMutation]
   );
 
   const requestPhoneVerification = useCallback(
-    async (phoneNumber: string) => {
-      setError(null);
+    async (
+      phoneNumber: string
+    ): Promise<{ success: boolean; error?: string }> => {
       try {
-        // This would integrate with a phone verification service like Twilio
-        // For now, we'll just update the profile
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not authenticated");
-
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            phone: phoneNumber,
-            phone_verification_status: "pending",
-          })
-          .eq("id", user.id);
-
-        if (updateError) throw updateError;
-
-        await fetchVerificationProfile();
+        await phoneVerificationMutation.mutateAsync(phoneNumber);
         return { success: true };
       } catch (err) {
-        console.error("Error requesting phone verification:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to request phone verification"
-        );
         return {
           success: false,
           error: err instanceof Error ? err.message : "Failed",
         };
       }
     },
-    [fetchVerificationProfile]
+    [phoneVerificationMutation]
   );
 
   return {
     profile,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message ?? null,
     uploading,
-    fetchVerificationProfile,
+    fetchVerificationProfile: refetch,
     uploadVerificationDocument,
     requestPhoneVerification,
   };

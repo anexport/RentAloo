@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import { queryKeys } from "@/lib/queryKeys";
 import { toast } from "@/hooks/useToast";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type {
@@ -14,7 +16,6 @@ import type {
 import {
   getNotificationCategory,
   shouldShowToast,
-  getNotificationIcon,
 } from "@/types/notification";
 
 // ============================================================================
@@ -22,31 +23,88 @@ import {
 // ============================================================================
 
 const NOTIFICATIONS_LIMIT = 50;
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 // ============================================================================
-// CACHE
+// FETCH FUNCTIONS
 // ============================================================================
 
-const notificationCache = new Map<
-  string,
-  { data: NotificationWithActor[]; timestamp: number }
->();
+const fetchNotifications = async (
+  filter: NotificationCategory
+): Promise<NotificationWithActor[]> => {
+  const { data, error } = await supabase.rpc("get_notifications", {
+    p_limit: NOTIFICATIONS_LIMIT,
+    p_offset: 0,
+    p_include_archived: false,
+    p_category: filter === "all" ? null : filter,
+  });
 
-const isCacheValid = (key: string): boolean => {
-  const cached = notificationCache.get(key);
-  return cached ? Date.now() - cached.timestamp < CACHE_TTL : false;
+  if (error) throw error;
+  return (data as NotificationWithActor[]) || [];
 };
 
-const getCachedData = (key: string): NotificationWithActor[] | null => {
-  if (isCacheValid(key)) {
-    return notificationCache.get(key)?.data ?? null;
+const fetchUnreadCount = async (userId: string): Promise<number> => {
+  const { data, error } = await supabase.rpc("get_notification_count", {
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+  return data as number;
+};
+
+const fetchPreferences = async (
+  userId: string
+): Promise<NotificationPreferences | null> => {
+  const { data, error } = await supabase
+    .from("notification_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    throw error;
   }
-  return null;
+
+  return data as NotificationPreferences | null;
 };
 
-const setCachedData = (key: string, data: NotificationWithActor[]) => {
-  notificationCache.set(key, { data, timestamp: Date.now() });
+const markNotificationRead = async (
+  notificationId: string
+): Promise<boolean> => {
+  const { data, error } = await supabase.rpc("mark_notification_read", {
+    p_notification_id: notificationId,
+  });
+
+  if (error) throw error;
+  return data as boolean;
+};
+
+const markAllNotificationsRead = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc("mark_all_notifications_read");
+
+  if (error) throw error;
+  return data as number;
+};
+
+const deleteNotificationApi = async (
+  notificationId: string
+): Promise<boolean> => {
+  const { data, error } = await supabase.rpc("delete_notification", {
+    p_notification_id: notificationId,
+  });
+
+  if (error) throw error;
+  return data as boolean;
+};
+
+const archiveNotificationApi = async (
+  notificationId: string
+): Promise<boolean> => {
+  const { data, error } = await supabase.rpc("archive_notification", {
+    p_notification_id: notificationId,
+  });
+
+  if (error) throw error;
+  return data as boolean;
 };
 
 // ============================================================================
@@ -55,277 +113,229 @@ const setCachedData = (key: string, data: NotificationWithActor[]) => {
 
 export const useNotifications = (): UseNotificationsReturn => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationWithActor[]>(
-    []
-  );
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<NotificationCategory>("all");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const preferencesLoadedRef = useRef(false);
   const preferencesRef = useRef<NotificationPreferences | null>(null);
 
-  // Keep preferencesRef in sync with state
+  // Query for notifications
+  const {
+    data: notifications = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.notifications.byCategory(user?.id ?? "", filter),
+    queryFn: () => fetchNotifications(filter),
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  // Query for unread count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: queryKeys.notifications.unreadCount(user?.id ?? ""),
+    queryFn: () => fetchUnreadCount(user!.id),
+    enabled: !!user,
+    staleTime: 30 * 1000, // 30 seconds - more real-time
+  });
+
+  // Query for preferences (used for toast behavior)
+  const { data: preferences = null } = useQuery({
+    queryKey: queryKeys.notificationPreferences.byUser(user?.id ?? ""),
+    queryFn: () => fetchPreferences(user!.id),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Keep preferencesRef in sync
   useEffect(() => {
     preferencesRef.current = preferences;
   }, [preferences]);
 
-  // ============================================================================
-  // FETCH NOTIFICATIONS
-  // ============================================================================
+  // Mutation for marking as read
+  const markAsReadMutation = useMutation({
+    mutationFn: markNotificationRead,
+    onMutate: async (notificationId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications.byCategory(user!.id, filter),
+      });
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+      // Snapshot previous values
+      const previousNotifications = queryClient.getQueryData<
+        NotificationWithActor[]
+      >(queryKeys.notifications.byCategory(user!.id, filter));
 
-    const cacheKey = `notifications_${user.id}`;
-
-    // Check cache first
-    const cachedData = getCachedData(cacheKey);
-    if (cachedData) {
-      setNotifications(cachedData);
-      setUnreadCount(cachedData.filter((n) => !n.is_read).length);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Use the RPC function to get notifications with actor info
-      const { data, error: fetchError } = await supabase.rpc(
-        "get_notifications",
-        {
-          p_limit: NOTIFICATIONS_LIMIT,
-          p_offset: 0,
-          p_include_archived: false,
-          p_category: filter === "all" ? null : filter,
-        }
+      // Check if notification was unread
+      const wasUnread = previousNotifications?.find(
+        (n) => n.id === notificationId && !n.is_read
       );
 
-      if (fetchError) throw fetchError;
-
-      const notificationsData = (data as NotificationWithActor[]) || [];
-      setNotifications(notificationsData);
-      setCachedData(cacheKey, notificationsData);
-
-      // Update unread count
-      const unread = notificationsData.filter((n) => !n.is_read).length;
-      setUnreadCount(unread);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to fetch notifications";
-      console.error("Error fetching notifications:", err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, filter]);
-
-  // ============================================================================
-  // FETCH PREFERENCES (for toast behavior)
-  // ============================================================================
-
-  const fetchPreferences = useCallback(async () => {
-    if (!user || preferencesLoadedRef.current) return;
-
-    try {
-      const { data, error: prefError } = await supabase
-        .from("notification_preferences")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (prefError && prefError.code !== "PGRST116") {
-        // PGRST116 = not found, which is fine
-        throw prefError;
-      }
-
-      setPreferences(data as NotificationPreferences | null);
-      preferencesLoadedRef.current = true;
-    } catch (err) {
-      console.error("Error fetching notification preferences:", err);
-    }
-  }, [user]);
-
-  // ============================================================================
-  // FETCH UNREAD COUNT
-  // ============================================================================
-
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error: countError } = await supabase.rpc(
-        "get_notification_count",
-        { p_user_id: user.id }
-      );
-
-      if (countError) throw countError;
-      setUnreadCount(data as number);
-    } catch (err) {
-      console.error("Error fetching unread count:", err);
-    }
-  }, [user]);
-
-  // ============================================================================
-  // MARK AS READ
-  // ============================================================================
-
-  const markAsRead = useCallback(
-    async (notificationId: string): Promise<boolean> => {
-      if (!user) return false;
-
-      try {
-        const { data, error: updateError } = await supabase.rpc(
-          "mark_notification_read",
-          { p_notification_id: notificationId }
-        );
-
-        if (updateError) throw updateError;
-
-        // Check if notification was actually unread before decrementing
-        const notification = notifications.find((n) => n.id === notificationId);
-        const wasUnread = notification && !notification.is_read;
-
-        // Optimistically update local state
-        setNotifications((prev) =>
-          prev.map((n) =>
+      // Optimistically update notifications
+      queryClient.setQueryData<NotificationWithActor[]>(
+        queryKeys.notifications.byCategory(user!.id, filter),
+        (old = []) =>
+          old.map((n) =>
             n.id === notificationId
               ? { ...n, is_read: true, read_at: new Date().toISOString() }
               : n
           )
-        );
-
-        // Only decrement if notification was actually unread
-        if (wasUnread) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-
-        // Invalidate cache
-        notificationCache.delete(`notifications_${user.id}`);
-
-        return data as boolean;
-      } catch (err) {
-        console.error("Error marking notification as read:", err);
-        return false;
-      }
-    },
-    [user, notifications]
-  );
-
-  // ============================================================================
-  // MARK ALL AS READ
-  // ============================================================================
-
-  const markAllAsRead = useCallback(async (): Promise<number> => {
-    if (!user) return 0;
-
-    try {
-      const { data, error: updateError } = await supabase.rpc(
-        "mark_all_notifications_read"
       );
 
-      if (updateError) throw updateError;
+      // Optimistically update unread count
+      if (wasUnread) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount(user!.id),
+          (old = 0) => Math.max(0, old - 1)
+        );
+      }
 
-      // Optimistically update local state
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          is_read: true,
-          read_at: n.is_read ? n.read_at : new Date().toISOString(),
-        }))
+      return { previousNotifications, wasUnread: !!wasUnread };
+    },
+    onError: (_error, _notificationId, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          queryKeys.notifications.byCategory(user!.id, filter),
+          context.previousNotifications
+        );
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.unreadCount(user!.id),
+      });
+    },
+  });
+
+  // Mutation for marking all as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: markAllNotificationsRead,
+    onMutate: async () => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications.byCategory(user!.id, filter),
+      });
+
+      const previousNotifications = queryClient.getQueryData<
+        NotificationWithActor[]
+      >(queryKeys.notifications.byCategory(user!.id, filter));
+
+      // Optimistically mark all as read
+      queryClient.setQueryData<NotificationWithActor[]>(
+        queryKeys.notifications.byCategory(user!.id, filter),
+        (old = []) =>
+          old.map((n) => ({
+            ...n,
+            is_read: true,
+            read_at: n.is_read ? n.read_at : new Date().toISOString(),
+          }))
       );
-      setUnreadCount(0);
 
-      // Invalidate cache
-      notificationCache.delete(`notifications_${user.id}`);
+      queryClient.setQueryData<number>(
+        queryKeys.notifications.unreadCount(user!.id),
+        0
+      );
 
-      return data as number;
-    } catch (err) {
-      console.error("Error marking all notifications as read:", err);
-      return 0;
-    }
-  }, [user]);
-
-  // ============================================================================
-  // DELETE NOTIFICATION
-  // ============================================================================
-
-  const deleteNotification = useCallback(
-    async (notificationId: string): Promise<boolean> => {
-      if (!user) return false;
-
-      try {
-        const { data, error: deleteError } = await supabase.rpc(
-          "delete_notification",
-          { p_notification_id: notificationId }
+      return { previousNotifications };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          queryKeys.notifications.byCategory(user!.id, filter),
+          context.previousNotifications
         );
-
-        if (deleteError) throw deleteError;
-
-        // Optimistically update local state
-        const notification = notifications.find((n) => n.id === notificationId);
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        if (notification && !notification.is_read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-
-        // Invalidate cache
-        notificationCache.delete(`notifications_${user.id}`);
-
-        return data as boolean;
-      } catch (err) {
-        console.error("Error deleting notification:", err);
-        return false;
       }
     },
-    [user, notifications]
-  );
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.byUser(user!.id),
+      });
+    },
+  });
 
-  // ============================================================================
-  // ARCHIVE NOTIFICATION
-  // ============================================================================
+  // Mutation for deleting notification
+  const deleteMutation = useMutation({
+    mutationFn: deleteNotificationApi,
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications.byCategory(user!.id, filter),
+      });
 
-  const archiveNotification = useCallback(
-    async (notificationId: string): Promise<boolean> => {
-      if (!user) return false;
+      const previousNotifications = queryClient.getQueryData<
+        NotificationWithActor[]
+      >(queryKeys.notifications.byCategory(user!.id, filter));
 
-      try {
-        const { data, error: archiveError } = await supabase.rpc(
-          "archive_notification",
-          { p_notification_id: notificationId }
+      const notification = previousNotifications?.find(
+        (n) => n.id === notificationId
+      );
+
+      queryClient.setQueryData<NotificationWithActor[]>(
+        queryKeys.notifications.byCategory(user!.id, filter),
+        (old = []) => old.filter((n) => n.id !== notificationId)
+      );
+
+      if (notification && !notification.is_read) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount(user!.id),
+          (old = 0) => Math.max(0, old - 1)
         );
+      }
 
-        if (archiveError) throw archiveError;
-
-        // Optimistically update local state
-        const notification = notifications.find((n) => n.id === notificationId);
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        if (notification && !notification.is_read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-
-        // Invalidate cache
-        notificationCache.delete(`notifications_${user.id}`);
-
-        return data as boolean;
-      } catch (err) {
-        console.error("Error archiving notification:", err);
-        return false;
+      return { previousNotifications };
+    },
+    onError: (_error, _notificationId, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          queryKeys.notifications.byCategory(user!.id, filter),
+          context.previousNotifications
+        );
       }
     },
-    [user, notifications]
-  );
+  });
 
-  // ============================================================================
-  // TOGGLE GROUP EXPANDED
-  // ============================================================================
+  // Mutation for archiving notification
+  const archiveMutation = useMutation({
+    mutationFn: archiveNotificationApi,
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.notifications.byCategory(user!.id, filter),
+      });
 
+      const previousNotifications = queryClient.getQueryData<
+        NotificationWithActor[]
+      >(queryKeys.notifications.byCategory(user!.id, filter));
+
+      const notification = previousNotifications?.find(
+        (n) => n.id === notificationId
+      );
+
+      queryClient.setQueryData<NotificationWithActor[]>(
+        queryKeys.notifications.byCategory(user!.id, filter),
+        (old = []) => old.filter((n) => n.id !== notificationId)
+      );
+
+      if (notification && !notification.is_read) {
+        queryClient.setQueryData<number>(
+          queryKeys.notifications.unreadCount(user!.id),
+          (old = 0) => Math.max(0, old - 1)
+        );
+      }
+
+      return { previousNotifications };
+    },
+    onError: (_error, _notificationId, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          queryKeys.notifications.byCategory(user!.id, filter),
+          context.previousNotifications
+        );
+      }
+    },
+  });
+
+  // Toggle group expanded
   const toggleGroupExpanded = useCallback((groupKey: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -338,10 +348,7 @@ export const useNotifications = (): UseNotificationsReturn => {
     });
   }, []);
 
-  // ============================================================================
-  // GROUP NOTIFICATIONS
-  // ============================================================================
-
+  // Group notifications
   const groupedNotifications: NotificationGroup[] = useMemo(() => {
     // Filter by category if not 'all'
     const filtered =
@@ -404,32 +411,10 @@ export const useNotifications = (): UseNotificationsReturn => {
     return result;
   }, [notifications, filter, expandedGroups]);
 
-  // ============================================================================
-  // REFRESH NOTIFICATIONS
-  // ============================================================================
-
-  const refreshNotifications = useCallback(async () => {
-    if (!user) return;
-    notificationCache.delete(`notifications_${user.id}`);
-    await fetchNotifications();
-  }, [user, fetchNotifications]);
-
-  // ============================================================================
-  // REAL-TIME SUBSCRIPTION
-  // ============================================================================
-
+  // Real-time subscription
   useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
-    }
+    if (!user) return;
 
-    // Initial fetch
-    void fetchNotifications();
-    void fetchPreferences();
-
-    // Set up realtime subscription
     const channel = supabase
       .channel(`notifications:${user.id}`)
       .on(
@@ -440,48 +425,56 @@ export const useNotifications = (): UseNotificationsReturn => {
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        async (payload) => {
+        (payload) => {
           const baseNotification = payload.new as Notification;
 
-          // Realtime payload doesn't include actor details (they come from JOIN)
-          // Initialize with null actor fields, then fetch if actor_id exists
-          let newNotification: NotificationWithActor = {
-            ...baseNotification,
-            actor_email: null,
-            actor_avatar_url: null,
+          // Handle async actor fetch in a non-blocking way
+          const handleInsert = async () => {
+            // Fetch actor details if present
+            let newNotification: NotificationWithActor = {
+              ...baseNotification,
+              actor_email: null,
+              actor_avatar_url: null,
+            };
+
+            if (baseNotification.actor_id) {
+              const { data: actorData } = await supabase
+                .from("profiles")
+                .select("email, avatar_url")
+                .eq("id", baseNotification.actor_id)
+                .single();
+
+              if (actorData) {
+                newNotification = {
+                  ...newNotification,
+                  actor_email: actorData.email,
+                  actor_avatar_url: actorData.avatar_url,
+                };
+              }
+            }
+
+            // Add to cache
+            queryClient.setQueryData<NotificationWithActor[]>(
+              queryKeys.notifications.byCategory(user.id, filter),
+              (old = []) => [newNotification, ...old]
+            );
+
+            // Update unread count
+            queryClient.setQueryData<number>(
+              queryKeys.notifications.unreadCount(user.id),
+              (old = 0) => old + 1
+            );
+
+            // Show toast if appropriate
+            if (shouldShowToast(newNotification, preferencesRef.current)) {
+              toast({
+                title: newNotification.title,
+                description: newNotification.message,
+              });
+            }
           };
 
-          // Fetch actor details if present
-          if (baseNotification.actor_id) {
-            const { data: actorData } = await supabase
-              .from("profiles")
-              .select("email, avatar_url")
-              .eq("id", baseNotification.actor_id)
-              .single();
-
-            if (actorData) {
-              newNotification = {
-                ...newNotification,
-                actor_email: actorData.email,
-                actor_avatar_url: actorData.avatar_url,
-              };
-            }
-          }
-
-          // Add to state
-          setNotifications((prev) => [newNotification, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-
-          // Show toast if appropriate (use ref to avoid recreating subscription)
-          if (shouldShowToast(newNotification, preferencesRef.current)) {
-            toast({
-              title: newNotification.title,
-              description: newNotification.message,
-            });
-          }
-
-          // Invalidate cache
-          notificationCache.delete(`notifications_${user.id}`);
+          handleInsert().catch(console.error);
         }
       )
       .on(
@@ -495,24 +488,25 @@ export const useNotifications = (): UseNotificationsReturn => {
         (payload) => {
           const updatedBase = payload.new as Notification;
 
-          // Preserve existing actor data since realtime doesn't include it
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === updatedBase.id
-                ? {
-                    ...updatedBase,
-                    actor_email: n.actor_email,
-                    actor_avatar_url: n.actor_avatar_url,
-                  }
-                : n
-            )
+          // Update in cache preserving actor data
+          queryClient.setQueryData<NotificationWithActor[]>(
+            queryKeys.notifications.byCategory(user.id, filter),
+            (old = []) =>
+              old.map((n) =>
+                n.id === updatedBase.id
+                  ? {
+                      ...updatedBase,
+                      actor_email: n.actor_email,
+                      actor_avatar_url: n.actor_avatar_url,
+                    }
+                  : n
+              )
           );
 
-          // Refetch unread count
-          void fetchUnreadCount();
-
-          // Invalidate cache
-          notificationCache.delete(`notifications_${user.id}`);
+          // Refresh unread count (fire and forget)
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.notifications.unreadCount(user.id),
+          }).catch(console.error);
         }
       )
       .on(
@@ -526,13 +520,15 @@ export const useNotifications = (): UseNotificationsReturn => {
         (payload) => {
           const deletedId = (payload.old as { id: string }).id;
 
-          setNotifications((prev) => prev.filter((n) => n.id !== deletedId));
+          queryClient.setQueryData<NotificationWithActor[]>(
+            queryKeys.notifications.byCategory(user.id, filter),
+            (old = []) => old.filter((n) => n.id !== deletedId)
+          );
 
-          // Refetch unread count
-          void fetchUnreadCount();
-
-          // Invalidate cache
-          notificationCache.delete(`notifications_${user.id}`);
+          // Refresh unread count (fire and forget)
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.notifications.unreadCount(user.id),
+          }).catch(console.error);
         }
       )
       .subscribe();
@@ -545,41 +541,127 @@ export const useNotifications = (): UseNotificationsReturn => {
         channelRef.current = null;
       }
     };
-  }, [user, fetchNotifications, fetchPreferences, fetchUnreadCount]);
+  }, [user, filter, queryClient]);
 
-  // ============================================================================
-  // REFETCH ON FILTER CHANGE
-  // ============================================================================
-
-  useEffect(() => {
-    if (user) {
-      void fetchNotifications();
-    }
-  }, [filter, user, fetchNotifications]);
-
-  // ============================================================================
-  // CLEANUP ON LOGOUT
-  // ============================================================================
-
+  // Cleanup on logout
   useEffect(() => {
     if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setLoading(false);
-      setError(null);
       setExpandedGroups(new Set());
-      setPreferences(null);
-      preferencesLoadedRef.current = false;
-      notificationCache.clear();
     }
   }, [user]);
+
+  // Wrapper functions for API compatibility
+  const markAsRead = useCallback(
+    async (notificationId: string): Promise<boolean> => {
+      if (!user) return false;
+      try {
+        await markAsReadMutation.mutateAsync(notificationId);
+        toast({
+          title: "Notification marked as read",
+          description: "The notification has been marked as read.",
+        });
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to mark notification as read";
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return false;
+      }
+    },
+    [user, markAsReadMutation]
+  );
+
+  const markAllAsRead = useCallback(async (): Promise<number> => {
+    if (!user) return 0;
+    try {
+      const count = await markAllAsReadMutation.mutateAsync();
+      toast({
+        title: "All notifications marked as read",
+        description: `${count} notification${count !== 1 ? "s" : ""} marked as read.`,
+      });
+      return count;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to mark all notifications as read";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
+      });
+      return 0;
+    }
+  }, [user, markAllAsReadMutation]);
+
+  const deleteNotification = useCallback(
+    async (notificationId: string): Promise<boolean> => {
+      if (!user) return false;
+      try {
+        await deleteMutation.mutateAsync(notificationId);
+        toast({
+          title: "Notification deleted",
+          description: "The notification has been deleted.",
+        });
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to delete notification";
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return false;
+      }
+    },
+    [user, deleteMutation]
+  );
+
+  const archiveNotification = useCallback(
+    async (notificationId: string): Promise<boolean> => {
+      if (!user) return false;
+      try {
+        await archiveMutation.mutateAsync(notificationId);
+        toast({
+          title: "Notification archived",
+          description: "The notification has been archived.",
+        });
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to archive notification";
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: errorMessage,
+        });
+        return false;
+      }
+    },
+    [user, archiveMutation]
+  );
+
+  const refreshNotifications = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
     notifications,
     groupedNotifications,
     unreadCount,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message ?? null,
     filter,
     setFilter,
     markAsRead,

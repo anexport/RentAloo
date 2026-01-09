@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { formatDateForStorage } from "@/lib/utils";
+import { queryKeys } from "@/lib/queryKeys";
 import type { Database } from "@/lib/database.types";
 
 type AvailabilityRecord = Database["public"]["Tables"]["availability_calendar"]["Row"];
@@ -16,58 +18,70 @@ interface UseEquipmentAvailabilityProps {
   enabled?: boolean;
 }
 
+// ============================================================================
+// FETCH FUNCTION
+// ============================================================================
+
+const fetchAvailability = async (
+  equipmentId: string
+): Promise<Map<string, EquipmentAvailability>> => {
+  // Fetch availability for the next 6 months
+  const today = new Date();
+  const sixMonthsFromNow = new Date();
+  sixMonthsFromNow.setMonth(today.getMonth() + 6);
+
+  const { data, error } = await supabase
+    .from("availability_calendar")
+    .select("*")
+    .eq("equipment_id", equipmentId)
+    .gte("date", formatDateForStorage(today))
+    .lte("date", formatDateForStorage(sixMonthsFromNow));
+
+  if (error) throw error;
+
+  // Convert to Map for fast lookup
+  const availabilityMap = new Map<string, EquipmentAvailability>();
+  (data || []).forEach((record: AvailabilityRecord) => {
+    availabilityMap.set(record.date, {
+      date: record.date,
+      isAvailable: record.is_available ?? true,
+      customRate: record.custom_rate,
+    });
+  });
+
+  return availabilityMap;
+};
+
+// ============================================================================
+// HOOK: useEquipmentAvailability
+// ============================================================================
+
 export const useEquipmentAvailability = ({
   equipmentId,
   enabled = true,
 }: UseEquipmentAvailabilityProps) => {
-  const [availability, setAvailability] = useState<Map<string, EquipmentAvailability>>(new Map());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // Query for fetching availability
+  const {
+    data: availabilityData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: queryKeys.availability.byEquipment(equipmentId ?? ""),
+    queryFn: () => fetchAvailability(equipmentId!),
+    enabled: !!equipmentId && enabled,
+    staleTime: 2 * 60 * 1000, // 2 minutes - availability changes relatively frequently
+    // Keep previous data while fetching
+    placeholderData: (previousData) => previousData,
+  });
 
-  const fetchAvailability = useCallback(async () => {
-    if (!equipmentId || !enabled) return;
+  // Memoize the availability Map to ensure stable reference
+  const availability = useMemo<Map<string, EquipmentAvailability>>(
+    () => availabilityData ?? new Map<string, EquipmentAvailability>(),
+    [availabilityData]
+  );
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Fetch availability for the next 6 months
-      const today = new Date();
-      const sixMonthsFromNow = new Date();
-      sixMonthsFromNow.setMonth(today.getMonth() + 6);
-
-      const { data, error: fetchError } = await supabase
-        .from("availability_calendar")
-        .select("*")
-        .eq("equipment_id", equipmentId)
-        .gte("date", formatDateForStorage(today))
-        .lte("date", formatDateForStorage(sixMonthsFromNow));
-
-      if (fetchError) throw fetchError;
-
-      // Convert to Map for fast lookup
-      const availabilityMap = new Map<string, EquipmentAvailability>();
-      (data || []).forEach((record: AvailabilityRecord) => {
-        availabilityMap.set(record.date, {
-          date: record.date,
-          isAvailable: record.is_available ?? true,
-          customRate: record.custom_rate,
-        });
-      });
-
-      setAvailability(availabilityMap);
-    } catch (err) {
-      console.error("Error fetching availability:", err);
-      setError(err instanceof Error ? err : new Error("Failed to fetch availability"));
-    } finally {
-      setLoading(false);
-    }
-  }, [equipmentId, enabled]);
-
-  useEffect(() => {
-    void fetchAvailability();
-  }, [fetchAvailability]);
-
+  // Helper to get availability for a specific date
   const getAvailabilityForDate = useCallback(
     (date: Date): EquipmentAvailability | undefined => {
       const dateStr = formatDateForStorage(date);
@@ -76,6 +90,7 @@ export const useEquipmentAvailability = ({
     [availability]
   );
 
+  // Helper to check if a date is available
   const isDateAvailable = useCallback(
     (date: Date): boolean => {
       const dateStr = formatDateForStorage(date);
@@ -88,11 +103,10 @@ export const useEquipmentAvailability = ({
 
   return {
     availability,
-    loading,
-    error,
+    loading: isLoading,
+    error: error instanceof Error ? error : null,
     getAvailabilityForDate,
     isDateAvailable,
-    refetch: fetchAvailability,
+    refetch,
   };
 };
-

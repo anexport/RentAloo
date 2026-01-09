@@ -129,10 +129,19 @@ export default function RentalListItem({
             <Package className="h-6 w-6 text-muted-foreground" />
           </div>
         )}
-        {/* Active badge overlay */}
-        <div className="absolute inset-x-0 bottom-0 bg-emerald-500 text-white text-[10px] font-medium text-center py-0.5">
-          Active
-        </div>
+        {/* Status badge overlay */}
+        {countdown && (
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 text-white text-[10px] font-medium text-center py-0.5",
+              countdown.isOverdue
+                ? "bg-red-500"
+                : "bg-emerald-500"
+            )}
+          >
+            {countdown.isOverdue ? "Overdue" : "Active"}
+          </div>
+        )}
       </div>
 
       {/* Main content */}
@@ -170,16 +179,36 @@ export default function RentalListItem({
             <div
               className={cn(
                 "w-2 h-2 rounded-full",
-                hasPickupInspection ? "bg-emerald-500" : "bg-muted-foreground/30"
+                countdown?.isOverdue
+                  ? "bg-red-500"
+                  : hasPickupInspection
+                    ? "bg-emerald-500"
+                    : "bg-muted-foreground/30"
               )}
-              title={hasPickupInspection ? "Pickup complete" : "Pickup pending"}
+              title={
+                countdown?.isOverdue
+                  ? "Overdue - return required"
+                  : hasPickupInspection
+                    ? "Pickup complete"
+                    : "Pickup pending"
+              }
             />
             <div
               className={cn(
                 "w-2 h-2 rounded-full",
-                hasReturnInspection ? "bg-emerald-500" : "bg-muted-foreground/30"
+                countdown?.isOverdue
+                  ? "bg-red-500"
+                  : hasReturnInspection
+                    ? "bg-emerald-500"
+                    : "bg-muted-foreground/30"
               )}
-              title={hasReturnInspection ? "Return complete" : "Return pending"}
+              title={
+                countdown?.isOverdue
+                  ? "Overdue - return required"
+                  : hasReturnInspection
+                    ? "Return complete"
+                    : "Return pending"
+              }
             />
           </div>
         )}

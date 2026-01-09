@@ -56,6 +56,12 @@ type Props = {
   value: SearchBarFilters;
   onChange: (next: SearchBarFilters) => void;
   onSubmit: () => void;
+  /** External control for mobile sheet open state (optional) */
+  mobileSheetOpen?: boolean;
+  /** Callback when mobile sheet open state changes (optional) */
+  onMobileSheetOpenChange?: (open: boolean) => void;
+  /** Hide the default mobile trigger button when using external trigger */
+  hideMobileTrigger?: boolean;
 };
 
 const FALLBACK_EQUIPMENT_TYPES = [
@@ -174,14 +180,21 @@ const MOBILE_SECTIONS: Array<{
   { key: "what", label: "What", icon: Package },
 ];
 
-const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
+const SearchBarPopover = ({ 
+  value, 
+  onChange, 
+  onSubmit,
+  mobileSheetOpen,
+  onMobileSheetOpenChange,
+  hideMobileTrigger = false,
+}: Props) => {
   type Category = Database["public"]["Tables"]["categories"]["Row"];
 
   const isDesktop = useMediaQuery(createMinWidthQuery("md"));
   const [locationOpen, setLocationOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [internalSheetOpen, setInternalSheetOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionKey>("where");
   const [isSelectingDates, setIsSelectingDates] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -197,6 +210,15 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     minLength: 2,
     debounceMs: 100,
   });
+
+  // Support both controlled and uncontrolled sheet state
+  const sheetOpen = mobileSheetOpen !== undefined ? mobileSheetOpen : internalSheetOpen;
+  const setSheetOpen = (open: boolean) => {
+    if (onMobileSheetOpenChange) {
+      onMobileSheetOpenChange(open);
+    }
+    setInternalSheetOpen(open);
+  };
 
   // Fetch listings for the interactive map preview
   const { data: mapListings = [] } = useQuery({
@@ -720,38 +742,40 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   if (!isDesktop) {
     return (
       <>
-        {/* Trigger Button */}
-        <Button
-          variant="outline"
-          className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
-          aria-label="Search equipment"
-          onClick={() => setSheetOpen(true)}
-        >
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                Search
-              </span>
-              <span className="text-sm font-semibold text-foreground truncate">
-                {value.location || "Where to?"}
-              </span>
-              <span className="text-xs text-muted-foreground truncate">
-                {getSearchSummary()}
-              </span>
-            </div>
-          </div>
-          <Badge
-            variant="secondary"
-            className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
+        {/* Trigger Button - hidden when using external trigger */}
+        {!hideMobileTrigger && (
+          <Button
+            variant="outline"
+            className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
+            aria-label="Search equipment"
+            onClick={() => setSheetOpen(true)}
           >
-            {activeFilterCount > 0 ? (
-              activeFilterCount
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-          </Badge>
-        </Button>
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Search
+                </span>
+                <span className="text-sm font-semibold text-foreground truncate">
+                  {value.location || "Where to?"}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {getSearchSummary()}
+                </span>
+              </div>
+            </div>
+            <Badge
+              variant="secondary"
+              className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
+            >
+              {activeFilterCount > 0 ? (
+                activeFilterCount
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+            </Badge>
+          </Button>
+        )}
 
         {/* Custom Bottom Sheet */}
         <MobileSearchBottomSheet

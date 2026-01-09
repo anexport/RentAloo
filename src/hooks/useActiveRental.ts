@@ -48,7 +48,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
             *,
             owner:owner_id (id, email, username, full_name, avatar_url),
             category:category_id (id, name),
-            equipment_photos (id, photo_url, is_primary, order_index)
+            photos:equipment_photos (id, photo_url, is_primary, order_index)
           ),
           renter:renter_id (id, email, username, full_name, avatar_url)
         `)
@@ -204,7 +204,7 @@ export function useActiveRentals(role: "renter" | "owner" | "both" = "both"): {
               *,
               owner:owner_id (id, email, username, full_name, avatar_url),
               category:category_id (id, name),
-              equipment_photos (id, photo_url, is_primary, order_index)
+              photos:equipment_photos (id, photo_url, is_primary, order_index)
             ),
             renter:renter_id (id, email, username, full_name, avatar_url)
           `)
@@ -238,7 +238,7 @@ export function useActiveRentals(role: "renter" | "owner" | "both" = "both"): {
                 *,
                 owner:owner_id (id, email, username, full_name, avatar_url),
                 category:category_id (id, name),
-                equipment_photos (id, photo_url, is_primary, order_index)
+                photos:equipment_photos (id, photo_url, is_primary, order_index)
               ),
               renter:renter_id (id, email, username, full_name, avatar_url)
             `)

@@ -273,14 +273,14 @@ After migration, you should see:
 
 ## Checklist
 
-- [ ] Create `src/lib/queryKeys.ts`
-- [ ] Migrate `useProfileLookup`
-- [ ] Migrate `useNotificationPreferences`
-- [ ] Migrate `useReviews`
-- [ ] Migrate `usePayment`
-- [ ] Migrate `useEquipmentAvailability`
-- [ ] Migrate `useVerification`
-- [ ] Migrate `useNotifications`
-- [ ] Migrate `useOnboardingCheck`
-- [ ] Partial migration of `useMessaging`
-- [ ] Remove deprecated manual caching utilities
+- [x] Create `src/lib/queryKeys.ts`
+- [x] Migrate `useProfileLookup`
+- [x] Migrate `useNotificationPreferences`
+- [x] Migrate `useReviews`
+- [x] Migrate `usePayment`
+- [x] Migrate `useEquipmentAvailability`
+- [x] Migrate `useVerification`
+- [x] Migrate `useNotifications`
+- [x] Migrate `useOnboardingCheck`
+- [x] ~~Partial migration of `useMessaging`~~ **SKIPPED** - Hook is 1,400+ lines with deeply integrated realtime logic. Requires breaking into smaller hooks first. Risk/benefit ratio unfavorable.
+- [x] ~~Remove deprecated manual caching utilities~~ **DONE** - Removed `notificationCache` from `useNotifications`. Remaining caches (`useMessaging`, geocoding, autocomplete) are appropriate for their use cases.

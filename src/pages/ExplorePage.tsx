@@ -33,6 +33,7 @@ import ExploreHeader from "@/components/layout/ExploreHeader";
 import EmptyState from "@/components/explore/EmptyState";
 import MapView from "@/components/explore/MapView";
 import MobileListingsBottomSheet from "@/components/explore/MobileListingsBottomSheet";
+import MobileMapOverlayControls from "@/components/explore/MobileMapOverlayControls";
 import {
   fetchListings,
   type ListingsFilters,
@@ -67,6 +68,7 @@ const ExplorePage = () => {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const virtualListingGridRef = useRef<VirtualListingGridHandle>(null);
@@ -562,6 +564,83 @@ const ExplorePage = () => {
     );
   };
 
+  // Mobile: Full-screen map-first layout
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 bg-background">
+        {/* Full-viewport map */}
+        <div className="absolute inset-0">
+          <MapView
+            listings={sortedListings}
+            selectedListingId={selectedListingId}
+            onSelectListing={handleSelectListing}
+            onOpenListing={handleOpenListing}
+            className="h-full w-full"
+          />
+        </div>
+
+        {/* Overlay controls (search, categories, filters) */}
+        <MobileMapOverlayControls
+          searchFilters={searchFilters}
+          onSearchClick={() => setMobileSearchOpen(true)}
+          categoryId={categoryId}
+          onCategoryChange={setCategoryId}
+          filterValues={filterValues}
+          onFilterChange={handleFilterChange}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          activeFilterCount={activeFilterCount}
+          resultCount={data?.length ?? 0}
+        />
+
+        {/* Bottom sheet for listings */}
+        {(hasResults || isLoading || isError) ? (
+          <MobileListingsBottomSheet
+            title={t("browse.items_count", { count: data?.length ?? 0 })}
+          >
+            {renderListingsList()}
+          </MobileListingsBottomSheet>
+        ) : (
+          <MobileListingsBottomSheet title={t("browse.no_results", { defaultValue: "No results" })}>
+            {renderListingsList()}
+          </MobileListingsBottomSheet>
+        )}
+
+        {/* Search sheet - controlled by overlay controls */}
+        <SearchBarPopover
+          value={searchFilters}
+          onChange={setSearchFilters}
+          onSubmit={() => {
+            handleSubmitSearch(searchFilters);
+            setMobileSearchOpen(false);
+          }}
+          mobileSheetOpen={mobileSearchOpen}
+          onMobileSheetOpenChange={setMobileSearchOpen}
+          hideMobileTrigger
+        />
+
+        {/* Equipment detail dialog */}
+        <EquipmentDetailDialog
+          open={detailsOpen}
+          onOpenChange={(open) => {
+            setDetailsOpen(open);
+            if (!open) setSelectedListingId(null);
+          }}
+          listingId={selectedListingId ?? undefined}
+        />
+
+        {/* Auth modals */}
+        <LoginModal open={loginOpen} onOpenChange={handleLoginOpenChange} />
+        <SignupModal
+          open={signupOpen}
+          onOpenChange={handleSignupOpenChange}
+          initialRole={signupRole}
+        />
+      </div>
+    );
+  }
+
+  // Desktop: Traditional layout with headers
   return (
     <div className="min-h-screen bg-background">
       {/* Header with navbar when logged in */}
@@ -572,13 +651,8 @@ const ExplorePage = () => {
         />
       )}
 
-      {/* Sticky Header with Search - collapses on mobile when scrolled */}
-      <div
-        className={cn(
-          "sticky top-0 z-50 bg-background border-b border-border shadow-sm transition-transform duration-300",
-          isScrolled && isMobile && "-translate-y-full"
-        )}
-      >
+      {/* Sticky Header with Search */}
+      <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <SearchBarPopover
             value={searchFilters}
@@ -588,9 +662,9 @@ const ExplorePage = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-6">
-        {/* Breadcrumbs - Hidden on mobile (redundant with bottom nav) */}
-        <nav className="mb-4 hidden md:flex items-center text-sm text-muted-foreground">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Breadcrumbs */}
+        <nav className="mb-4 flex items-center text-sm text-muted-foreground">
           <Link to="/" className="hover:text-foreground transition-colors">
             {tNav("pages.home")}
           </Link>
@@ -604,65 +678,22 @@ const ExplorePage = () => {
           )}
         </nav>
 
-        {/* Categories + Mobile Controls - Sticky */}
-        <div
-          className={cn(
-            "sticky z-40 bg-background py-2 md:py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border transition-all duration-300",
-            isScrolled && isMobile ? "top-0" : "top-[73px]"
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {/* Categories take up available space */}
-            <div className="flex-1 min-w-0">
-              {isLoading && !data ? (
-                <CategoryBarSkeleton />
-              ) : (
-                <CategoryBar
-                  activeCategoryId={categoryId}
-                  onCategoryChange={setCategoryId}
-                />
-              )}
-            </div>
-            
-            {/* Mobile-only: compact filter/sort controls */}
-            <div className="flex items-center gap-1.5 flex-shrink-0 md:hidden">
-              <FiltersSheet
-                value={filterValues}
-                onChange={handleFilterChange}
-                resultCount={data?.length ?? 0}
-                activeFilterCount={activeFilterCount}
+        {/* Categories - Sticky */}
+        <div className="sticky top-[73px] z-40 bg-background py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border">
+          <div className="flex-1 min-w-0">
+            {isLoading && !data ? (
+              <CategoryBarSkeleton />
+            ) : (
+              <CategoryBar
+                activeCategoryId={categoryId}
+                onCategoryChange={setCategoryId}
               />
-              <Select
-                value={sortBy}
-                onValueChange={(value) => setSortBy(value as SortOption)}
-              >
-                <SelectTrigger 
-                  className="h-auto gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors [&>svg:last-child]:hidden" 
-                  aria-label={t("filters.sort_by")}
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline max-w-[60px] truncate">
-                    {sortBy === "recommended" ? t("filters.sort_rec", { defaultValue: "Best" }) :
-                     sortBy === "price-low" ? t("filters.sort_price_asc", { defaultValue: "Price ↑" }) :
-                     sortBy === "price-high" ? t("filters.sort_price_desc", { defaultValue: "Price ↓" }) :
-                     sortBy === "newest" ? t("filters.sort_new", { defaultValue: "New" }) :
-                     t("filters.sort_rated", { defaultValue: "Top" })}
-                  </span>
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="recommended">{t("filters.recommended")}</SelectItem>
-                  <SelectItem value="price-low">{t("filters.price_low_high")}</SelectItem>
-                  <SelectItem value="price-high">{t("filters.price_high_low")}</SelectItem>
-                  <SelectItem value="newest">{t("filters.newest_first")}</SelectItem>
-                  <SelectItem value="rating">{t("filters.highest_rated")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Filters row and Grid Header - Desktop only */}
-        <div className="hidden md:flex items-center justify-between gap-4 mt-4 mb-4">
+        {/* Filters row and Grid Header */}
+        <div className="flex items-center justify-between gap-4 mt-4 mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold">
               {t("browse.items_count", { count: data?.length ?? 0 })}
@@ -701,48 +732,21 @@ const ExplorePage = () => {
             </Select>
           </div>
         </div>
-        <Separator className="hidden md:block" />
+        <Separator />
 
-        {/* Results: map-first */}
-        <div className="mt-0 md:mt-6">
-          {isMobile ? (
-            <div className="relative -mx-4 sm:-mx-6 lg:mx-0">
-              <div className="relative h-[calc(100dvh-200px)] min-h-[400px] border-y border-border lg:border rounded-none lg:rounded-lg overflow-hidden">
-                <MapView
-                  listings={sortedListings}
-                  selectedListingId={selectedListingId}
-                  onSelectListing={handleSelectListing}
-                  onOpenListing={handleOpenListing}
-                />
-              </div>
-
-              {(hasResults || isLoading || isError) ? (
-                <MobileListingsBottomSheet
-                  title={t("browse.items_count", { count: data?.length ?? 0 })}
-                >
-                  {renderListingsList()}
-                </MobileListingsBottomSheet>
-              ) : (
-                <div className="mt-4 px-4">
-                  {renderListingsList()}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[75vh]">
-              <div className="h-[60vh] lg:h-full rounded-lg overflow-hidden border border-border">
-                <MapView
-                  listings={sortedListings}
-                  selectedListingId={selectedListingId}
-                  onSelectListing={handleSelectListing}
-                  onOpenListing={handleOpenListing}
-                />
-              </div>
-              <div className="h-[60vh] lg:h-full overflow-y-auto pr-1">
-                {renderListingsList()}
-              </div>
-            </div>
-          )}
+        {/* Results: map + list grid */}
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[75vh]">
+          <div className="h-[60vh] lg:h-full rounded-lg overflow-hidden border border-border">
+            <MapView
+              listings={sortedListings}
+              selectedListingId={selectedListingId}
+              onSelectListing={handleSelectListing}
+              onOpenListing={handleOpenListing}
+            />
+          </div>
+          <div className="h-[60vh] lg:h-full overflow-y-auto pr-1">
+            {renderListingsList()}
+          </div>
         </div>
 
         <EquipmentDetailDialog

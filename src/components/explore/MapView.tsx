@@ -25,7 +25,9 @@ type MarkerEntry = {
   clickListener: google.maps.MapsEventListener;
 };
 
-const DEFAULT_CENTER = { lat: 39.8283, lng: -98.5795 }; // US center fallback
+// Default center: Italy
+const ITALY_CENTER = { lat: 42.5, lng: 12.5 };
+const ITALY_ZOOM = 6;
 
 const escapeHtml = (str: string): string =>
   str
@@ -118,7 +120,7 @@ const MapView = ({
       const firstCoords = await getListingCoords(listingsForMap[0]);
       if (firstCoords) return firstCoords;
     }
-    return DEFAULT_CENTER;
+    return ITALY_CENTER;
   }, [listingsForMap, getListingCoords]);
 
   const getMarkerLibrary = useCallback(async () => {
@@ -211,7 +213,8 @@ const MapView = ({
       const center = await computeInitialCenter();
       const map = new google.maps.Map(mapRef.current, {
         center,
-        zoom: 12,
+        zoom: ITALY_ZOOM,
+        minZoom: 5, // Prevent zooming out beyond country level
         mapId: "explore-map",
         disableDefaultUI: false,
         zoomControl: true,
@@ -324,6 +327,15 @@ const MapView = ({
       const bounds = new google.maps.LatLngBounds();
       listingCoordsMap.forEach((coords) => bounds.extend(coords));
       map.fitBounds(bounds, 64);
+      
+      // Ensure we don't zoom out beyond Italy view
+      google.maps.event.addListenerOnce(map, "idle", () => {
+        const currentZoom = map.getZoom();
+        if (currentZoom !== undefined && currentZoom < ITALY_ZOOM) {
+          map.setZoom(ITALY_ZOOM);
+          map.setCenter(ITALY_CENTER);
+        }
+      });
     };
 
     void run();

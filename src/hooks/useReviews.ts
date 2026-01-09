@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase";
-import type { ReviewWithDetails, ReviewSummary } from "../types/review";
-import { calculateReviewSummary } from "../lib/reviews";
+import { useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { queryKeys } from "@/lib/queryKeys";
+import type { ReviewWithDetails, ReviewSummary } from "@/types/review";
+import { calculateReviewSummary } from "@/lib/reviews";
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface UseReviewsOptions {
   revieweeId?: string;
@@ -10,130 +16,161 @@ interface UseReviewsOptions {
   equipmentId?: string;
 }
 
-export const useReviews = (options: UseReviewsOptions = {}) => {
-  const [reviews, setReviews] = useState<ReviewWithDetails[]>([]);
-  const [summary, setSummary] = useState<ReviewSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface SubmitReviewData {
+  bookingId: string;
+  revieweeId: string;
+  rating: number;
+  comment: string;
+  photos?: string[];
+}
 
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+// ============================================================================
+// FETCH FUNCTIONS
+// ============================================================================
 
-    try {
-      let query = supabase
-        .from("reviews")
-        .select(
-          `
-          *,
-          reviewer:profiles!reviews_reviewer_id_fkey(id, email),
-          reviewee:profiles!reviews_reviewee_id_fkey(id, email),
-          booking:bookings(
-            id,
-            booking_request:booking_requests(
-              equipment:equipment(id, title)
-            )
-          )
-        `
+const fetchReviews = async (
+  options: UseReviewsOptions
+): Promise<ReviewWithDetails[]> => {
+  let query = supabase
+    .from("reviews")
+    .select(
+      `
+      *,
+      reviewer:profiles!reviews_reviewer_id_fkey(id, email),
+      reviewee:profiles!reviews_reviewee_id_fkey(id, email),
+      booking:bookings(
+        id,
+        booking_request:booking_requests(
+          equipment:equipment(id, title)
         )
-        .order("created_at", { ascending: false });
+      )
+    `
+    )
+    .order("created_at", { ascending: false });
 
-      if (options.revieweeId) {
-        query = query.eq("reviewee_id", options.revieweeId);
-      }
+  if (options.revieweeId) {
+    query = query.eq("reviewee_id", options.revieweeId);
+  }
 
-      if (options.reviewerId) {
-        query = query.eq("reviewer_id", options.reviewerId);
-      }
+  if (options.reviewerId) {
+    query = query.eq("reviewer_id", options.reviewerId);
+  }
 
-      if (options.bookingId) {
-        query = query.eq("booking_id", options.bookingId);
-      }
+  if (options.bookingId) {
+    query = query.eq("booking_id", options.bookingId);
+  }
 
-      const { data, error: fetchError } = await query;
+  const { data, error } = await query;
 
-      if (fetchError) throw fetchError;
+  if (error) throw error;
 
-      // Process the data to match ReviewWithDetails type
-      const processedReviews = (data || []).map((review) => ({
-        ...review,
-        booking: {
-          id: review.booking?.id || "",
-          equipment: {
-            id: review.booking?.booking_request?.equipment?.id || "",
-            title: review.booking?.booking_request?.equipment?.title || "",
-          },
-        },
-      })) as ReviewWithDetails[];
+  // Process the data to match ReviewWithDetails type
+  return (data || []).map((review) => ({
+    ...review,
+    booking: {
+      id: review.booking?.id || "",
+      equipment: {
+        id: review.booking?.booking_request?.equipment?.id || "",
+        title: review.booking?.booking_request?.equipment?.title || "",
+      },
+    },
+  })) as ReviewWithDetails[];
+};
 
-      setReviews(processedReviews);
+const submitReviewApi = async (
+  reviewData: SubmitReviewData
+): Promise<void> => {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) throw new Error("User not authenticated");
 
-      // Calculate summary
-      const reviewSummary = calculateReviewSummary(processedReviews);
-      setSummary(reviewSummary);
-    } catch (err) {
-      console.error("Error fetching reviews:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch reviews");
-    } finally {
-      setLoading(false);
-    }
-  }, [options.revieweeId, options.reviewerId, options.bookingId]);
+  const { error } = await supabase.from("reviews").insert({
+    booking_id: reviewData.bookingId,
+    reviewer_id: userData.user.id,
+    reviewee_id: reviewData.revieweeId,
+    rating: reviewData.rating,
+    comment: reviewData.comment,
+    photos: reviewData.photos || null,
+  });
 
-  useEffect(() => {
-    void fetchReviews();
-  }, [fetchReviews]);
+  if (error) throw error;
+};
 
+const checkUserReviewedApi = async (
+  bookingId: string,
+  userId: string
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("booking_id", bookingId)
+    .eq("reviewer_id", userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error;
+
+  return !!data;
+};
+
+// ============================================================================
+// HOOK: useReviews
+// ============================================================================
+
+export const useReviews = (options: UseReviewsOptions = {}) => {
+  const queryClient = useQueryClient();
+
+  // Create stable query key based on options
+  const queryKey = queryKeys.reviews.filtered(options);
+
+  // Query for fetching reviews
+  const {
+    data: reviews = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey,
+    queryFn: () => fetchReviews(options),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Calculate summary from reviews
+  const summary: ReviewSummary | null = useMemo(() => {
+    if (reviews.length === 0) return null;
+    return calculateReviewSummary(reviews);
+  }, [reviews]);
+
+  // Mutation for submitting reviews
+  const submitMutation = useMutation({
+    mutationFn: submitReviewApi,
+    onSuccess: () => {
+      // Invalidate all review queries to refresh data
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all });
+    },
+  });
+
+  // Submit review wrapper with return type for API compatibility
   const submitReview = useCallback(
-    async (reviewData: {
-      bookingId: string;
-      revieweeId: string;
-      rating: number;
-      comment: string;
-      photos?: string[];
-    }) => {
+    async (
+      reviewData: SubmitReviewData
+    ): Promise<{ success: boolean; error?: string }> => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) throw new Error("User not authenticated");
-
-        const { error: insertError } = await supabase.from("reviews").insert({
-          booking_id: reviewData.bookingId,
-          reviewer_id: userData.user.id,
-          reviewee_id: reviewData.revieweeId,
-          rating: reviewData.rating,
-          comment: reviewData.comment,
-          photos: reviewData.photos || null,
-        });
-
-        if (insertError) throw insertError;
-
-        // Refresh reviews after submission
-        await fetchReviews();
-
+        await submitMutation.mutateAsync(reviewData);
         return { success: true };
       } catch (err) {
-        console.error("Error submitting review:", err);
         return {
           success: false,
           error: err instanceof Error ? err.message : "Failed to submit review",
         };
       }
     },
-    [fetchReviews]
+    [submitMutation]
   );
 
+  // Check if user has already reviewed
   const checkIfUserReviewed = useCallback(
     async (bookingId: string, userId: string): Promise<boolean> => {
       try {
-        const { data, error: checkError } = await supabase
-          .from("reviews")
-          .select("id")
-          .eq("booking_id", bookingId)
-          .eq("reviewer_id", userId)
-          .single();
-
-        if (checkError && checkError.code !== "PGRST116") throw checkError;
-
-        return !!data;
+        return await checkUserReviewedApi(bookingId, userId);
       } catch (err) {
         console.error("Error checking review status:", err);
         return false;
@@ -145,11 +182,11 @@ export const useReviews = (options: UseReviewsOptions = {}) => {
   return {
     reviews,
     summary,
-    loading,
-    error,
-    fetchReviews,
+    loading: isLoading,
+    error: error?.message ?? null,
+    fetchReviews: refetch,
     submitReview,
     checkIfUserReviewed,
+    isSubmitting: submitMutation.isPending,
   };
 };
-
