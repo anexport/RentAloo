@@ -13,21 +13,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X, Check, Sparkles, ShieldCheck } from "lucide-react";
+import { Filter, X, Check, Sparkles, ShieldCheck, CalendarIcon, Package, Search, Loader2 } from "lucide-react";
+import { format, startOfDay, addDays } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createMinWidthQuery } from "@/config/breakpoints";
 import { DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX } from "@/config/pagination";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
+import { useEquipmentAutocomplete } from "@/hooks/useEquipmentAutocomplete";
+import type { EquipmentSuggestion } from "@/components/equipment/services/autocomplete";
+import { highlightMatchingText } from "@/lib/highlightText";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/useToast";
 
 type EquipmentCondition = Database["public"]["Enums"]["equipment_condition"];
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 export type FilterValues = {
   priceRange: [number, number];
   conditions: EquipmentCondition[];
   verified: boolean;
+  dateRange?: DateRange;
+  equipmentType?: string;
+  equipmentCategoryId?: string;
+  search?: string;
+};
+
+const POPULAR_CATEGORIES = [
+  "Camping",
+  "Hiking",
+  "Cycling",
+  "Water Sports",
+  "Winter Sports",
+];
+
+const RECENT_SEARCHES_KEY = "vaymo_recent_equipment_searches";
+const MAX_RECENT_SEARCHES = 5;
+
+const getRecentSearches = (): string[] => {
+  try {
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addRecentSearch = (search: string) => {
+  try {
+    const recent = getRecentSearches();
+    const filtered = recent.filter((s) => s !== search);
+    const updated = [search, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.error("Failed to save recent search:", error);
+    return [];
+  }
 };
 
 type Props = {
@@ -51,10 +105,96 @@ const FiltersSheet = ({
   activeFilterCount,
 }: Props) => {
   const { t } = useTranslation("equipment");
+  const { toast } = useToast();
   const [localValue, setLocalValue] = useState<FilterValues>(value);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSelectingDates, setIsSelectingDates] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const isDesktop = useMediaQuery(createMinWidthQuery("md"));
   const prevValueRef = useRef<FilterValues>(value);
+
+  const equipmentAutocomplete = useEquipmentAutocomplete({
+    minLength: 1,
+    debounceMs: 300,
+    categoryLimit: 5,
+    equipmentLimit: 10,
+  });
+
+  const categorySuggestions = useMemo(
+    () => equipmentAutocomplete.suggestions.filter((s) => s.type === "category"),
+    [equipmentAutocomplete.suggestions]
+  );
+
+  const equipmentSuggestions = useMemo(
+    () => equipmentAutocomplete.suggestions.filter((s) => s.type === "equipment"),
+    [equipmentAutocomplete.suggestions]
+  );
+
+  // Load categories and recent searches on mount
+  useEffect(() => {
+    setRecentSearches(getRecentSearches());
+    
+    const controller = new AbortController();
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .is("parent_id", null)
+          .order("name")
+          .abortSignal(controller.signal);
+
+        if (error && !controller.signal.aborted) {
+          console.error("Error loading categories", error);
+          return;
+        }
+
+        if (!controller.signal.aborted) {
+          setCategories(data ?? []);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Unexpected error loading categories", err);
+        }
+      }
+    };
+
+    void loadCategories();
+    return () => controller.abort();
+  }, []);
+
+  // Quick date ranges
+  const quickDateRanges = useMemo(() => {
+    const today = startOfDay(new Date());
+    const dayOfWeek = today.getDay();
+
+    const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+    const thisWeekendStart = addDays(today, daysUntilSaturday);
+    const thisWeekendEnd = addDays(thisWeekendStart, 1);
+
+    const nextWeekendStart = addDays(thisWeekendStart, 7);
+    const nextWeekendEnd = addDays(nextWeekendStart, 1);
+
+    const daysUntilMonday = (1 - dayOfWeek + 7) % 7;
+    const nextWeekStart = addDays(today, daysUntilMonday === 0 ? 7 : daysUntilMonday);
+    const nextWeekEnd = addDays(nextWeekStart, 4);
+
+    return [
+      {
+        label: t("filters_sheet.this_weekend", { defaultValue: "This weekend" }),
+        range: { from: thisWeekendStart, to: thisWeekendEnd } satisfies DateRange,
+      },
+      {
+        label: t("filters_sheet.next_weekend", { defaultValue: "Next weekend" }),
+        range: { from: nextWeekendStart, to: nextWeekendEnd } satisfies DateRange,
+      },
+      {
+        label: t("filters_sheet.next_week", { defaultValue: "Next week" }),
+        range: { from: nextWeekStart, to: nextWeekEnd } satisfies DateRange,
+      },
+    ];
+  }, [t]);
 
   // Sync localValue with prop changes
   useEffect(() => {
@@ -64,6 +204,10 @@ const FiltersSheet = ({
       prev.priceRange[1] !== value.priceRange[1] ||
       prev.conditions.length !== value.conditions.length ||
       prev.verified !== value.verified ||
+      prev.dateRange?.from !== value.dateRange?.from ||
+      prev.dateRange?.to !== value.dateRange?.to ||
+      prev.equipmentType !== value.equipmentType ||
+      prev.equipmentCategoryId !== value.equipmentCategoryId ||
       !prev.conditions.every((c) => value.conditions.includes(c));
 
     if (valueChanged) {
@@ -82,8 +226,14 @@ const FiltersSheet = ({
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
       conditions: [],
       verified: false,
+      dateRange: undefined,
+      equipmentType: undefined,
+      equipmentCategoryId: undefined,
+      search: undefined,
     };
     setLocalValue(cleared);
+    equipmentAutocomplete.setQuery("");
+    setIsSelectingDates(false);
   };
 
   const handleConditionToggle = useCallback((condition: EquipmentCondition) => {
@@ -95,13 +245,64 @@ const FiltersSheet = ({
     });
   }, []);
 
+  const handleDateSelect = (range: DateRange | undefined) => {
+    if (!range?.from) {
+      setLocalValue({ ...localValue, dateRange: undefined });
+      setIsSelectingDates(false);
+      return;
+    }
+
+    if (!isSelectingDates) {
+      setIsSelectingDates(true);
+      setLocalValue({ ...localValue, dateRange: { from: range.from, to: undefined } });
+      return;
+    }
+
+    if (!range.to) {
+      setLocalValue({ ...localValue, dateRange: { from: range.from, to: undefined } });
+      return;
+    }
+
+    setIsSelectingDates(false);
+    setLocalValue({ ...localValue, dateRange: range });
+  };
+
+  const handlePresetDateSelect = (range: DateRange) => {
+    setLocalValue({ ...localValue, dateRange: range });
+    setIsSelectingDates(false);
+  };
+
+  const handleEquipmentSuggestionSelect = (suggestion: EquipmentSuggestion) => {
+    if (suggestion.type === "category") {
+      setLocalValue({
+        ...localValue,
+        equipmentType: suggestion.label,
+        equipmentCategoryId: suggestion.id,
+        search: "",
+      });
+    } else {
+      setLocalValue({
+        ...localValue,
+        equipmentType: suggestion.label,
+        equipmentCategoryId: undefined,
+        search: suggestion.label,
+      });
+    }
+
+    addRecentSearch(suggestion.label);
+    setRecentSearches(getRecentSearches());
+    equipmentAutocomplete.setQuery("");
+  };
+
   // Check if any filters are applied
   const hasActiveFilters = useMemo(() =>
     localValue.priceRange[0] !== DEFAULT_PRICE_MIN ||
     localValue.priceRange[1] !== DEFAULT_PRICE_MAX ||
     localValue.conditions.length > 0 ||
-    localValue.verified,
-  [localValue.priceRange, localValue.conditions.length, localValue.verified]);
+    localValue.verified ||
+    !!localValue.dateRange?.from ||
+    !!localValue.equipmentType,
+  [localValue.priceRange, localValue.conditions.length, localValue.verified, localValue.dateRange, localValue.equipmentType]);
 
   // Mobile filter content - completely redesigned
   const MobileFiltersContent = () => (
@@ -194,6 +395,267 @@ const FiltersSheet = ({
         <div className="text-center text-xs text-muted-foreground mt-3">
           {t("filters_sheet.price_per_day")}
         </div>
+      </section>
+
+      {/* Dates Section */}
+      <section className="space-y-5">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <CalendarIcon className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base font-semibold">{t("filters_sheet.dates", { defaultValue: "Dates" })}</h3>
+        </div>
+
+        {/* Quick date presets */}
+        <div className="flex flex-wrap gap-2">
+          {quickDateRanges.map((preset) => {
+            const isSelected = 
+              localValue.dateRange?.from?.getTime() === preset.range.from.getTime() &&
+              localValue.dateRange?.to?.getTime() === preset.range.to.getTime();
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handlePresetDateSelect(preset.range)}
+                className={cn(
+                  "px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/50 text-foreground hover:bg-muted"
+                )}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Calendar */}
+        <div className="rounded-2xl border bg-card overflow-hidden">
+          <Calendar
+            mode="range"
+            selected={localValue.dateRange}
+            onSelect={handleDateSelect}
+            numberOfMonths={1}
+            disabled={(date) => startOfDay(date) < startOfDay(new Date())}
+            className="w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:w-[14.28%] [&_.rdp-head_cell]:w-[14.28%] [&_.rdp-day]:h-10 [&_.rdp-day]:w-full"
+          />
+        </div>
+
+        {/* Selection summary */}
+        {localValue.dateRange?.from && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-in fade-in-0 zoom-in-95 duration-200">
+            <div className="flex-1 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <CalendarIcon className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("filters_sheet.start_date", { defaultValue: "Start" })}</p>
+                <p className="text-sm font-medium truncate">{format(localValue.dateRange.from, "EEE, MMM d")}</p>
+              </div>
+            </div>
+            <div className="text-muted-foreground">→</div>
+            <div className="flex-1 flex items-center gap-2">
+              <div className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center",
+                localValue.dateRange.to ? "bg-primary/10" : "bg-muted border-2 border-dashed border-muted-foreground/30"
+              )}>
+                <CalendarIcon className={cn("h-4 w-4", localValue.dateRange.to ? "text-primary" : "text-muted-foreground/50")} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("filters_sheet.end_date", { defaultValue: "End" })}</p>
+                <p className={cn("text-sm font-medium truncate", !localValue.dateRange.to && "text-muted-foreground")}>
+                  {localValue.dateRange.to ? format(localValue.dateRange.to, "EEE, MMM d") : t("filters_sheet.select_date", { defaultValue: "Select date" })}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-full shrink-0"
+              onClick={() => setLocalValue({ ...localValue, dateRange: undefined })}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </section>
+
+      {/* Equipment Search Section */}
+      <section className="space-y-5">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Package className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base font-semibold">{t("filters_sheet.equipment", { defaultValue: "Equipment" })}</h3>
+        </div>
+
+        <Command shouldFilter={false} className="rounded-2xl border">
+          <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+            <CommandInput
+              placeholder={t("filters_sheet.search_equipment_placeholder", { defaultValue: "Search equipment or categories..." })}
+              value={equipmentAutocomplete.query}
+              onValueChange={equipmentAutocomplete.setQuery}
+              className="h-12 text-base"
+            />
+          </div>
+          <CommandList
+            className="max-h-[300px]"
+            aria-busy={equipmentAutocomplete.loading}
+          >
+            <CommandEmpty>
+              {equipmentAutocomplete.loading ? (
+                <div className="flex items-center justify-center gap-2 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t("common.searching", { defaultValue: "Searching..." })}</span>
+                </div>
+              ) : equipmentAutocomplete.query.trim().length === 0 ? (
+                t("filters_sheet.start_typing", { defaultValue: "Start typing to search." })
+              ) : equipmentAutocomplete.error ? (
+                `${t("common.error", { defaultValue: "Error" })}: ${equipmentAutocomplete.error}`
+              ) : (
+                t("filters_sheet.no_results", { defaultValue: "No results found." })
+              )}
+            </CommandEmpty>
+
+            {/* Recent Searches */}
+            {equipmentAutocomplete.query.trim().length === 0 && recentSearches.length > 0 && (
+              <CommandGroup heading={t("filters_sheet.recent", { defaultValue: "Recent" })}>
+                {recentSearches.map((searchTerm, idx) => (
+                  <CommandItem
+                    key={`recent-${idx}`}
+                    onSelect={() => {
+                      const category = categories.find((cat) => cat.name === searchTerm);
+                      if (category) {
+                        handleEquipmentSuggestionSelect({
+                          id: category.id,
+                          label: category.name,
+                          type: "category",
+                        });
+                      } else {
+                        setLocalValue({
+                          ...localValue,
+                          equipmentType: searchTerm,
+                          equipmentCategoryId: undefined,
+                          search: searchTerm,
+                        });
+                      }
+                    }}
+                    className="cursor-pointer py-3"
+                  >
+                    <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {searchTerm}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Popular Categories */}
+            {equipmentAutocomplete.query.trim().length === 0 && (
+              <CommandGroup heading={t("filters_sheet.popular", { defaultValue: "Popular" })}>
+                {POPULAR_CATEGORIES.map((categoryName) => (
+                  <CommandItem
+                    key={categoryName}
+                    onSelect={() => {
+                      const category = categories.find((cat) => cat.name === categoryName);
+                      if (category) {
+                        handleEquipmentSuggestionSelect({
+                          id: category.id,
+                          label: category.name,
+                          type: "category",
+                        });
+                      } else {
+                        setLocalValue({
+                          ...localValue,
+                          equipmentType: categoryName,
+                          equipmentCategoryId: undefined,
+                          search: "",
+                        });
+                      }
+                    }}
+                    className="cursor-pointer py-3"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    {categoryName}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Categories Group */}
+            {categorySuggestions.length > 0 && (
+              <CommandGroup heading={t("filters_sheet.categories", { defaultValue: "Categories" })}>
+                {categorySuggestions.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    onSelect={() => handleEquipmentSuggestionSelect(s)}
+                    className="cursor-pointer py-3"
+                  >
+                    <Package className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">
+                      {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                    </span>
+                    {typeof s.itemCount === "number" && (
+                      <span className="text-xs text-muted-foreground ml-auto pl-2 shrink-0">
+                        {s.itemCount} {s.itemCount === 1 ? "item" : "items"}
+                      </span>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Equipment Items Group */}
+            {equipmentSuggestions.length > 0 && (
+              <CommandGroup heading={t("filters_sheet.equipment_items", { defaultValue: "Equipment" })}>
+                {equipmentSuggestions.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    onSelect={() => handleEquipmentSuggestionSelect(s)}
+                    className="cursor-pointer py-3"
+                  >
+                    <Search className="mr-2 h-4 w-4 shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="truncate">
+                        {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                      </span>
+                      {s.categoryName && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          {t("filters_sheet.in_category", { defaultValue: "in" })} {s.categoryName}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+
+        {/* Selected equipment badge */}
+        {localValue.equipmentType && (
+          <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
+            <Package className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium flex-1 truncate">
+              {localValue.equipmentType}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setLocalValue({
+                  ...localValue,
+                  equipmentType: undefined,
+                  equipmentCategoryId: undefined,
+                  search: "",
+                })
+              }
+              className="h-7 w-7 p-0 rounded-full"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </section>
 
       {/* Condition Section - Chip/pill selection */}
@@ -316,6 +778,156 @@ const FiltersSheet = ({
           className="w-full"
         />
         <div className="text-xs text-muted-foreground">{t("filters_sheet.price_per_day")}</div>
+      </div>
+
+      {/* Dates */}
+      <div className="space-y-3">
+        <h4 className="font-medium">{t("filters_sheet.dates", { defaultValue: "Dates" })}</h4>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {quickDateRanges.map((preset) => {
+            const isSelected = 
+              localValue.dateRange?.from?.getTime() === preset.range.from.getTime() &&
+              localValue.dateRange?.to?.getTime() === preset.range.to.getTime();
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handlePresetDateSelect(preset.range)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm border transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border hover:border-primary"
+                )}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
+        <Calendar
+          mode="range"
+          selected={localValue.dateRange}
+          onSelect={handleDateSelect}
+          numberOfMonths={2}
+          disabled={(date) => startOfDay(date) < startOfDay(new Date())}
+        />
+        {localValue.dateRange?.from && (
+          <div className="flex items-center justify-between text-sm">
+            <span>
+              {format(localValue.dateRange.from, "MMM d")}
+              {localValue.dateRange.to && ` - ${format(localValue.dateRange.to, "MMM d")}`}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocalValue({ ...localValue, dateRange: undefined })}
+            >
+              {t("common.clear", { defaultValue: "Clear" })}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Equipment Search */}
+      <div className="space-y-3">
+        <h4 className="font-medium">{t("filters_sheet.equipment", { defaultValue: "Equipment" })}</h4>
+        <Command shouldFilter={false} className="rounded-lg border">
+          <CommandInput
+            placeholder={t("filters_sheet.search_equipment_placeholder", { defaultValue: "Search equipment or categories..." })}
+            value={equipmentAutocomplete.query}
+            onValueChange={equipmentAutocomplete.setQuery}
+          />
+          <CommandList className="max-h-[200px]" aria-busy={equipmentAutocomplete.loading}>
+            <CommandEmpty>
+              {equipmentAutocomplete.loading
+                ? t("common.searching", { defaultValue: "Searching..." })
+                : equipmentAutocomplete.query.trim().length === 0
+                ? t("filters_sheet.start_typing", { defaultValue: "Start typing to search." })
+                : t("filters_sheet.no_results", { defaultValue: "No results found." })}
+            </CommandEmpty>
+
+            {equipmentAutocomplete.query.trim().length === 0 && (
+              <CommandGroup heading={t("filters_sheet.popular", { defaultValue: "Popular" })}>
+                {POPULAR_CATEGORIES.map((categoryName) => (
+                  <CommandItem
+                    key={categoryName}
+                    onSelect={() => {
+                      const category = categories.find((cat) => cat.name === categoryName);
+                      if (category) {
+                        handleEquipmentSuggestionSelect({
+                          id: category.id,
+                          label: category.name,
+                          type: "category",
+                        });
+                      } else {
+                        setLocalValue({
+                          ...localValue,
+                          equipmentType: categoryName,
+                          equipmentCategoryId: undefined,
+                          search: "",
+                        });
+                      }
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    {categoryName}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {categorySuggestions.length > 0 && (
+              <CommandGroup heading={t("filters_sheet.categories", { defaultValue: "Categories" })}>
+                {categorySuggestions.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    onSelect={() => handleEquipmentSuggestionSelect(s)}
+                    className="cursor-pointer"
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {equipmentSuggestions.length > 0 && (
+              <CommandGroup heading={t("filters_sheet.equipment_items", { defaultValue: "Equipment" })}>
+                {equipmentSuggestions.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    onSelect={() => handleEquipmentSuggestionSelect(s)}
+                    className="cursor-pointer"
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    {highlightMatchingText(s.label, equipmentAutocomplete.query)}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+        {localValue.equipmentType && (
+          <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
+            <span className="text-sm">{localValue.equipmentType}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setLocalValue({
+                  ...localValue,
+                  equipmentType: undefined,
+                  equipmentCategoryId: undefined,
+                  search: "",
+                })
+              }
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Conditions */}

@@ -68,7 +68,6 @@ const ExplorePage = () => {
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const virtualListingGridRef = useRef<VirtualListingGridHandle>(null);
@@ -154,6 +153,10 @@ const ExplorePage = () => {
     priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
     conditions: [],
     verified: false,
+    dateRange: undefined,
+    equipmentType: undefined,
+    equipmentCategoryId: undefined,
+    search: undefined,
   });
 
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -458,6 +461,9 @@ const ExplorePage = () => {
     }
     if (filterValues.conditions.length > 0) count++;
     if (filterValues.verified) count++;
+    // Include dates and equipment from filterValues on mobile
+    if (filterValues.dateRange?.from) count++;
+    if (filterValues.equipmentType) count++;
     return count;
   }, [filterValues]);
 
@@ -469,6 +475,37 @@ const ExplorePage = () => {
     void setPriceMax(max !== DEFAULT_PRICE_MAX ? max : null);
     void setConditionsParam(newFilters.conditions);
     void setVerifiedParam(newFilters.verified);
+
+    // Sync dates and equipment from FiltersSheet to URL and searchFilters
+    if (newFilters.dateRange !== filterValues.dateRange) {
+      const from = newFilters.dateRange?.from
+        ? format(newFilters.dateRange.from, "yyyy-MM-dd")
+        : null;
+      const to = newFilters.dateRange?.to
+        ? format(newFilters.dateRange.to, "yyyy-MM-dd")
+        : null;
+      void setDateFromQuery(from);
+      void setDateToQuery(to);
+      setSearchFilters((prev) => ({ ...prev, dateRange: newFilters.dateRange }));
+    }
+
+    if (newFilters.equipmentType !== filterValues.equipmentType ||
+        newFilters.equipmentCategoryId !== filterValues.equipmentCategoryId) {
+      void setEquipmentTypeQuery(newFilters.equipmentType || null);
+      void setEquipmentCategoryIdQuery(newFilters.equipmentCategoryId || null);
+      void setSearchQuery(newFilters.search || null);
+      setSearchFilters((prev) => ({
+        ...prev,
+        equipmentType: newFilters.equipmentType,
+        equipmentCategoryId: newFilters.equipmentCategoryId,
+        search: newFilters.search || "",
+      }));
+    }
+  };
+
+  const handleLocationChange = (location: string) => {
+    setSearchFilters((prev) => ({ ...prev, location }));
+    void setLocationQuery(location || null);
   };
 
   const handleClearFilters = () => {
@@ -486,6 +523,10 @@ const ExplorePage = () => {
       priceRange: [DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX],
       conditions: [],
       verified: false,
+      dateRange: undefined,
+      equipmentType: undefined,
+      equipmentCategoryId: undefined,
+      search: undefined,
     });
 
     // Clear all URL params via nuqs
@@ -579,10 +620,10 @@ const ExplorePage = () => {
           />
         </div>
 
-        {/* Overlay controls (search, categories, filters) */}
+        {/* Overlay controls (location input, categories, filters) */}
         <MobileMapOverlayControls
-          searchFilters={searchFilters}
-          onSearchClick={() => setMobileSearchOpen(true)}
+          location={searchFilters.location}
+          onLocationChange={handleLocationChange}
           categoryId={categoryId}
           onCategoryChange={setCategoryId}
           filterValues={filterValues}
@@ -605,19 +646,6 @@ const ExplorePage = () => {
             {renderListingsList()}
           </MobileListingsBottomSheet>
         )}
-
-        {/* Search sheet - controlled by overlay controls */}
-        <SearchBarPopover
-          value={searchFilters}
-          onChange={setSearchFilters}
-          onSubmit={() => {
-            handleSubmitSearch(searchFilters);
-            setMobileSearchOpen(false);
-          }}
-          mobileSheetOpen={mobileSearchOpen}
-          onMobileSheetOpenChange={setMobileSearchOpen}
-          hideMobileTrigger
-        />
 
         {/* Equipment detail dialog */}
         <EquipmentDetailDialog

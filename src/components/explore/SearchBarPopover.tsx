@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -15,7 +14,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
@@ -24,16 +22,14 @@ import {
   Package,
   Crosshair,
   X,
-  Wrench,
   Loader2,
   Clock,
+  Wrench,
 } from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { SearchBarFilters } from "@/types/search";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
-import { createMinWidthQuery } from "@/config/breakpoints";
 import { useToast } from "@/hooks/useToast";
 import { reverseGeocode } from "@/features/location/geocoding";
 import {
@@ -48,20 +44,13 @@ import type { EquipmentSuggestion } from "@/components/equipment/services/autoco
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { highlightMatchingText } from "@/lib/highlightText";
-import SearchPreviewMap from "./SearchPreviewMap";
-import MobileSearchBottomSheet from "./MobileSearchBottomSheet";
-import { fetchListings } from "@/components/equipment/services/listings";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { createMinWidthQuery } from "@/config/breakpoints";
 
 type Props = {
   value: SearchBarFilters;
   onChange: (next: SearchBarFilters) => void;
   onSubmit: () => void;
-  /** External control for mobile sheet open state (optional) */
-  mobileSheetOpen?: boolean;
-  /** Callback when mobile sheet open state changes (optional) */
-  onMobileSheetOpenChange?: (open: boolean) => void;
-  /** Hide the default mobile trigger button when using external trigger */
-  hideMobileTrigger?: boolean;
 };
 
 const FALLBACK_EQUIPMENT_TYPES = [
@@ -73,19 +62,6 @@ const FALLBACK_EQUIPMENT_TYPES = [
   "Cycling",
 ];
 
-const POPULAR_LOCATIONS: Array<{
-  name: string;
-  type: 'city' | 'park' | 'beach' | 'mountain';
-  emoji: string;
-  coords: { lat: number; lng: number };
-}> = [
-  { name: "San Francisco, CA", type: "city", emoji: "🌉", coords: { lat: 37.7749, lng: -122.4194 } },
-  { name: "Yosemite National Park", type: "park", emoji: "🏔️", coords: { lat: 37.8651, lng: -119.5383 } },
-  { name: "Santa Cruz, CA", type: "beach", emoji: "🌊", coords: { lat: 36.9741, lng: -122.0308 } },
-  { name: "Lake Tahoe, CA", type: "mountain", emoji: "⛷️", coords: { lat: 39.0968, lng: -120.0324 } },
-  { name: "Big Sur, CA", type: "beach", emoji: "🌅", coords: { lat: 36.2704, lng: -121.8081 } },
-  { name: "Joshua Tree, CA", type: "park", emoji: "🌵", coords: { lat: 33.8734, lng: -115.9010 } },
-];
 
 const POPULAR_CATEGORIES = [
   "Camping",
@@ -168,25 +144,10 @@ const addRecentSearch = (search: string) => {
   }
 };
 
-type SectionKey = "where" | "when" | "what";
-
-const MOBILE_SECTIONS: Array<{
-  key: SectionKey;
-  label: string;
-  icon: typeof MapPin;
-}> = [
-  { key: "where", label: "Where", icon: MapPin },
-  { key: "when", label: "When", icon: CalendarIcon },
-  { key: "what", label: "What", icon: Package },
-];
-
 const SearchBarPopover = ({ 
   value, 
   onChange, 
   onSubmit,
-  mobileSheetOpen,
-  onMobileSheetOpenChange,
-  hideMobileTrigger = false,
 }: Props) => {
   type Category = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -194,8 +155,6 @@ const SearchBarPopover = ({
   const [locationOpen, setLocationOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
-  const [internalSheetOpen, setInternalSheetOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<SectionKey>("where");
   const [isSelectingDates, setIsSelectingDates] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -209,23 +168,6 @@ const SearchBarPopover = ({
     limit: 10,
     minLength: 2,
     debounceMs: 100,
-  });
-
-  // Support both controlled and uncontrolled sheet state
-  const sheetOpen = mobileSheetOpen !== undefined ? mobileSheetOpen : internalSheetOpen;
-  const setSheetOpen = (open: boolean) => {
-    if (onMobileSheetOpenChange) {
-      onMobileSheetOpenChange(open);
-    }
-    setInternalSheetOpen(open);
-  };
-
-  // Fetch listings for the interactive map preview
-  const { data: mapListings = [] } = useQuery({
-    queryKey: ["search-preview-listings"],
-    queryFn: ({ signal }) => fetchListings({ limit: 100 }, signal),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: sheetOpen, // Only fetch when sheet is open
   });
 
   const equipmentAutocomplete = useEquipmentAutocomplete({
@@ -543,13 +485,11 @@ const SearchBarPopover = ({
 
     setIsSelectingDates(false);
     onChange({ ...value, dateRange: range });
-    setActiveSection("what");
   };
 
   const handlePresetDateSelect = (range: DateRange) => {
     onChange({ ...value, dateRange: range });
     setIsSelectingDates(false);
-    setActiveSection("what");
   };
 
   const handleEquipmentSuggestionSelect = (suggestion: EquipmentSuggestion) => {
@@ -575,18 +515,14 @@ const SearchBarPopover = ({
     addRecentSearch(suggestion.label);
     setRecentSearches(getRecentSearches());
 
-    // Clear input and close popover/sheet
+    // Clear input and close popover
     equipmentAutocomplete.setQuery("");
     setEquipmentOpen(false);
-    setSheetOpen(false);
-    setActiveSection("where");
     equipmentInputRef.current?.blur();
   };
 
   const handleSearch = () => {
     onSubmit();
-    setSheetOpen(false);
-    setActiveSection("where");
   };
 
   const handleClearAll = () => {
@@ -600,19 +536,7 @@ const SearchBarPopover = ({
     });
     equipmentAutocomplete.setQuery("");
     addressAutocomplete.setQuery("");
-    setActiveSection("where");
     setIsSelectingDates(false);
-  };
-
-  const handleSheetOpenChange = (nextOpen: boolean) => {
-    setSheetOpen(nextOpen);
-    if (!nextOpen) {
-      setActiveSection("where");
-      setIsSelectingDates(false);
-      equipmentAutocomplete.setQuery("");
-    } else {
-      addressAutocomplete.setQuery("");
-    }
   };
 
   const handleUseCurrentLocation = async () => {
@@ -737,483 +661,6 @@ const SearchBarPopover = ({
     if (value.equipmentType) parts.push(value.equipmentType);
     return parts.length > 0 ? parts.join(" · ") : "Search equipment";
   };
-
-  // Mobile version with custom bottom sheet
-  if (!isDesktop) {
-    return (
-      <>
-        {/* Trigger Button - hidden when using external trigger */}
-        {!hideMobileTrigger && (
-          <Button
-            variant="outline"
-            className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
-            aria-label="Search equipment"
-            onClick={() => setSheetOpen(true)}
-          >
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Search
-                </span>
-                <span className="text-sm font-semibold text-foreground truncate">
-                  {value.location || "Where to?"}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {getSearchSummary()}
-                </span>
-              </div>
-            </div>
-            <Badge
-              variant="secondary"
-              className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
-            >
-              {activeFilterCount > 0 ? (
-                activeFilterCount
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Badge>
-          </Button>
-        )}
-
-        {/* Custom Bottom Sheet */}
-        <MobileSearchBottomSheet
-          isOpen={sheetOpen}
-          onClose={() => setSheetOpen(false)}
-          peekContent={
-            <span className="text-xs text-muted-foreground mt-1">
-              {value.location || "Where"} • {value.dateRange?.from ? "Dates set" : "When"} • {value.equipmentType || "What"}
-            </span>
-          }
-        >
-            {/* Compact header with integrated tabs */}
-            <div className="px-4 pb-3 sticky top-0 bg-background z-10">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold">
-                  Search
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearAll}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Clear all
-                </Button>
-              </div>
-              <div className="flex items-center rounded-full bg-muted p-1">
-                {MOBILE_SECTIONS.map((section) => {
-                  // Use dynamic icon for "What" section based on selection type
-                  let Icon = section.icon;
-                  if (
-                    section.key === "what" &&
-                    value.equipmentType &&
-                    value.search
-                  ) {
-                    Icon = Wrench;
-                  }
-                  const isActive = activeSection === section.key;
-                  
-                  // Dynamic label based on selection
-                  let label = section.label;
-                  if (section.key === "when" && value.dateRange?.from) {
-                    label = value.dateRange.to
-                      ? `${format(value.dateRange.from, "MMM d")}-${format(value.dateRange.to, "d")}`
-                      : format(value.dateRange.from, "MMM d");
-                  }
-                  
-                  return (
-                    <button
-                      key={section.key}
-                      type="button"
-                      onClick={() => {
-                        setActiveSection(section.key);
-                        // Auto-focus input when switching to sections with inputs
-                        setTimeout(() => {
-                          if (section.key === "where") {
-                            const input = document.querySelector(
-                              '[data-slot="command-input"]'
-                            ) as HTMLInputElement;
-                            input?.focus();
-                          } else if (section.key === "what") {
-                            const input = document.querySelector(
-                              '[data-slot="command-input"]'
-                            ) as HTMLInputElement;
-                            input?.focus();
-                          }
-                        }, 150);
-                      }}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                      aria-pressed={isActive}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Map-centric Where section */}
-            {activeSection === "where" && (
-              <div className="flex-1 flex flex-col animate-in fade-in-0 duration-200">
-                {/* Interactive Map - Takes ~50% of sheet height */}
-                <div className="relative flex-1 min-h-[280px]">
-                  <SearchPreviewMap
-                    location={value.location || null}
-                    listings={mapListings}
-                    onSelectListing={() => {}}
-                    onOpenListing={() => {}}
-                    onUseCurrentLocation={handleLocationClick}
-                    isLocating={isLocating}
-                    className="h-full w-full"
-                  />
-                  
-                  {/* Overlaid Search Input - Google Maps style */}
-                  <div className="absolute top-3 left-3 right-3 z-20">
-                    <div className="relative">
-                      <div className="bg-background/95 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 overflow-hidden">
-                        {renderAutocompleteCommand("Search location...")}
-                      </div>
-                      {addressAutocomplete.loading && (
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Selected location badge - overlaid on map */}
-                  {value.location && (
-                    <div className="absolute bottom-3 left-3 right-14 z-20">
-                      <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50">
-                        <MapPin className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-sm font-medium flex-1 truncate">
-                          {value.location}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onChange({ ...value, location: "" })}
-                          className="h-6 w-6 p-0 rounded-full hover:bg-muted"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* When and What sections - with scrollable content */}
-            {activeSection !== "where" && (
-              <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
-                {activeSection === "when" && (
-                <div className="space-y-3 animate-in fade-in-0 slide-in-from-right-2 duration-200">
-                  {/* Always visible calendar - mobile optimized */}
-                  <div className="rounded-2xl border bg-card overflow-hidden">
-                    <Calendar
-                      mode="range"
-                      selected={value.dateRange}
-                      onSelect={handleDateSelect}
-                      numberOfMonths={1}
-                      disabled={(date) =>
-                        startOfDay(date) < startOfDay(new Date())
-                      }
-                      className="w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:w-[14.28%] [&_.rdp-head_cell]:w-[14.28%] [&_.rdp-day]:h-10 [&_.rdp-day]:w-full"
-                    />
-                  </div>
-                  {/* Selection summary */}
-                  {value.dateRange?.from ? (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-in fade-in-0 zoom-in-95 duration-200">
-                      {/* Start date */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <CalendarIcon className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Start</p>
-                          <p className="text-sm font-medium truncate">{format(value.dateRange.from, "EEE, MMM d")}</p>
-                        </div>
-                      </div>
-                      {/* Arrow */}
-                      <div className="text-muted-foreground">→</div>
-                      {/* End date */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <div className={cn(
-                          "h-8 w-8 rounded-full flex items-center justify-center",
-                          value.dateRange.to ? "bg-primary/10" : "bg-muted border-2 border-dashed border-muted-foreground/30"
-                        )}>
-                          <CalendarIcon className={cn("h-4 w-4", value.dateRange.to ? "text-primary" : "text-muted-foreground/50")} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">End</p>
-                          <p className={cn("text-sm font-medium truncate", !value.dateRange.to && "text-muted-foreground")}>
-                            {value.dateRange.to ? format(value.dateRange.to, "EEE, MMM d") : "Select date"}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Clear button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full shrink-0"
-                        onClick={() => onChange({ ...value, dateRange: undefined })}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-muted-foreground/30">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Tap a date to start
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeSection === "what" && (
-                <div className="space-y-4 animate-in fade-in-0 slide-in-from-right-2 duration-200">
-                  <Command shouldFilter={false} className="rounded-2xl border">
-                    <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
-                      <CommandInput
-                        placeholder="Search equipment or categories..."
-                        value={equipmentAutocomplete.query}
-                        onValueChange={equipmentAutocomplete.setQuery}
-                        className="h-12 text-base"
-                      />
-                    </div>
-                    <CommandList
-                      className="max-h-[400px]"
-                      aria-busy={equipmentAutocomplete.loading}
-                    >
-                      <CommandEmpty>
-                        {equipmentAutocomplete.loading ? (
-                          <div className="flex items-center justify-center gap-2 py-6">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Searching...</span>
-                          </div>
-                        ) : equipmentAutocomplete.query.trim().length === 0 ? (
-                          "Start typing to search."
-                        ) : equipmentAutocomplete.error ? (
-                          `Error: ${equipmentAutocomplete.error}`
-                        ) : (
-                          "No results found."
-                        )}
-                      </CommandEmpty>
-
-                      {/* Recent Searches (shown when no search query) */}
-                      {equipmentAutocomplete.query.trim().length === 0 &&
-                        recentSearches.length > 0 && (
-                          <CommandGroup
-                            heading="Recent"
-                            className="animate-suggestions-in"
-                          >
-                            {recentSearches.map((searchTerm, idx) => (
-                              <CommandItem
-                                key={`recent-${idx}`}
-                                onSelect={() => {
-                                  // Find matching category
-                                  const category = categories.find(
-                                    (cat) => cat.name === searchTerm
-                                  );
-                                  if (category) {
-                                    handleEquipmentSuggestionSelect({
-                                      id: category.id,
-                                      label: category.name,
-                                      type: "category",
-                                    });
-                                  } else {
-                                    // Treat as equipment search
-                                    onChange({
-                                      ...value,
-                                      equipmentType: searchTerm,
-                                      equipmentCategoryId: undefined,
-                                      search: searchTerm,
-                                    });
-                                    setSheetOpen(false);
-                                  }
-                                }}
-                                className="cursor-pointer py-3 animate-suggestion-item"
-                                style={
-                                  { "--item-index": idx } as React.CSSProperties
-                                }
-                              >
-                                <Search className="mr-2 h-4 w-4 text-muted-foreground" />
-                                {searchTerm}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        )}
-
-                      {/* Popular Categories (shown when no search query) */}
-                      {equipmentAutocomplete.query.trim().length === 0 && (
-                        <CommandGroup
-                          heading="Popular"
-                          className="animate-suggestions-in"
-                        >
-                          {POPULAR_CATEGORIES.map((categoryName, idx) => (
-                            <CommandItem
-                              key={categoryName}
-                              onSelect={() => {
-                                // Find the category ID from loaded categories
-                                const category = categories.find(
-                                  (cat) => cat.name === categoryName
-                                );
-                                if (category) {
-                                  handleEquipmentSuggestionSelect({
-                                    id: category.id,
-                                    label: category.name,
-                                    type: "category",
-                                  });
-                                } else {
-                                  // Fallback: set as equipmentType without category filter
-                                  onChange({
-                                    ...value,
-                                    equipmentType: categoryName,
-                                    equipmentCategoryId: undefined,
-                                    search: "",
-                                  });
-                                  setSheetOpen(false);
-                                }
-                              }}
-                              className="cursor-pointer py-3 animate-suggestion-item"
-                              style={
-                                { "--item-index": idx } as React.CSSProperties
-                              }
-                            >
-                              <Package className="mr-2 h-4 w-4" />
-                              {categoryName}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      )}
-
-                      {/* Categories Group */}
-                      {categorySuggestions.length > 0 && (
-                        <CommandGroup
-                          heading="Categories"
-                          className="animate-suggestions-in"
-                        >
-                          {categorySuggestions.map((s, idx) => (
-                            <CommandItem
-                              key={s.id}
-                              onSelect={() =>
-                                handleEquipmentSuggestionSelect(s)
-                              }
-                              className="cursor-pointer py-3 animate-suggestion-item"
-                              style={
-                                { "--item-index": idx } as React.CSSProperties
-                              }
-                            >
-                              <Package className="mr-2 h-4 w-4 shrink-0" />
-                              <span className="flex-1 truncate">
-                                {highlightMatchingText(
-                                  s.label,
-                                  equipmentAutocomplete.query
-                                )}
-                              </span>
-                              {typeof s.itemCount === "number" && (
-                                <span className="text-xs text-muted-foreground ml-auto pl-2 shrink-0">
-                                  {s.itemCount}{" "}
-                                  {s.itemCount === 1 ? "item" : "items"}
-                                </span>
-                              )}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      )}
-
-                      {/* Equipment Items Group */}
-                      {equipmentSuggestions.length > 0 && (
-                        <CommandGroup
-                          heading="Equipment"
-                          className="animate-suggestions-in"
-                        >
-                          {equipmentSuggestions.map((s, idx) => (
-                            <CommandItem
-                              key={s.id}
-                              onSelect={() =>
-                                handleEquipmentSuggestionSelect(s)
-                              }
-                              className="cursor-pointer py-3 animate-suggestion-item"
-                              style={
-                                { "--item-index": idx } as React.CSSProperties
-                              }
-                            >
-                              <Search className="mr-2 h-4 w-4 shrink-0" />
-                              <div className="flex flex-col min-w-0 flex-1">
-                                <span className="truncate">
-                                  {highlightMatchingText(
-                                    s.label,
-                                    equipmentAutocomplete.query
-                                  )}
-                                </span>
-                                {s.categoryName && (
-                                  <span className="text-xs text-muted-foreground truncate">
-                                    in {s.categoryName}
-                                  </span>
-                                )}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      )}
-                    </CommandList>
-                  </Command>
-                  {/* Selection badge */}
-                  {value.equipmentType && (
-                    <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
-                      <Package className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium flex-1 truncate">
-                        {value.equipmentType}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          onChange({
-                            ...value,
-                            equipmentType: undefined,
-                            equipmentCategoryId: undefined,
-                            search: "",
-                          })
-                        }
-                        className="h-7 w-7 p-0 rounded-full"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-              </div>
-            )}
-            {/* Footer with Search button */}
-            <div className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
-              <Button 
-                onClick={handleSearch} 
-                className="w-full h-12 text-base font-semibold rounded-full shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
-              >
-                <Search className="mr-2 h-5 w-5" />
-                Search{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
-              </Button>
-            </div>
-        </MobileSearchBottomSheet>
-      </>
-    );
-  }
 
   // Desktop version with Popover layout
   return (
