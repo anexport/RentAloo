@@ -11,28 +11,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Package,
-  ArrowRight,
   CreditCard,
   Heart,
   LifeBuoy,
-  Sparkles,
   PiggyBank,
   ListChecks,
   Star,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import VerificationBadge from "@/components/verification/VerificationBadge";
 import { useVerification } from "@/hooks/useVerification";
-import { getVerificationProgress } from "@/lib/verification";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleMode } from "@/contexts/RoleModeContext";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency } from "@/lib/payment";
-import { formatDateLabel } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import RoleSwitcher from "@/components/RoleSwitcher";
 
@@ -48,14 +41,73 @@ interface NavItem {
   badge?: number;
 }
 
+interface NavSection {
+  title?: string;
+  items: NavItem[];
+}
+
+// Trust score ring component
+const TrustScoreRing = ({ score, size = 40 }: { score: number; size?: number }) => {
+  const circumference = 2 * Math.PI * 15; // radius = 15
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  const getScoreColor = (s: number) => {
+    if (s >= 80) return "var(--trust-excellent)";
+    if (s >= 60) return "var(--trust-good)";
+    if (s >= 40) return "var(--trust-fair)";
+    return "var(--trust-low)";
+  };
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 40 40"
+        className="transform -rotate-90"
+      >
+        {/* Background ring */}
+        <circle
+          cx="20"
+          cy="20"
+          r="15"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          className="text-muted/30"
+        />
+        {/* Progress ring */}
+        <circle
+          cx="20"
+          cy="20"
+          r="15"
+          fill="none"
+          stroke={getScoreColor(score)}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="animate-trust-ring transition-all duration-500"
+          style={{
+            "--trust-offset": strokeDashoffset
+          } as React.CSSProperties}
+        />
+      </svg>
+      {/* Center content */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+      </div>
+    </div>
+  );
+};
+
 const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const { t } = useTranslation("navigation");
   const location = useLocation();
   const { profile } = useVerification();
-  const verificationProgress = profile ? getVerificationProgress(profile) : 0;
   const trustScore = profile?.trustScore?.overall ?? 0;
   const { user } = useAuth();
-  const { activeMode, isAlsoOwner } = useRoleMode();
+  const { activeMode } = useRoleMode();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const userId = user?.id;
@@ -73,10 +125,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       const hasEquipment = (count || 0) > 0;
       return { hasEquipment };
     },
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Count confirmed bookings for owner's equipment (approved + active)
   const { data: activeOwnerBookingsData } = useQuery({
     queryKey: ["sidebar", "active-owner-bookings", userId],
     enabled: !!userId && !!equipmentStatus?.hasEquipment,
@@ -88,11 +139,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
           head: true,
         })
         .eq("equipment.owner_id", userId as string)
-        .eq("status", "approved"); // TODO: Add "active" after migration
+        .eq("status", "approved");
       if (error) throw error;
       return count || 0;
     },
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: unreadMessagesData, refetch: refetchUnreadMessages } = useQuery(
@@ -100,17 +151,15 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       queryKey: ["sidebar", "unread-messages", userId],
       enabled: !!userId,
       queryFn: async () => {
-        // Use RPC function instead of N+1 queries per conversation
         const { data, error } = await supabase.rpc("get_unread_messages_count");
         if (error) {
           console.error("Failed to fetch unread messages count:", error);
           return 0;
         }
-        // Validate returned value is a number before using
         const count = typeof data === "number" ? data : 0;
         return count;
       },
-      staleTime: 1000 * 30, // 30 seconds
+      staleTime: 1000 * 30,
     }
   );
 
@@ -126,11 +175,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
       if (error) throw error;
       return count || 0;
     },
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
   });
 
-  const { data: payoutInfo } = useQuery({
-    queryKey: ["sidebar", "payout-info", userId],
+  const { data: pendingPayoutsCount } = useQuery({
+    queryKey: ["sidebar", "pending-payouts", userId],
     enabled: !!userId && !!equipmentStatus?.hasEquipment,
     queryFn: async () => {
       const { count, error } = await supabase
@@ -139,26 +188,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         .eq("owner_id", userId as string)
         .or("payout_status.eq.pending,payout_status.is.null");
       if (error) throw error;
-
-      const { data: latestPayout, error: payoutError } = await supabase
-        .from("payments")
-        .select("payout_processed_at")
-        .eq("owner_id", userId as string)
-        .not("payout_processed_at", "is", null)
-        .order("payout_processed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (payoutError) throw payoutError;
-
-      return {
-        pendingPayouts: count || 0,
-        lastPayoutAt: latestPayout?.payout_processed_at ?? null,
-      };
+      return count || 0;
     },
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
   });
 
-  // Realtime subscription for unread messages to trigger refetch
   useEffect(() => {
     if (!userId) {
       if (channelRef.current) {
@@ -255,384 +289,325 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     [location.pathname, location.search]
   );
 
-  const hasEquipment = equipmentStatus?.hasEquipment ?? false;
   const activeOwnerBookings = activeOwnerBookingsData ?? 0;
   const unreadMessages = unreadMessagesData ?? 0;
   const openSupportTickets = supportTickets ?? 0;
-  const pendingPayouts = payoutInfo?.pendingPayouts ?? 0;
-  const lastPayoutAt = payoutInfo?.lastPayoutAt ?? null;
+  const pendingPayouts = pendingPayoutsCount ?? 0;
 
-  // Navigation items based on active mode
-  const renterMainNavItems: NavItem[] = [
-    { label: t("sidebar.dashboard"), icon: Home, href: "/renter/dashboard" },
-    { label: t("sidebar.browse_equipment"), icon: Search, href: "/equipment" },
-    {
-      label: t("sidebar.watchlist"),
-      icon: Heart,
-      href: "/renter/saved",
-    },
-  ];
+  // Navigation sections based on active mode
+  const navSections: NavSection[] = useMemo(() => {
+    const renterSections: NavSection[] = [
+      {
+        items: [
+          { label: t("sidebar.dashboard"), icon: Home, href: "/renter/dashboard" },
+          { label: t("sidebar.browse_equipment"), icon: Search, href: "/equipment" },
+          { label: t("sidebar.watchlist"), icon: Heart, href: "/renter/saved" },
+        ],
+      },
+      {
+        title: t("sidebar.activity"),
+        items: [
+          { label: t("sidebar.my_bookings"), icon: Calendar, href: "/renter/bookings" },
+          { label: t("sidebar.messages"), icon: MessageSquare, href: "/messages", ...(unreadMessages > 0 && { badge: unreadMessages }) },
+          { label: t("sidebar.payments"), icon: CreditCard, href: "/renter/payments" },
+        ],
+      },
+      {
+        items: [
+          { label: t("sidebar.support"), icon: LifeBuoy, href: "/support", ...(openSupportTickets > 0 && { badge: openSupportTickets }) },
+          { label: t("sidebar.settings"), icon: User, href: "/settings" },
+        ],
+      },
+    ];
 
-  const ownerMainNavItems: NavItem[] = [
-    { label: t("sidebar.dashboard"), icon: Home, href: "/owner/dashboard" },
-    {
-      label: t("sidebar.my_equipment_listings"),
-      icon: Package,
-      href: "/owner/equipment",
-    },
-  ];
+    const ownerSections: NavSection[] = [
+      {
+        items: [
+          { label: t("sidebar.dashboard"), icon: Home, href: "/owner/dashboard" },
+          { label: t("sidebar.my_equipment_listings"), icon: Package, href: "/owner/equipment" },
+        ],
+      },
+      {
+        title: t("sidebar.activity"),
+        items: [
+          { label: t("sidebar.my_bookings"), icon: ListChecks, href: "/owner/bookings", ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }) },
+          { label: t("sidebar.messages"), icon: MessageSquare, href: "/messages", ...(unreadMessages > 0 && { badge: unreadMessages }) },
+          { label: t("sidebar.reviews"), icon: Star, href: "/owner/reviews" },
+          { label: t("sidebar.payouts"), icon: PiggyBank, href: "/owner/payments", ...(pendingPayouts > 0 && { badge: pendingPayouts }) },
+        ],
+      },
+      {
+        items: [
+          { label: t("sidebar.support"), icon: LifeBuoy, href: "/support", ...(openSupportTickets > 0 && { badge: openSupportTickets }) },
+          { label: t("sidebar.settings"), icon: User, href: "/settings" },
+        ],
+      },
+    ];
 
-  const renterActivityNavItems: NavItem[] = [
-    {
-      label: t("sidebar.my_bookings"),
-      icon: Calendar,
-      href: "/renter/bookings",
-    },
-    {
-      label: t("sidebar.messages"),
-      icon: MessageSquare,
-      href: "/messages",
-      ...(unreadMessages > 0 && { badge: unreadMessages }),
-    },
-    {
-      label: t("sidebar.payments"),
-      icon: CreditCard,
-      href: "/renter/payments",
-    },
-    {
-      label: t("sidebar.support"),
-      icon: LifeBuoy,
-      href: "/support",
-      ...(openSupportTickets > 0 && { badge: openSupportTickets }),
-    },
-  ];
+    return activeMode === "owner" ? ownerSections : renterSections;
+  }, [activeMode, t, unreadMessages, openSupportTickets, activeOwnerBookings, pendingPayouts]);
 
-  const ownerActivityNavItems: NavItem[] = [
-    {
-      label: t("sidebar.my_bookings"),
-      icon: ListChecks,
-      href: "/owner/bookings",
-      ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
-    },
-    {
-      label: t("sidebar.messages"),
-      icon: MessageSquare,
-      href: "/messages",
-      ...(unreadMessages > 0 && { badge: unreadMessages }),
-    },
-    {
-      label: t("sidebar.reviews"),
-      icon: Star,
-      href: "/owner/reviews",
-    },
-    {
-      label: t("sidebar.payouts"),
-      icon: PiggyBank,
-      href: "/owner/payments",
-      ...(pendingPayouts > 0 && { badge: pendingPayouts }),
-    },
-    {
-      label: t("sidebar.support"),
-      icon: LifeBuoy,
-      href: "/support",
-      ...(openSupportTickets > 0 && { badge: openSupportTickets }),
-    },
-  ];
-
-  const accountNavItems: NavItem[] = [
-    { label: t("sidebar.settings"), icon: User, href: "/settings" },
-  ];
-
-  // Select navigation items based on active mode
-  const mainNavItems =
-    activeMode === "owner" ? ownerMainNavItems : renterMainNavItems;
-  const activityNavItems =
-    activeMode === "owner" ? ownerActivityNavItems : renterActivityNavItems;
+  // Flatten items for animation indexing
+  const allItems = navSections.flatMap(s => s.items);
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-card transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-out",
+        "border-r border-sidebar-border/60",
+        // Layered gradient background
+        "bg-gradient-to-b from-sidebar via-sidebar to-sidebar/95",
+        // Subtle inner shadow for depth
+        "shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.03)]",
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className="flex h-full flex-col">
+      {/* Subtle gradient overlay for premium feel */}
+      <div className="absolute inset-0 bg-gradient-to-br from-sidebar-primary/[0.02] via-transparent to-transparent pointer-events-none" />
+
+      <div className="relative flex h-full flex-col">
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          {!collapsed && (
-            <Link
-              to="/"
-              className="flex items-center space-x-2 rounded-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <Mountain className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-foreground">Vaymo</span>
-            </Link>
-          )}
-          {collapsed && (
-            <Link
-              to="/"
-              className="mx-auto flex rounded-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <Mountain className="h-6 w-6 text-primary" />
-            </Link>
-          )}
-        </div>
-
-        {/* Toggle Button */}
-        <div className="flex justify-end p-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggle}
-            className="h-8 w-8"
-            aria-label={
-              collapsed ? t("aria.expand_sidebar") : t("aria.collapse_sidebar")
-            }
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-
-        <Separator className="mb-4" />
-
-        {/* Role Switcher */}
-        <RoleSwitcher collapsed={collapsed} variant="sidebar" />
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2">
-          {/* Main Section */}
-          {!collapsed && (
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {t("sidebar.main")}
-            </div>
-          )}
-          <div className="space-y-1 mb-6">
-            {mainNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 shrink-0 transition-transform duration-200",
-                      !active && "group-hover:scale-110"
-                    )}
-                  />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badge && item.badge > 0 && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Activity Section */}
-          {!collapsed && (
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {t("sidebar.activity")}
-            </div>
-          )}
-          <div className="space-y-1 mb-6">
-            {activityNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 shrink-0 transition-transform duration-200",
-                      !active && "group-hover:scale-110"
-                    )}
-                  />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badge && item.badge > 0 && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Account Section */}
-          {!collapsed && (
-            <div className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
-              {t("sidebar.account")}
-            </div>
-          )}
-          <div className="space-y-1">
-            {accountNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    "group flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
-                    active
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:shadow-sm hover:translate-x-0.5"
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 shrink-0 transition-transform duration-200",
-                      !active && "group-hover:scale-110"
-                    )}
-                  />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badge && item.badge > 0 && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
-        <Separator className="my-4" />
-
-        {/* Owner payout glance - only show in owner mode */}
-        {activeMode === "owner" && hasEquipment && (
-          <div className="px-2 pb-2">
-            <div className="rounded-lg border bg-card/60 p-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="flex min-w-0 flex-1 items-center gap-2 text-xs font-semibold text-foreground">
-                  <PiggyBank className="h-4 w-4 shrink-0 text-primary" />
-                  {!collapsed && (
-                    <span className="truncate">
-                      {t("sidebar.payout_glance_title")}
-                    </span>
-                  )}
-                </div>
-                {!collapsed && pendingPayouts > 0 && (
-                  <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                    {t("sidebar.payout_glance_pending", {
-                      count: pendingPayouts,
-                    })}
-                  </span>
-                )}
-              </div>
-              {!collapsed && (
-                <>
-                  <div className="mt-2 text-sm font-semibold text-foreground">
-                    {t("sidebar.track_earnings")}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("sidebar.last_payout", {
-                      date: formatDateLabel(lastPayoutAt),
-                    })}
-                  </p>
-                  <Link
-                    to="/owner/payments"
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  >
-                    {t("sidebar.view_payouts")}{" "}
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        <Separator className="my-4" />
-
-        {/* Announcements */}
-        <div className="px-2 pb-4">
+        <div className={cn(
+          "flex h-16 items-center border-b border-sidebar-border/40",
+          collapsed ? "justify-center px-2" : "justify-between px-4"
+        )}>
           <Link
-            to="/explore"
+            to="/"
             className={cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-accent",
-              collapsed ? "justify-center" : "justify-between"
+              "group flex items-center gap-3 rounded-xl transition-all duration-200",
+              "hover:scale-[1.02] active:scale-[0.98]",
+              collapsed && "mx-auto"
             )}
-            title={collapsed ? t("sidebar.whats_new") : undefined}
           >
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              {!collapsed && <span>{t("sidebar.whats_new")}</span>}
+            {/* Logo with gradient and glow */}
+            <div className={cn(
+              "relative flex items-center justify-center w-9 h-9 rounded-xl",
+              "bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80",
+              "shadow-lg shadow-sidebar-primary/20",
+              "animate-logo-glow transition-all duration-300",
+              "group-hover:shadow-sidebar-primary/40 group-hover:shadow-xl"
+            )}>
+              <Mountain className="h-[18px] w-[18px] text-sidebar-primary-foreground" />
+              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-sidebar-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             {!collapsed && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                {t("sidebar.updates")}
+              <span className="text-lg font-semibold text-sidebar-foreground tracking-tight">
+                Vaymo
               </span>
             )}
           </Link>
+
+          {!collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className={cn(
+                "h-8 w-8 rounded-lg",
+                "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+                "hover:bg-sidebar-accent/50",
+                "transition-all duration-200"
+              )}
+              aria-label={t("aria.collapse_sidebar")}
+            >
+              <ChevronLeft className="h-4 w-4 animate-chevron-bounce" />
+            </Button>
+          )}
         </div>
 
-        {/* Verification Status */}
-        {profile && (
-          <div className="px-2 pb-4">
+        {/* Role Switcher */}
+        <div className={cn("px-3 py-3", collapsed && "px-2")}>
+          <RoleSwitcher collapsed={collapsed} variant="sidebar" />
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-1 scrollbar-hide">
+          <div className="space-y-6">
+            {navSections.map((section, sectionIndex) => (
+              <div key={sectionIndex} className="space-y-1">
+                {/* Section title */}
+                {section.title && !collapsed && (
+                  <div className="px-3 py-2">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40">
+                      {section.title}
+                    </span>
+                  </div>
+                )}
+                {section.title && collapsed && (
+                  <div className="flex justify-center py-2">
+                    <div className="h-px w-6 bg-sidebar-border/60 rounded-full" />
+                  </div>
+                )}
+
+                {/* Section items */}
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  const itemIndex = allItems.findIndex(i => i.href === item.href);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={cn(
+                        "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200",
+                        "animate-sidebar-item",
+                        active
+                          ? [
+                              "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                              "shadow-sm",
+                            ]
+                          : [
+                              "text-sidebar-foreground/70",
+                              "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                            ],
+                        collapsed && "justify-center px-2"
+                      )}
+                      style={{
+                        animationDelay: `${itemIndex * 30}ms`,
+                      }}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      {/* Active indicator bar */}
+                      {active && (
+                        <div
+                          className={cn(
+                            "absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full",
+                            "bg-sidebar-primary",
+                            "animate-active-indicator"
+                          )}
+                        />
+                      )}
+
+                      {/* Icon with hover animation */}
+                      <div className={cn(
+                        "relative shrink-0",
+                        collapsed && "relative"
+                      )}>
+                        <Icon className={cn(
+                          "h-[18px] w-[18px] transition-transform duration-200",
+                          "group-hover:scale-110",
+                          active && "text-sidebar-primary"
+                        )} />
+
+                        {/* Badge for collapsed state */}
+                        {collapsed && item.badge && item.badge > 0 && (
+                          <span className={cn(
+                            "absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center",
+                            "rounded-full bg-destructive px-1 text-[9px] font-semibold text-white",
+                            "shadow-lg shadow-destructive/30",
+                            "animate-badge-pulse"
+                          )}>
+                            {item.badge > 9 ? "9+" : item.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Label and expanded badge */}
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {item.badge && item.badge > 0 && (
+                            <span className={cn(
+                              "flex h-5 min-w-5 items-center justify-center",
+                              "rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-white",
+                              "shadow-md shadow-destructive/25",
+                              "animate-badge-pulse"
+                            )}>
+                              {item.badge > 99 ? "99+" : item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        {/* Bottom section */}
+        <div className={cn(
+          "mt-auto border-t border-sidebar-border/40 p-3",
+          "bg-gradient-to-t from-sidebar-accent/30 to-transparent"
+        )}>
+          {/* Collapsed expand button */}
+          {collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              className={cn(
+                "w-full h-9 rounded-lg",
+                "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+                "hover:bg-sidebar-accent/50",
+                "transition-all duration-200"
+              )}
+              aria-label={t("aria.expand_sidebar")}
+            >
+              <ChevronRight className="h-4 w-4 animate-chevron-bounce" />
+            </Button>
+          )}
+
+          {/* Trust score card */}
+          {!collapsed && profile && (
             <Link
               to="/verification"
               className={cn(
-                "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent",
-                collapsed ? "justify-center" : ""
+                "group flex items-center gap-3 rounded-xl px-3 py-2.5",
+                "bg-sidebar-accent/40 hover:bg-sidebar-accent/60",
+                "border border-sidebar-border/30 hover:border-sidebar-border/50",
+                "transition-all duration-200",
+                "hover:shadow-md hover:shadow-black/5"
               )}
-              title={collapsed ? t("sidebar.verification") : undefined}
             >
-              <Shield className="h-5 w-5 shrink-0 text-primary" />
-              {!collapsed && (
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-foreground">
-                      {t("sidebar.trust_score")}
-                    </span>
-                    <span className="text-xs font-semibold text-primary">
-                      {trustScore}
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-1.5">
-                    <div
-                      className="bg-primary h-1.5 rounded-full transition-all"
-                      style={{ width: `${trustScore}%` }}
-                    />
-                  </div>
-                  {trustScore >= 80 && (
-                    <div className="mt-1">
-                      <VerificationBadge status="verified" showLabel={false} />
-                    </div>
-                  )}
+              {/* Trust score ring */}
+              <TrustScoreRing score={trustScore} size={36} />
+
+              {/* Trust info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-sidebar-foreground/60">
+                    {t("trustScore.label", { defaultValue: "Trust Score" })}
+                  </span>
+                  <span className={cn(
+                    "text-sm font-semibold tabular-nums",
+                    trustScore >= 80 && "text-[color:var(--trust-excellent)]",
+                    trustScore >= 60 && trustScore < 80 && "text-[color:var(--trust-good)]",
+                    trustScore >= 40 && trustScore < 60 && "text-[color:var(--trust-fair)]",
+                    trustScore < 40 && "text-[color:var(--trust-low)]"
+                  )}>
+                    {trustScore}%
+                  </span>
                 </div>
-              )}
+                <p className="text-[10px] text-sidebar-foreground/40 mt-0.5 truncate">
+                  {trustScore >= 80 ? t("trustScore.status.excellent", { defaultValue: "Excellent standing" }) :
+                   trustScore >= 60 ? t("trustScore.status.good", { defaultValue: "Good standing" }) :
+                   trustScore >= 40 ? t("trustScore.status.building", { defaultValue: "Building trust" }) : 
+                   t("trustScore.status.getVerified", { defaultValue: "Get verified" })}
+                </p>
+              </div>
+
+              {/* Hover indicator */}
+              <ChevronRight className="h-3.5 w-3.5 text-sidebar-foreground/30 group-hover:text-sidebar-foreground/60 group-hover:translate-x-0.5 transition-all" />
             </Link>
-          </div>
-        )}
+          )}
+
+          {/* Collapsed trust indicator */}
+          {collapsed && profile && (
+            <Link
+              to="/verification"
+              className={cn(
+                "flex justify-center mt-2 py-2",
+                "hover:opacity-80 transition-opacity"
+              )}
+              title={`Trust Score: ${trustScore}%`}
+            >
+              <TrustScoreRing score={trustScore} size={32} />
+            </Link>
+          )}
+        </div>
       </div>
     </aside>
   );

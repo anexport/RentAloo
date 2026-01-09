@@ -49,12 +49,12 @@ export default function ActiveRentalPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background animate-page-enter">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-64 w-full rounded-xl" />
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-8 w-48" shimmer />
+          <Skeleton className="h-64 w-full rounded-2xl" shimmer />
+          <Skeleton className="h-32 w-full rounded-2xl" shimmer />
+          <Skeleton className="h-24 w-full rounded-2xl" shimmer />
         </div>
       </div>
     );
@@ -65,8 +65,8 @@ export default function ActiveRentalPage() {
     const dashboardPath = user?.user_metadata?.role === "owner" ? "/owner/dashboard" : "/renter/dashboard";
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
+      <div className="min-h-screen bg-background flex items-center justify-center animate-page-enter">
+        <Card className="max-w-md w-full mx-4 rounded-2xl">
           <CardContent className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Rental Not Found</h2>
@@ -109,7 +109,7 @@ export default function ActiveRentalPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-page-enter">
         {/* Return Reminder Banner */}
         {isRenter && isEndingSoon && !returnInspection && (
           <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
@@ -137,7 +137,7 @@ export default function ActiveRentalPage() {
         )}
 
         {/* Equipment Hero */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden rounded-2xl">
           <div className="relative h-48 sm:h-64 bg-muted">
             {photoUrl ? (
               <img
@@ -180,7 +180,7 @@ export default function ActiveRentalPage() {
 
         {/* Rental Details */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -197,7 +197,7 @@ export default function ActiveRentalPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -212,7 +212,7 @@ export default function ActiveRentalPage() {
           </Card>
 
           {equipment.location && (
-            <Card className="sm:col-span-2">
+            <Card className="sm:col-span-2 rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
@@ -240,7 +240,7 @@ export default function ActiveRentalPage() {
         </div>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Quick Actions</CardTitle>
           </CardHeader>
@@ -256,7 +256,7 @@ export default function ActiveRentalPage() {
         </Card>
 
         {/* Inspection Summary */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Inspection Status</CardTitle>
           </CardHeader>
@@ -327,7 +327,7 @@ export default function ActiveRentalPage() {
 
         {/* Main Return CTA */}
         {isRenter && !returnInspection && (
-          <Card className="border-primary/30 bg-primary/5">
+          <Card className="border-primary/30 bg-primary/5 rounded-2xl">
             <CardContent className="p-6 text-center">
               <Camera className="h-10 w-10 text-primary mx-auto mb-3" />
               <h3 className="text-lg font-semibold mb-2">

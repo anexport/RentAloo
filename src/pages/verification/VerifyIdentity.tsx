@@ -50,6 +50,11 @@ type StepConfig = {
   duration: string;
 };
 
+/** Animation stagger delay in milliseconds for loading dots */
+const STAGGER_DELAY_MS = 150;
+/** Number of dots in the loading indicator */
+const DOT_INDICES = [0, 1, 2] as const;
+
 const VERIFICATION_STEPS: StepConfig[] = [
   {
     id: "identity",
@@ -146,12 +151,26 @@ const VerifyIdentity = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="min-h-[60vh] flex items-center justify-center">
+        <div 
+          className="min-h-[60vh] flex items-center justify-center animate-page-enter"
+          role="status"
+          aria-live="polite"
+        >
           <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 animate-pulse">
-              <Shield className="h-8 w-8 text-primary" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
+              <Shield className="h-8 w-8 text-primary animate-pulse" aria-hidden="true" />
             </div>
-            <p className="text-muted-foreground">Loading verification status...</p>
+            <div className="flex gap-1.5 justify-center" aria-hidden="true">
+              {DOT_INDICES.map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"
+                  style={{ animationDelay: `${i * STAGGER_DELAY_MS}ms` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">Loading verification status...</p>
+            <span className="sr-only">Loading verification status, please wait</span>
           </div>
         </div>
       </DashboardLayout>
@@ -166,7 +185,7 @@ const VerifyIdentity = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6 pb-8">
+      <div className="max-w-4xl mx-auto space-y-6 pb-8 animate-page-enter">
 
         {/* Social Proof Banner */}
         <div className="flex items-center justify-center gap-2 py-2">

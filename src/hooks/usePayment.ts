@@ -284,14 +284,17 @@ export const usePayment = () => {
           throw new Error("VITE_SUPABASE_URL is not configured");
         }
 
-        const response = await fetch(`${supabaseUrl}/functions/v1/release-escrow`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ paymentId }),
-        });
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/release-escrow`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ paymentId }),
+          }
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({

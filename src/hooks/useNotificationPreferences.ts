@@ -171,6 +171,7 @@ export const useNotificationPreferences =
       loading,
       error,
       updatePreferences,
+      refetch: fetchPreferences,
     };
   };
 

@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
 import ReviewList from "@/components/reviews/ReviewList";
 
 const OwnerReviewsPage = () => {
@@ -13,21 +15,20 @@ const OwnerReviewsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("owner.reviews.section_title")}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("owner.reviews.section_description")}
-          </p>
-        </div>
+      <PageShell
+        title={t("owner.reviews.section_title", { defaultValue: "Reviews" })}
+        description={t("owner.reviews.section_description", {
+          defaultValue: "See what renters are saying about your equipment"
+        })}
+        icon={Star}
+        iconColor="text-amber-500"
+      >
         <ReviewList
           revieweeId={user.id}
           showSummary={true}
           showEquipment={true}
         />
-      </div>
+      </PageShell>
     </DashboardLayout>
   );
 };

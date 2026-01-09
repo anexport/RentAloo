@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { ListChecks } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
 import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
 import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
-import { Card, CardContent } from "@/components/ui/card";
-import { Calendar } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BookingCardSkeleton } from "@/components/ui/PageSkeleton";
 import { useToast } from "@/hooks/useToast";
 
 const OwnerBookingsPage = () => {
@@ -28,23 +30,20 @@ const OwnerBookingsPage = () => {
   const bookingIds = useMemo(() => {
     const newIds = bookingRequests.map((b) => b.id);
     const prevIds = prevBookingIdsRef.current;
-    
-    // Check if IDs are actually different (same length and same values)
+
     const idsChanged =
       newIds.length !== prevIds.length ||
       newIds.some((id, i) => id !== prevIds[i]);
-    
+
     if (idsChanged) {
       prevBookingIdsRef.current = newIds;
       return newIds;
     }
-    
-    // Return previous reference if IDs haven't changed
+
     return prevIds;
   }, [bookingRequests]);
 
   // Centralized real-time subscriptions for all booking cards
-  // This replaces individual subscriptions in each BookingRequestCard
   useBookingSubscriptions({
     bookingIds,
     onUpdate: handleBookingStatusChange,
@@ -63,47 +62,44 @@ const OwnerBookingsPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("owner.bookings.section_title")}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("owner.bookings.section_description")}
-          </p>
-        </div>
+      <PageShell
+        title={t("owner.bookings.section_title", { defaultValue: "Booking Requests" })}
+        description={t("owner.bookings.section_description", {
+          defaultValue: "Manage incoming rental requests for your equipment"
+        })}
+        icon={ListChecks}
+        iconColor="text-violet-500"
+      >
+        {/* Loading State */}
+        {bookingsLoading && (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <BookingCardSkeleton key={i} />
+            ))}
+          </div>
+        )}
 
-        {bookingsLoading ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <div className="text-muted-foreground">
-                {t("owner.bookings.loading")}
-              </div>
-            </CardContent>
-          </Card>
-        ) : bookingRequests.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="text-center py-12">
-              <div className="flex flex-col items-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Calendar className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">
-                  {t("owner.bookings.empty_state.title")}
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  {t("owner.bookings.empty_state.description")}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
+        {/* Empty State */}
+        {!bookingsLoading && bookingRequests.length === 0 && (
+          <EmptyState
+            icon={ListChecks}
+            title={t("owner.bookings.empty_state.title", {
+              defaultValue: "No booking requests"
+            })}
+            description={t("owner.bookings.empty_state.description", {
+              defaultValue: "When renters request your equipment, their bookings will appear here."
+            })}
+          />
+        )}
+
+        {/* Bookings List */}
+        {!bookingsLoading && bookingRequests.length > 0 && (
           <div className="space-y-4">
             {bookingRequests.map((request, index) => (
               <div
                 key={request.id}
-                className="animate-in slide-in-from-bottom-4 duration-500"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="animate-content-reveal"
+                style={{ "--stagger-index": index } as React.CSSProperties}
               >
                 <BookingRequestCard
                   bookingRequest={request}
@@ -114,7 +110,7 @@ const OwnerBookingsPage = () => {
             ))}
           </div>
         )}
-      </div>
+      </PageShell>
     </DashboardLayout>
   );
 };

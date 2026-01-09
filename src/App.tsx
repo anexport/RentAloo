@@ -15,6 +15,7 @@ import { RoleModeProvider } from "@/contexts/RoleModeContext";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
 
 // Lazy-loaded page components
 const EmailVerification = lazy(() => import("@/pages/auth/EmailVerification"));
@@ -62,11 +63,11 @@ const RenterBookingsPage = lazy(
   () => import("@/pages/renter/RenterBookingsPage")
 );
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-  </div>
-);
+/**
+ * PageLoader - Minimal loading indicator for lazy-loaded pages
+ * Uses subtle dots instead of large spinner to avoid "reload" perception
+ */
+const PageLoader = () => <PageTransitionLoader />;
 
 const AdminRoute = () => {
   const { user, loading: authLoading } = useAuth();
@@ -101,11 +102,7 @@ function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

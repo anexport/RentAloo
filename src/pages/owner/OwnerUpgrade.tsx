@@ -433,7 +433,7 @@ const OwnerUpgrade = () => {
                   return (
                     <Card
                       key={benefit.title}
-                      className="border-border/50 hover:border-primary/30 transition-colors"
+                      className="border-border/50 hover:border-primary/30 transition-colors rounded-2xl"
                     >
                       <CardContent className="flex items-start gap-4 p-5">
                         <div
@@ -457,7 +457,7 @@ const OwnerUpgrade = () => {
               </div>
 
               {/* Perks List */}
-              <Card className="bg-gradient-to-br from-primary/5 via-transparent to-primary/5 border-primary/20">
+              <Card className="bg-gradient-to-br from-primary/5 via-transparent to-primary/5 border-primary/20 rounded-2xl">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Star className="h-5 w-5 text-primary" />
@@ -502,7 +502,7 @@ const OwnerUpgrade = () => {
           {/* Step 2: Location & Business Details */}
           {currentStep === 2 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-6">
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -612,7 +612,7 @@ const OwnerUpgrade = () => {
           {/* Step 3: Equipment Categories */}
           {currentStep === 3 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-6">
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-primary" />
@@ -703,7 +703,7 @@ const OwnerUpgrade = () => {
           {/* Step 4: Payment Setup */}
           {currentStep === 4 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-6">
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="h-5 w-5 text-primary" />

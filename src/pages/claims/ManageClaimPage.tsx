@@ -1,15 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ExternalLink, Loader2, MessageSquare, LifeBuoy } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquare, LifeBuoy, FileWarning } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getClaimStatusColor, getClaimStatusText } from "@/lib/claim";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
+import { ContentCard, ContentCardHeader, ContentCardContent } from "@/components/ui/ContentCard";
+import { CardSkeleton } from "@/components/ui/PageSkeleton";
 import type { ClaimStatus, RenterResponse } from "@/types/claim";
 
 interface ClaimDetails {
@@ -107,73 +110,109 @@ export default function ManageClaimPage() {
     return renter.full_name || renter.username || renter.email?.split("@")[0] || "Renter";
   }, [claim?.booking?.renter]);
 
+  /** Safely format a date string as distance to now, with fallback */
+  const safeFormatDistanceToNow = useCallback((dateString: string | null | undefined): string => {
+    if (!dateString) return "unknown date";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "unknown date";
+      return formatDistanceToNow(date);
+    } catch {
+      return "unknown date";
+    }
+  }, []);
+
   if (!claimId || !user) {
     return (
-      <div className="container max-w-2xl mx-auto py-8 px-4">
-        <Alert variant="destructive">
-          <AlertDescription>Invalid claim or not authenticated</AlertDescription>
-        </Alert>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Go Back
-        </Button>
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Manage Claim"
+          description="Invalid request"
+          icon={FileWarning}
+          iconColor="text-destructive"
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            <Alert variant="destructive">
+              <AlertDescription>Invalid claim or not authenticated</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Manage Claim"
+          description="Loading claim details..."
+          icon={FileWarning}
+          iconColor="text-amber-500"
+        >
+          <div className="max-w-3xl mx-auto">
+            <CardSkeleton lines={6} />
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   if (isError || !claim) {
     const errorMessage = error instanceof Error ? error.message : "Something went wrong";
     return (
-      <div className="container max-w-2xl mx-auto py-8 px-4">
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Go Back
-        </Button>
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Manage Claim"
+          description="Unable to load claim"
+          icon={FileWarning}
+          iconColor="text-destructive"
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            <Alert variant="destructive">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   const equipmentTitle = claim.booking?.equipment?.title ?? "Equipment";
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6">
-        <Button variant="ghost" className="px-0" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+    <DashboardLayout>
+      <PageShell
+        title="Damage Claim"
+        description={equipmentTitle}
+        icon={FileWarning}
+        iconColor="text-amber-500"
+        action={
+          <Badge className={getClaimStatusColor(claim.status)}>
+            {getClaimStatusText(claim.status)}
+          </Badge>
+        }
+      >
+        <div className="max-w-3xl mx-auto">
+          <ContentCard>
+            <ContentCardHeader
+              title={
+                <span className="flex items-center gap-2">
+                  Filed {safeFormatDistanceToNow(claim.filed_at)} ago
+                </span>
+              }
+              description={`Renter: ${renterDisplayName}`}
+            />
 
-        <Card>
-          <CardHeader className="space-y-2">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <CardTitle className="text-xl">Damage Claim</CardTitle>
-                <p className="text-sm text-muted-foreground truncate">
-                  {equipmentTitle}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Filed {formatDistanceToNow(new Date(claim.filed_at))} ago · Renter:{" "}
-                  {renterDisplayName}
-                </p>
-              </div>
-              <Badge className={getClaimStatusColor(claim.status)}>
-                {getClaimStatusText(claim.status)}
-              </Badge>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
+            <ContentCardContent className="space-y-6">
             <div className="rounded-lg border bg-muted/30 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -275,11 +314,7 @@ export default function ManageClaimPage() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Responded{" "}
-                    {formatDistanceToNow(
-                      new Date(claim.renter_response.responded_at)
-                    )}{" "}
-                    ago
+                    Responded {safeFormatDistanceToNow(claim.renter_response.responded_at)} ago
                   </p>
                 </div>
               ) : (
@@ -290,10 +325,11 @@ export default function ManageClaimPage() {
                 </Alert>
               )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            </ContentCardContent>
+          </ContentCard>
+        </div>
+      </PageShell>
+    </DashboardLayout>
   );
 }
 

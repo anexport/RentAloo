@@ -356,8 +356,271 @@
   .animate-success-check {
     animation: none;
   }
-  
+
   .image-zoom-container:hover img {
+    transform: none;
+  }
+}
+
+/* ===== PREMIUM SIDEBAR ANIMATIONS ===== */
+
+/* Sidebar item entrance animation */
+@keyframes sidebar-item-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-sidebar-item {
+  animation: sidebar-item-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Active indicator glow pulse */
+@keyframes active-indicator-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px 0 var(--sidebar-primary);
+    opacity: 0.8;
+  }
+  50% {
+    box-shadow: 0 0 16px 2px var(--sidebar-primary);
+    opacity: 1;
+  }
+}
+
+.animate-active-indicator {
+  animation: active-indicator-pulse 2.5s ease-in-out infinite;
+}
+
+/* Badge pulse for notifications */
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.65 0.25 25 / 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px oklch(0.65 0.25 25 / 0);
+  }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* Trust score ring animation */
+@keyframes trust-ring-fill {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: var(--trust-offset, 0);
+  }
+}
+
+.animate-trust-ring {
+  animation: trust-ring-fill 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Shimmer effect for sidebar gradient */
+@keyframes sidebar-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-sidebar-shimmer {
+  background-size: 400% 100%;
+  animation: sidebar-shimmer 8s linear infinite;
+}
+
+/* Icon float on hover */
+@keyframes icon-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.group:hover .animate-icon-float {
+  animation: icon-float 0.4s ease-in-out;
+  will-change: transform;
+}
+
+/* Logo glow effect */
+@keyframes logo-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px var(--sidebar-primary));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px var(--sidebar-primary));
+  }
+}
+
+.animate-logo-glow:hover {
+  animation: logo-glow 1.5s ease-in-out infinite;
+}
+
+/* Collapse/expand rotation */
+@keyframes chevron-bounce {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+.animate-chevron-bounce:hover {
+  animation: chevron-bounce 0.6s ease-in-out infinite;
+}
+
+/* Sidebar reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-sidebar-item,
+  .animate-active-indicator,
+  .animate-badge-pulse,
+  .animate-trust-ring,
+  .animate-sidebar-shimmer,
+  .animate-icon-float,
+  .animate-logo-glow,
+  .animate-chevron-bounce {
+    animation: none;
+  }
+}
+
+/* ===== PAGE TRANSITION SYSTEM ===== */
+
+/* Smooth page entrance animation */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered content reveal */
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-content-reveal {
+  animation: content-reveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Apply stagger delays via CSS custom property */
+.animate-content-reveal {
+  --stagger-index: 0;
+  animation-delay: calc(var(--stagger-index) * 60ms);
+}
+
+/* Page exit for route transitions */
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.animate-page-exit {
+  animation: page-exit 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Subtle fade for content switching */
+@keyframes content-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-content-fade {
+  animation: content-fade 0.25s ease-out forwards;
+}
+
+/* Loading dots pulse */
+@keyframes loading-dot {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-loading-dot {
+  animation: loading-dot 1.4s ease-in-out infinite;
+}
+
+/* Top progress bar for page loading */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.animate-progress-bar {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* Card hover lift - consistent across all cards */
+.card-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Page transition reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-enter,
+  .animate-page-exit,
+  .animate-content-reveal,
+  .animate-content-fade,
+  .animate-loading-dot,
+  .animate-progress-bar {
+    animation: none;
+  }
+
+  .card-hover-lift:hover {
     transform: none;
   }
 }

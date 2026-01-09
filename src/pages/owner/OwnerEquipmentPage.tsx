@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
+import { Package } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
 import EquipmentManagement from "@/components/EquipmentManagement";
 
 const OwnerEquipmentPage = () => {
@@ -7,17 +9,16 @@ const OwnerEquipmentPage = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("owner.tabs.equipment")}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("owner.overview.quick_actions.manage_listings.description")}
-          </p>
-        </div>
+      <PageShell
+        title={t("owner.tabs.equipment", { defaultValue: "My Equipment" })}
+        description={t("owner.overview.quick_actions.manage_listings.description", {
+          defaultValue: "Add, edit, and manage your equipment listings"
+        })}
+        icon={Package}
+        iconColor="text-emerald-500"
+      >
         <EquipmentManagement />
-      </div>
+      </PageShell>
     </DashboardLayout>
   );
 };

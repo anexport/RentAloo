@@ -8,17 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Building2, Save, ArrowLeft, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { User, Building2, Save, CheckCircle, Settings } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
+import { ContentCard, ContentCardHeader, ContentCardContent } from "@/components/ui/ContentCard";
+import { CardSkeleton } from "@/components/ui/PageSkeleton";
 
 const profileSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters").optional(),
@@ -166,58 +161,55 @@ const ProfileSettings = () => {
     }
   };
 
-  const getDashboardLink = () => {
-    return userRole === "owner" ? "/owner/dashboard" : "/renter/dashboard";
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Profile Settings"
+          description="Loading your profile..."
+          icon={Settings}
+        >
+          <div className="max-w-3xl mx-auto space-y-6">
+            <CardSkeleton lines={4} />
+            <CardSkeleton lines={2} />
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-6">
-          <Link
-            to={getDashboardLink()}
-            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
-        </div>
+      <PageShell
+        title="Profile Settings"
+        description={
+          userRole === "owner"
+            ? "Manage your business information and preferences"
+            : "Manage your rental preferences and experience"
+        }
+        icon={userRole === "owner" ? Building2 : Settings}
+      >
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Success Message */}
+          {saveSuccess && (
+            <Alert className="bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                Profile updated successfully!
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Success Message */}
-        {saveSuccess && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              Profile updated successfully!
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              {userRole === "owner" ? (
-                <Building2 className="h-5 w-5 text-primary" />
-              ) : (
-                <User className="h-5 w-5 text-primary" />
-              )}
-              <span>Profile Settings</span>
-            </CardTitle>
-            <CardDescription>
-              {userRole === "owner"
-                ? "Manage your business information and preferences"
-                : "Manage your rental preferences and experience"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <ContentCard>
+            <ContentCardHeader
+              title={userRole === "owner" ? "Business Profile" : "Renter Profile"}
+              description={
+                userRole === "owner"
+                  ? "Update your business details"
+                  : "Update your rental experience"
+              }
+            />
+            <ContentCardContent>
             <form
               onSubmit={(e) => {
                 void handleSubmit(onSubmit)(e);
@@ -322,26 +314,25 @@ const ProfileSettings = () => {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+            </ContentCardContent>
+          </ContentCard>
 
-        {/* Additional Info Card */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Account Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Email:</span>
-              <span className="font-medium">{user?.email}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Account Type:</span>
-              <span className="font-medium capitalize">{userRole}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Additional Info Card */}
+          <ContentCard>
+            <ContentCardHeader title="Account Information" />
+            <ContentCardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-medium">{user?.email}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Account Type:</span>
+                <span className="font-medium capitalize">{userRole}</span>
+              </div>
+            </ContentCardContent>
+          </ContentCard>
+        </div>
+      </PageShell>
     </DashboardLayout>
   );
 };

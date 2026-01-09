@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, AlertTriangle, Package } from "lucide-react";
+import { Calendar, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,10 +19,13 @@ import PendingClaimsList from "@/components/claims/PendingClaimsList";
 import { MobileInspectionCTA } from "@/components/booking/inspection-flow";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/lib/supabase";
-import { differenceInDays, isPast, isFuture } from "date-fns";
+import { differenceInDays, isPast } from "date-fns";
 import type { BookingRequestWithDetails } from "@/types/booking";
 import { useActiveRentals } from "@/hooks/useActiveRental";
 import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BookingCardSkeleton } from "@/components/ui/PageSkeleton";
+import VerificationBanner from "@/components/verification/VerificationBanner";
 
 interface InspectionStatus {
   bookingId: string;
@@ -265,174 +267,109 @@ const RenterDashboard = () => {
 
   return (
     <DashboardLayout>
-      {/* Add bottom padding on mobile when CTA is visible */}
       <div
-        className={`space-y-6 animate-in fade-in duration-500 ${
+        className={`space-y-6 animate-page-enter ${
           isMobile && urgentInspectionBooking ? "pb-24" : ""
         }`}
       >
-        {/* Welcome Hero Section */}
+        {/* Welcome Hero */}
         <WelcomeHero />
 
-        {/* High-Emphasis Banner for unverified identity */}
+        {/* Verification Alert */}
         {!verificationLoading && profile && !profile.identityVerified && (
-          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20 animate-in slide-in-from-top-4 duration-500">
-            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-full bg-destructive/10">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-destructive">
-                    {t("renter.verification.incomplete_title")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("renter.verification.incomplete_message", { progress })}
-                  </p>
-                </div>
-              </div>
-              <Link to="/verification">
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
-                  aria-label={t("renter.verification.verify_button")}
-                  data-testid="verify-now-banner"
-                >
-                  {t("renter.verification.verify_button")}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <VerificationBanner
+            progress={progress}
+            translationKey="renter.verification.verify_button"
+          />
         )}
 
-        {/* Notifications Panel */}
-        <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
-          <NotificationsPanel />
-        </div>
+        {/* Stats Overview */}
+        <StatsOverview />
 
-        {/* Pending Damage Claims */}
-        <div className="animate-in slide-in-from-top-4 duration-500 delay-150">
+        {/* Notifications & Claims */}
+        <div className="space-y-4">
+          <NotificationsPanel />
           <PendingClaimsList />
         </div>
 
-        {/* Active Rentals Section */}
+        {/* Active Rentals */}
         {!activeRentalsLoading && activeRentals.length > 0 && (
-          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-175">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  <Package className="h-6 w-6 text-emerald-500" />
-                  {t("renter.active_rentals.title")}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("renter.active_rentals.description")}
-                </p>
-              </div>
-            </div>
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Package className="h-5 w-5 text-emerald-500" />
+              {t("renter.active_rentals.title")}
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeRentals.map((rental, index) => (
                 <div
                   key={rental.id}
-                  className="animate-in slide-in-from-bottom-4 duration-500"
-                  style={{ animationDelay: `${175 + index * 50}ms` }}
+                  className="animate-content-reveal"
+                  style={{ "--stagger-index": index } as React.CSSProperties}
                 >
                   <ActiveRentalCard booking={rental} />
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Stats Overview Section */}
-        <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-200">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {t("renter.overview.section_title")}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {t("renter.overview.section_description")}
-            </p>
-          </div>
-          <StatsOverview />
-        </div>
-
-        {/* Main Content Grid - Calendar + Bookings */}
-        <div className="grid gap-6 lg:grid-cols-3 animate-in slide-in-from-top-4 duration-500 delay-300">
-          {/* Left Column - Bookings (takes 2 columns on large screens) */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* My Rental Bookings Section */}
-            <div className="space-y-4">
-              {renterLoading ? (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <div className="text-muted-foreground">
-                      {t("renter.bookings.loading")}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : renterBookings.length === 0 ? (
-                <Card className="border-dashed h-full">
-                  <CardContent className="text-center py-12 h-full flex items-center justify-center">
-                    <div className="flex flex-col items-center">
-                      <div className="rounded-full bg-muted p-4 mb-4">
-                        <Calendar className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-1">
-                        {t("renter.bookings.empty_state.title")}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-                        {t("renter.bookings.empty_state.description")}
-                      </p>
-                      <Link to="/equipment">
-                        <Button size="lg">
-                          {t("renter.bookings.empty_state.button")}
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {renterBookings.slice(0, 3).map((booking, index) => (
-                    <div
-                      key={booking.id}
-                      className="animate-in slide-in-from-left-4 duration-500"
-                      style={{
-                        animationDelay: `${300 + index * 100}ms`,
-                      }}
-                    >
-                      <BookingRequestCard
-                        bookingRequest={booking}
-                        onStatusChange={handleBookingStatusChange}
-                        showActions={true}
-                      />
-                    </div>
-                  ))}
-                  {renterBookings.length > 3 && (
-                    <div className="text-center pt-2">
-                      <Link to="/renter/bookings">
-                        <Button variant="outline">
-                          {t("renter.bookings.view_all", {
-                            defaultValue: "View All Bookings",
-                          })}
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+        {/* Bookings + Calendar Grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Bookings Column */}
+          <div className="lg:col-span-2 space-y-4">
+            {renterLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <BookingCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : renterBookings.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title={t("renter.bookings.empty_state.title")}
+                description={t("renter.bookings.empty_state.description")}
+                action={
+                  <Link to="/equipment">
+                    <Button>{t("renter.bookings.empty_state.button")}</Button>
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="space-y-4">
+                {renterBookings.slice(0, 3).map((booking, index) => (
+                  <div
+                    key={booking.id}
+                    className="animate-content-reveal"
+                    style={{ "--stagger-index": index } as React.CSSProperties}
+                  >
+                    <BookingRequestCard
+                      bookingRequest={booking}
+                      onStatusChange={handleBookingStatusChange}
+                      showActions={true}
+                    />
+                  </div>
+                ))}
+                {renterBookings.length > 3 && (
+                  <div className="text-center pt-2">
+                    <Link to="/renter/bookings">
+                      <Button variant="ghost" className="text-muted-foreground">
+                        View all {renterBookings.length} bookings
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Right Column - Calendar Sidebar */}
-          <div className="lg:col-span-1 animate-in slide-in-from-right-4 duration-500 delay-300">
+          {/* Calendar Sidebar */}
+          <div className="lg:col-span-1">
             <UpcomingCalendar />
           </div>
         </div>
       </div>
 
-      {/* Mobile Inspection CTA - Sticky bottom bar */}
+      {/* Mobile Inspection CTA */}
       {isMobile && urgentInspectionBooking && (
         <MobileInspectionCTA
           bookingId={urgentInspectionBooking.id}

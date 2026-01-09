@@ -5,20 +5,11 @@ import {
   Calendar,
   Package,
   AlertTriangle,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo, useId } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -33,6 +24,10 @@ import { formatDateForStorage } from "@/lib/utils";
 import { useActiveRentals } from "@/hooks/useActiveRental";
 import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ContentCard } from "@/components/ui/ContentCard";
+import { BookingCardSkeleton } from "@/components/ui/PageSkeleton";
+import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
+import VerificationBanner from "@/components/verification/VerificationBanner";
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -40,6 +35,7 @@ const OwnerDashboard = () => {
   const { t } = useTranslation("dashboard");
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
   const { profile, loading: verificationLoading } = useVerification();
+  const analyticsDisabledId = useId();
   const [stats, setStats] = useState({
     totalListings: 0,
     activeBookings: 0,
@@ -130,21 +126,36 @@ const OwnerDashboard = () => {
     }));
   }, [bookingRequests]);
 
+  // Memoized stats configuration to prevent recreation on every render
+  const statsConfig = useMemo(() => [
+    { label: t("owner.stats.total_listings.label"), value: stats.totalListings, prefix: "", color: "text-blue-600 dark:text-blue-400" },
+    { label: t("owner.stats.pending_requests.label"), value: stats.activeBookings, prefix: "", color: "text-violet-600 dark:text-violet-400" },
+    { label: t("owner.stats.total_earnings.label"), value: stats.totalEarnings, prefix: "$", color: "text-emerald-600 dark:text-emerald-400" },
+    { label: t("owner.stats.average_rating.label"), value: stats.averageRating, prefix: "", color: "text-amber-600 dark:text-amber-400", isRating: true },
+  ], [stats, t]);
+
+  // Memoized handlers to prevent recreation on every render
+  const handleCreateEquipment = useCallback(() => {
+    navigate("/owner/equipment?action=create");
+  }, [navigate]);
+
+  const handleViewEquipment = useCallback(() => {
+    navigate("/owner/equipment");
+  }, [navigate]);
+
   // Show loading state while checking owner status
   if (isCheckingOwner || !isAlsoOwner) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-        </div>
+        <PageTransitionLoader />
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        {/* Welcome Hero Section */}
+      <div className="space-y-6 animate-page-enter">
+        {/* Welcome Hero */}
         <WelcomeHero
           subtitle={t("owner.header.description")}
           isVerified={!!profile?.identityVerified}
@@ -154,321 +165,110 @@ const OwnerDashboard = () => {
           nextStartDate={bookingSummary.nextStartDate}
         />
 
-        {/* High-Emphasis Banner for unverified identity */}
+        {/* Verification Alert */}
         {!verificationLoading && profile && !profile.identityVerified && (
-          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20 animate-in slide-in-from-top-4 duration-500">
-            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-full bg-destructive/10">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-destructive">
-                    {t("owner.verification.incomplete_title")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("owner.verification.incomplete_message", { progress })}
-                  </p>
-                </div>
-              </div>
-              <Link to="/verification">
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
-                  aria-label={t("owner.verification.verify_button")}
-                  data-testid="verify-now-banner-owner"
-                >
-                  {t("owner.verification.verify_button")}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <VerificationBanner
+            progress={progress}
+            translationKey="owner.verification.verify_button"
+          />
         )}
 
-        {/* Notifications / Tasks */}
-        <OwnerNotificationsPanel />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {statsConfig.map((stat, index) => (
+            <ContentCard
+              key={stat.label}
+              className="animate-content-reveal"
+              style={{ "--stagger-index": index } as React.CSSProperties}
+            >
+              <p className="text-sm text-muted-foreground mb-2">{stat.label}</p>
+              <p className={`text-2xl sm:text-3xl font-semibold ${stat.color}`}>
+                {stat.isRating ? (
+                  stat.value > 0 ? (
+                    <AnimatedNumber value={stat.value} duration={800} decimals={1} />
+                  ) : "—"
+                ) : (
+                  <>
+                    {stat.prefix}
+                    <AnimatedNumber value={stat.value} duration={800} formatCurrency={stat.prefix === "$"} />
+                  </>
+                )}
+              </p>
+            </ContentCard>
+          ))}
+        </div>
 
-        {/* Claims Requiring Action */}
-        <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
+        {/* Notifications & Claims */}
+        <div className="space-y-4">
+          <OwnerNotificationsPanel />
           <OwnerClaimsList />
         </div>
 
-        {/* Active Rentals Section - Show error only when no data to fall back on */}
+        {/* Active Rentals Section */}
         {activeRentalsLoading && (
-          <div
-            className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-150"
-            aria-busy="true"
-            aria-label={t("owner.active_rentals.title")}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  <Package className="h-6 w-6 text-emerald-500" />
-                  {t("owner.active_rentals.title")}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("owner.active_rentals.description")}
-                </p>
-              </div>
-              <div
-                className="flex items-center gap-2 text-sm text-muted-foreground"
-                role="status"
-                aria-label="Loading active rentals"
-              >
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                <span className="sr-only">Loading active rentals</span>
-              </div>
-            </div>
+          <section className="space-y-4" aria-busy="true">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Package className="h-5 w-5 text-emerald-500" />
+              {t("owner.active_rentals.title")}
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={`active-rental-skeleton-${index}`}
-                  className="animate-in slide-in-from-bottom-4 duration-500"
-                  style={{ animationDelay: `${150 + index * 50}ms` }}
-                >
-                  <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
-                    <div className="relative h-36 bg-muted flex-shrink-0">
-                      <Skeleton
-                        shimmer
-                        className="h-full w-full rounded-none"
-                      />
-                      <Skeleton
-                        shimmer
-                        className="absolute top-3 left-3 h-5 w-24 rounded-full"
-                      />
-                    </div>
-                    <CardContent className="p-4 flex flex-col flex-1">
-                      <div className="h-14 mb-4">
-                        <Skeleton shimmer className="h-6 w-3/4" />
-                        <div className="flex items-center gap-2 mt-2">
-                          <Skeleton shimmer className="h-5 w-5 rounded-full" />
-                          <Skeleton shimmer className="h-4 w-2/3" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton shimmer className="h-4 w-1/2" />
-                        <Skeleton shimmer className="h-4 w-2/3" />
-                      </div>
-                      <Skeleton shimmer className="mt-auto h-10 w-full" />
-                    </CardContent>
-                  </Card>
-                </div>
+                <BookingCardSkeleton key={`skeleton-${index}`} />
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {!activeRentalsLoading &&
-          activeRentalsError &&
-          activeRentals.length === 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{activeRentalsError}</AlertDescription>
-            </Alert>
-          )}
+        {!activeRentalsLoading && activeRentalsError && activeRentals.length === 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{activeRentalsError}</AlertDescription>
+          </Alert>
+        )}
 
         {!activeRentalsLoading && activeRentals.length > 0 && (
-          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-150">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                  <Package className="h-6 w-6 text-emerald-500" />
-                  {t("owner.active_rentals.title")}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {t("owner.active_rentals.description")}
-                </p>
-              </div>
-            </div>
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Package className="h-5 w-5 text-emerald-500" />
+              {t("owner.active_rentals.title")}
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeRentals.map((rental, index) => (
                 <div
                   key={rental.id}
-                  className="animate-in slide-in-from-bottom-4 duration-500"
-                  style={{ animationDelay: `${150 + index * 50}ms` }}
+                  className="animate-content-reveal"
+                  style={{ "--stagger-index": index } as React.CSSProperties}
                 >
                   <ActiveRentalCard booking={rental} viewerRole="owner" />
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("owner.stats.total_listings.label")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                <AnimatedNumber value={stats.totalListings} duration={800} />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("owner.stats.total_listings.description")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("owner.stats.pending_requests.label")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                <AnimatedNumber value={stats.activeBookings} duration={800} />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("owner.stats.pending_requests.description")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("owner.stats.total_earnings.label")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                <AnimatedNumber
-                  value={stats.totalEarnings}
-                  duration={800}
-                  prefix="$"
-                  formatCurrency
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("owner.stats.total_earnings.description")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {t("owner.stats.average_rating.label")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.averageRating > 0 ? (
-                  <AnimatedNumber
-                    value={stats.averageRating}
-                    duration={800}
-                    decimals={1}
-                  />
-                ) : (
-                  "-"
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("owner.stats.average_rating.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Quick Actions */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">
-            {t("owner.overview.quick_actions.title", {
-              defaultValue: "Quick Actions",
-            })}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Plus className="h-5 w-5 text-primary" />
-                  <span>
-                    {t("owner.overview.quick_actions.add_equipment.title")}
-                  </span>
-                </CardTitle>
-                <CardDescription>
-                  {t("owner.overview.quick_actions.add_equipment.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  className="w-full"
-                  onClick={() => navigate("/owner/equipment?action=create")}
-                >
-                  {t("owner.overview.quick_actions.add_equipment.button")}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <span>
-                    {t("owner.overview.quick_actions.manage_listings.title")}
-                  </span>
-                </CardTitle>
-                <CardDescription>
-                  {t(
-                    "owner.overview.quick_actions.manage_listings.description"
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => navigate("/owner/equipment")}
-                >
-                  {t("owner.overview.quick_actions.manage_listings.button")}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  <span>
-                    {t("owner.overview.quick_actions.analytics.title")}
-                  </span>
-                </CardTitle>
-                <CardDescription>
-                  {t("owner.overview.quick_actions.analytics.description")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full" disabled>
-                  {t("owner.overview.quick_actions.analytics.button")}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={handleCreateEquipment} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {t("owner.overview.quick_actions.add_equipment.button")}
+          </Button>
+          <Button variant="outline" onClick={handleViewEquipment} className="gap-2">
+            <Calendar className="h-4 w-4" />
+            {t("owner.overview.quick_actions.manage_listings.button")}
+          </Button>
+          <Button
+            variant="ghost"
+            disabled
+            className="gap-2 text-muted-foreground"
+            aria-describedby={analyticsDisabledId}
+          >
+            <BarChart3 className="h-4 w-4" />
+            {t("owner.overview.quick_actions.analytics.button")}
+          </Button>
+          <span id={analyticsDisabledId} className="sr-only">
+            Analytics feature coming soon
+          </span>
         </div>
-
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("owner.overview.recent_activity.title")}</CardTitle>
-            <CardDescription>
-              {t("owner.overview.recent_activity.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <Plus className="h-12 w-12 mx-auto mb-4 text-muted" />
-              <p>{t("owner.overview.recent_activity.empty_state.title")}</p>
-              <p className="text-sm">
-                {t("owner.overview.recent_activity.empty_state.description")}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

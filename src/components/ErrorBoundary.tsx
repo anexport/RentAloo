@@ -37,18 +37,10 @@ class ErrorBoundary extends Component<Props, State> {
       console.error("ErrorBoundary caught an error:", error, errorInfo);
     }
 
-    // Send to error tracking service in production
-    // Note: Sentry must be initialized in main.tsx with Sentry.init({...})
-    if (import.meta.env.PROD) {
-      // Dynamic import to avoid bundling Sentry in dev builds if not needed
-      void import("@sentry/react").then(({ captureException }) => {
-        captureException(error, {
-          extra: { componentStack: errorInfo.componentStack },
-        });
-      }).catch(() => {
-        // Sentry not available - fail silently in production
-      });
-    }
+    // TODO: Send to error tracking service (e.g., Sentry) in production
+    // if (import.meta.env.PROD) {
+    //   captureException(error, { extra: { componentStack: errorInfo.componentStack } });
+    // }
   }
 
   handleGoHome = (): void => {
@@ -98,7 +90,10 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full text-center space-y-6">
             <div className="flex justify-center">
               <div className="rounded-full bg-destructive/10 p-4">
-                <AlertTriangle className="h-12 w-12 text-destructive" aria-hidden="true" />
+                <AlertTriangle
+                  className="h-12 w-12 text-destructive"
+                  aria-hidden="true"
+                />
               </div>
             </div>
 
@@ -131,7 +126,9 @@ class ErrorBoundary extends Component<Props, State> {
                 aria-disabled={!this.canRetry()}
                 aria-label={
                   this.canRetry()
-                    ? `Try again, ${MAX_RETRIES - this.state.retryCount} attempts remaining`
+                    ? `Try again, ${
+                        MAX_RETRIES - this.state.retryCount
+                      } attempts remaining`
                     : "Maximum retry attempts reached"
                 }
               >

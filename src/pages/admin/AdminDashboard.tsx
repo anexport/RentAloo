@@ -6,6 +6,8 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import PageShell from "@/components/layout/PageShell";
+import { DashboardSkeleton } from "@/components/ui/PageSkeleton";
 import {
   Table,
   TableBody,
@@ -901,9 +903,14 @@ const AdminDashboard = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
+        <PageShell
+          title="Admin Dashboard"
+          description="Loading admin data..."
+          icon={ShieldCheck}
+          iconColor="text-amber-500"
+        >
+          <DashboardSkeleton />
+        </PageShell>
       </DashboardLayout>
     );
   }
@@ -911,26 +918,34 @@ const AdminDashboard = () => {
   if (isError) {
     return (
       <DashboardLayout>
-        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-          <p className="text-destructive">Failed to load admin data</p>
-          <p className="text-sm text-muted-foreground">
-            {error instanceof Error ? error.message : "Something went wrong"}
-          </p>
-        </div>
+        <PageShell
+          title="Admin Dashboard"
+          description="Secure admin workspace"
+          icon={ShieldCheck}
+          iconColor="text-amber-500"
+        >
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4">
+            <p className="text-destructive">Failed to load admin data</p>
+            <p className="text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "Something went wrong"}
+            </p>
+            <Button variant="outline" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </div>
+        </PageShell>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              Secure admin workspace
-            </p>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          </div>
+      <PageShell
+        title="Admin Dashboard"
+        description="Secure admin workspace"
+        icon={ShieldCheck}
+        iconColor="text-amber-500"
+        action={
           <Badge
             variant="secondary"
             className="flex items-center gap-2 text-primary"
@@ -938,606 +953,615 @@ const AdminDashboard = () => {
             <ShieldCheck className="h-4 w-4" />
             Admin Access
           </Badge>
-        </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="rounded-2xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Users
+                </CardTitle>
+                <Users className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{summary.totalUsers}</p>
+                <p className="text-sm text-muted-foreground">
+                  Profiles in the system
+                </p>
+              </CardContent>
+            </Card>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{summary.totalUsers}</p>
-              <p className="text-sm text-muted-foreground">
-                Profiles in the system
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="rounded-2xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Listings</CardTitle>
+                <Package className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{summary.totalListings}</p>
+                <p className="text-sm text-muted-foreground">
+                  Equipment records
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Listings</CardTitle>
-              <Package className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{summary.totalListings}</p>
-              <p className="text-sm text-muted-foreground">Equipment records</p>
-            </CardContent>
-          </Card>
+            <Card className="rounded-2xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pending payouts
+                </CardTitle>
+                <Banknote className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{summary.pendingPayouts}</p>
+                <p className="text-sm text-muted-foreground">
+                  Awaiting processing
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending payouts
-              </CardTitle>
-              <Banknote className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{summary.pendingPayouts}</p>
-              <p className="text-sm text-muted-foreground">
-                Awaiting processing
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle>User management</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Promote owners, add admins, and review account creation dates.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search by email"
-                aria-label="Search users by email"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="w-60"
-              />
-              <Button size="sm" onClick={handleOpenCreateUserModal}>
-                Create user
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div role="status" aria-live="polite">
-                        <p className="font-medium">No users found</p>
-                        {search.trim() && (
-                          <p className="mt-1 text-sm">
-                            Try clearing your search to see all users.
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredUsers.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell className="font-medium">
-                        {profile.email}
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {profile.role}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDateLabel(profile.created_at ?? null)}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateUserRole(profile.id, "renter")}
-                          disabled={
-                            profile.role === "renter" ||
-                            !canChangeRole(profile.id, "renter")
-                          }
-                        >
-                          Set renter
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateUserRole(profile.id, "owner")}
-                          disabled={
-                            profile.role === "owner" ||
-                            !canChangeRole(profile.id, "owner")
-                          }
-                        >
-                          Set owner
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => updateUserRole(profile.id, "admin")}
-                          disabled={profile.role === "admin"}
-                        >
-                          Grant admin
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteUser(profile.id)}
-                          disabled={!canDeleteUser(profile.id)}
-                        >
-                          Delete
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            {hasMoreUsers && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={loadMoreUsers}
-                  disabled={
-                    additionalUsersData === undefined &&
-                    loadedUsersCount > USERS_PER_PAGE
-                  }
-                >
-                  {additionalUsersData === undefined &&
-                  loadedUsersCount > USERS_PER_PAGE ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    `Load more (${
-                      summary.totalUsers - loadedUsersCount
-                    } remaining)`
-                  )}
+          <Card className="rounded-2xl">
+            <CardHeader className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle>User management</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Promote owners, add admins, and review account creation dates.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Search by email"
+                  aria-label="Search users by email"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="w-60"
+                />
+                <Button size="sm" onClick={handleOpenCreateUserModal}>
+                  Create user
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Listing moderation</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Quickly disable problematic equipment or re-enable approved items.
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {listings.length === 0 ? (
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div role="status" aria-live="polite">
-                        <p className="font-medium">No listings found</p>
-                        <p className="mt-1 text-sm">
-                          There are no equipment listings in the system.
-                        </p>
-                      </div>
-                    </TableCell>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  listings.map((listing) => (
-                    <TableRow key={listing.id}>
-                      <TableCell className="font-medium">
-                        {listing.title}
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">No users found</p>
+                          {search.trim() && (
+                            <p className="mt-1 text-sm">
+                              Try clearing your search to see all users.
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{listing.owner?.email ?? "Unknown"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            listing.is_available ? "outline" : "secondary"
-                          }
-                        >
-                          {listing.is_available ? "Active" : "Disabled"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {listing.location || "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center gap-2">
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((profile) => (
+                      <TableRow key={profile.id}>
+                        <TableCell className="font-medium">
+                          {profile.email}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {profile.role}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateLabel(profile.created_at ?? null)}
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
                           <Button
-                            variant={
-                              listing.is_available ? "outline" : "default"
-                            }
+                            variant="outline"
                             size="sm"
-                            onClick={() =>
-                              toggleListingAvailability(
-                                listing.id,
-                                Boolean(listing.is_available)
-                              )
+                            onClick={() => updateUserRole(profile.id, "renter")}
+                            disabled={
+                              profile.role === "renter" ||
+                              !canChangeRole(profile.id, "renter")
                             }
                           >
-                            {listing.is_available ? "Disable" : "Enable"}
+                            Set renter
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateUserRole(profile.id, "owner")}
+                            disabled={
+                              profile.role === "owner" ||
+                              !canChangeRole(profile.id, "owner")
+                            }
+                          >
+                            Set owner
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => updateUserRole(profile.id, "admin")}
+                            disabled={profile.role === "admin"}
+                          >
+                            Grant admin
                           </Button>
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => deleteListing(listing.id)}
+                            onClick={() => deleteUser(profile.id)}
+                            disabled={!canDeleteUser(profile.id)}
                           >
                             Delete
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {hasMoreUsers && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={loadMoreUsers}
+                    disabled={
+                      additionalUsersData === undefined &&
+                      loadedUsersCount > USERS_PER_PAGE
+                    }
+                  >
+                    {additionalUsersData === undefined &&
+                    loadedUsersCount > USERS_PER_PAGE ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      `Load more (${
+                        summary.totalUsers - loadedUsersCount
+                      } remaining)`
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Damage claims</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Review and update claim statuses across the platform.
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Equipment</TableHead>
-                  <TableHead>Renter</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Filed</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {claims.length === 0 ? (
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Listing moderation</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Quickly disable problematic equipment or re-enable approved
+                items.
+              </p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div role="status" aria-live="polite">
-                        <p className="font-medium">No damage claims found</p>
-                        <p className="mt-1 text-sm">
-                          There are no damage claims in the system.
-                        </p>
-                      </div>
-                    </TableCell>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  claims.map((claim) => (
-                    <TableRow key={claim.id}>
-                      <TableCell className="font-medium">
-                        {claim.booking?.equipment?.title ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {claim.booking?.renter?.email ?? "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={claim.status}
-                          onValueChange={(value) =>
-                            updateClaimStatusMutation.mutate({
-                              id: claim.id,
-                              status: value as ClaimListItem["status"],
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-9 w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(
-                              [
-                                "pending",
-                                "accepted",
-                                "disputed",
-                                "resolved",
-                                "escalated",
-                              ] as const
-                            ).map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDateLabel(claim.filed_at)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(claim.estimated_cost)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Inspections</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Review pickup/return inspections and mark confirmations.
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Equipment</TableHead>
-                  <TableHead>Renter</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Renter</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inspections.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div role="status" aria-live="polite">
-                        <p className="font-medium">No inspections found</p>
-                        <p className="mt-1 text-sm">
-                          There are no equipment inspections in the system.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  inspections.map((inspection) => (
-                    <TableRow key={inspection.id}>
-                      <TableCell className="font-medium">
-                        {inspection.booking?.equipment?.title ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {inspection.booking?.renter?.email ?? "-"}
-                      </TableCell>
-                      <TableCell className="capitalize">
-                        {inspection.inspection_type}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            inspection.verified_by_owner
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {inspection.verified_by_owner
-                            ? "Confirmed"
-                            : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            inspection.verified_by_renter
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {inspection.verified_by_renter
-                            ? "Confirmed"
-                            : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDateLabel(
-                          inspection.timestamp ?? inspection.created_at
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex flex-wrap justify-end gap-2">
-                          <Button asChild variant="outline" size="sm">
-                            <Link
-                              to={`/inspection/${inspection.booking_id}/view/${inspection.inspection_type}`}
-                            >
-                              View
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              updateInspectionMutation.mutate({
-                                id: inspection.id,
-                                verified_by_owner: true,
-                              })
-                            }
-                            disabled={Boolean(inspection.verified_by_owner)}
-                          >
-                            Owner confirm
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              updateInspectionMutation.mutate({
-                                id: inspection.id,
-                                verified_by_renter: true,
-                              })
-                            }
-                            disabled={Boolean(inspection.verified_by_renter)}
-                          >
-                            Renter confirm
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Payouts</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Track owner payouts and mark them processed when funds are
-              released.
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Renter</TableHead>
-                  <TableHead>Payout</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Requested</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payouts.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div role="status" aria-live="polite">
-                        <p className="font-medium">No payouts found</p>
-                        <p className="mt-1 text-sm">
-                          There are no payout records in the system.
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  payouts.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{payment.owner?.email ?? "-"}</TableCell>
-                      <TableCell>{payment.renter?.email ?? "-"}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            {formatCurrency(payment.owner_payout_amount)}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Total: {formatCurrency(payment.total_amount)}
+                </TableHeader>
+                <TableBody>
+                  {listings.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">No listings found</p>
+                          <p className="mt-1 text-sm">
+                            There are no equipment listings in the system.
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            payment.payout_status === "completed"
-                              ? "secondary"
-                              : payment.payout_status === "failed"
-                              ? "destructive"
-                              : "outline"
-                          }
-                        >
-                          {payment.payout_status}
-                        </Badge>
+                    </TableRow>
+                  ) : (
+                    listings.map((listing) => (
+                      <TableRow key={listing.id}>
+                        <TableCell className="font-medium">
+                          {listing.title}
+                        </TableCell>
+                        <TableCell>
+                          {listing.owner?.email ?? "Unknown"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              listing.is_available ? "outline" : "secondary"
+                            }
+                          >
+                            {listing.is_available ? "Active" : "Disabled"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {listing.location || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <Button
+                              variant={
+                                listing.is_available ? "outline" : "default"
+                              }
+                              size="sm"
+                              onClick={() =>
+                                toggleListingAvailability(
+                                  listing.id,
+                                  Boolean(listing.is_available)
+                                )
+                              }
+                            >
+                              {listing.is_available ? "Disable" : "Enable"}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteListing(listing.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Damage claims</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Review and update claim statuses across the platform.
+              </p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Renter</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Filed</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {claims.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">No damage claims found</p>
+                          <p className="mt-1 text-sm">
+                            There are no damage claims in the system.
+                          </p>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDateLabel(payment.created_at ?? null)}
+                    </TableRow>
+                  ) : (
+                    claims.map((claim) => (
+                      <TableRow key={claim.id}>
+                        <TableCell className="font-medium">
+                          {claim.booking?.equipment?.title ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {claim.booking?.renter?.email ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={claim.status}
+                            onValueChange={(value) =>
+                              updateClaimStatusMutation.mutate({
+                                id: claim.id,
+                                status: value as ClaimListItem["status"],
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(
+                                [
+                                  "pending",
+                                  "accepted",
+                                  "disputed",
+                                  "resolved",
+                                  "escalated",
+                                ] as const
+                              ).map((status) => (
+                                <SelectItem key={status} value={status}>
+                                  {status}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateLabel(claim.filed_at)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(claim.estimated_cost)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Inspections</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Review pickup/return inspections and mark confirmations.
+              </p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Renter</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Renter</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inspections.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">No inspections found</p>
+                          <p className="mt-1 text-sm">
+                            There are no equipment inspections in the system.
+                          </p>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex flex-wrap justify-end gap-2">
-                          {payment.escrow_status === "held" && (
+                    </TableRow>
+                  ) : (
+                    inspections.map((inspection) => (
+                      <TableRow key={inspection.id}>
+                        <TableCell className="font-medium">
+                          {inspection.booking?.equipment?.title ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {inspection.booking?.renter?.email ?? "-"}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {inspection.inspection_type}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              inspection.verified_by_owner
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {inspection.verified_by_owner
+                              ? "Confirmed"
+                              : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              inspection.verified_by_renter
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {inspection.verified_by_renter
+                              ? "Confirmed"
+                              : "Pending"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateLabel(
+                            inspection.timestamp ?? inspection.created_at
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex flex-wrap justify-end gap-2">
+                            <Button asChild variant="outline" size="sm">
+                              <Link
+                                to={`/inspection/${inspection.booking_id}/view/${inspection.inspection_type}`}
+                              >
+                                View
+                              </Link>
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                releaseEscrowMutation.mutate(payment.id)
+                                updateInspectionMutation.mutate({
+                                  id: inspection.id,
+                                  verified_by_owner: true,
+                                })
                               }
+                              disabled={Boolean(inspection.verified_by_owner)}
                             >
-                              Release escrow
+                              Owner confirm
                             </Button>
-                          )}
-                          {payment.booking_request_id &&
-                            payment.deposit_status === "held" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                updateInspectionMutation.mutate({
+                                  id: inspection.id,
+                                  verified_by_renter: true,
+                                })
+                              }
+                              disabled={Boolean(inspection.verified_by_renter)}
+                            >
+                              Renter confirm
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Payouts</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Track owner payouts and mark them processed when funds are
+                released.
+              </p>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Renter</TableHead>
+                    <TableHead>Payout</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Requested</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payouts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">No payouts found</p>
+                          <p className="mt-1 text-sm">
+                            There are no payout records in the system.
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    payouts.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.owner?.email ?? "-"}</TableCell>
+                        <TableCell>{payment.renter?.email ?? "-"}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-medium">
+                              {formatCurrency(payment.owner_payout_amount)}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Total: {formatCurrency(payment.total_amount)}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              payment.payout_status === "completed"
+                                ? "secondary"
+                                : payment.payout_status === "failed"
+                                ? "destructive"
+                                : "outline"
+                            }
+                          >
+                            {payment.payout_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateLabel(payment.created_at ?? null)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex flex-wrap justify-end gap-2">
+                            {payment.escrow_status === "held" && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  releaseDepositMutation.mutate(
-                                    payment.booking_request_id!
-                                  )
+                                  releaseEscrowMutation.mutate(payment.id)
                                 }
                               >
-                                Release deposit
+                                Release escrow
                               </Button>
                             )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              updatePayoutStatus(payment.id, "processing")
-                            }
-                            disabled={payment.payout_status === "processing"}
-                          >
-                            Processing
-                          </Button>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() =>
-                              updatePayoutStatus(payment.id, "completed")
-                            }
-                            disabled={payment.payout_status === "completed"}
-                          >
-                            Mark paid
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => refundPayment(payment.id)}
-                            disabled={payment.payment_status === "refunded"}
-                          >
-                            Refund
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                            {payment.booking_request_id &&
+                              payment.deposit_status === "held" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    releaseDepositMutation.mutate(
+                                      payment.booking_request_id!
+                                    )
+                                  }
+                                >
+                                  Release deposit
+                                </Button>
+                              )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                updatePayoutStatus(payment.id, "processing")
+                              }
+                              disabled={payment.payout_status === "processing"}
+                            >
+                              Processing
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() =>
+                                updatePayoutStatus(payment.id, "completed")
+                              }
+                              disabled={payment.payout_status === "completed"}
+                            >
+                              Mark paid
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => refundPayment(payment.id)}
+                              disabled={payment.payment_status === "refunded"}
+                            >
+                              Refund
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </PageShell>
 
       {/* Create User Modal */}
       <Dialog

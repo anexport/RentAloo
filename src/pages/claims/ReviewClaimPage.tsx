@@ -4,9 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import ClaimResponseForm from "@/components/claims/ClaimResponseForm";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, FileWarning } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import PageShell from "@/components/layout/PageShell";
+import { ContentCard, ContentCardHeader, ContentCardContent } from "@/components/ui/ContentCard";
+import { CardSkeleton } from "@/components/ui/PageSkeleton";
 import type { ClaimStatus } from "@/types/claim";
 
 interface ClaimDetails {
@@ -106,51 +109,69 @@ export default function ReviewClaimPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Review Damage Claim"
+          description="Loading claim details..."
+          icon={FileWarning}
+          iconColor="text-amber-500"
+        >
+          <div className="max-w-2xl mx-auto">
+            <CardSkeleton lines={5} />
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   if (error || !claim) {
     return (
-      <div className="container max-w-2xl mx-auto py-8 px-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error || "Something went wrong"}</AlertDescription>
-        </Alert>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Go Back
-        </Button>
-      </div>
+      <DashboardLayout>
+        <PageShell
+          title="Review Damage Claim"
+          description="Unable to load claim"
+          icon={FileWarning}
+          iconColor="text-destructive"
+        >
+          <div className="max-w-2xl mx-auto space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error || "Something went wrong"}</AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
+        </PageShell>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-2xl mx-auto py-8 px-4">
-        <Button variant="ghost" className="mb-4" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Review Damage Claim</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {claim.booking?.equipment?.title}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <ClaimResponseForm
-              claim={claim}
-              onSuccess={handleSuccess}
-              onCancel={handleCancel}
+    <DashboardLayout>
+      <PageShell
+        title="Review Damage Claim"
+        description={claim.booking?.equipment?.title || "Review and respond to this claim"}
+        icon={FileWarning}
+        iconColor="text-amber-500"
+      >
+        <div className="max-w-2xl mx-auto">
+          <ContentCard>
+            <ContentCardHeader
+              title="Claim Response"
+              description="Review the damage claim and provide your response"
             />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            <ContentCardContent>
+              <ClaimResponseForm
+                claim={claim}
+                onSuccess={handleSuccess}
+                onCancel={handleCancel}
+              />
+            </ContentCardContent>
+          </ContentCard>
+        </div>
+      </PageShell>
+    </DashboardLayout>
   );
 }
