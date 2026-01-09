@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import {
   Plus,
-  BarChart3,
   Calendar,
   Package,
   Clock,
@@ -9,7 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useCallback, useMemo, useId } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -28,12 +27,11 @@ import BookingListItem from "@/components/booking/BookingListItem";
 import { useToast } from "@/hooks/useToast";
 
 const OwnerDashboard = () => {
-  const { user } = useAuth();
+  useAuth(); // Keep hook for authentication guard
   const navigate = useNavigate();
   const { t } = useTranslation("dashboard");
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
   const { profile, loading: verificationLoading } = useVerification();
-  const analyticsDisabledId = useId();
   const { toast } = useToast();
 
   const {
@@ -42,7 +40,7 @@ const OwnerDashboard = () => {
     error: bookingsError,
     fetchBookingRequests,
   } = useBookingRequests("owner");
-  
+
   const {
     rentals: activeRentals,
     isLoading: activeRentalsLoading,
@@ -99,10 +97,6 @@ const OwnerDashboard = () => {
   // Memoized handlers
   const handleCreateEquipment = useCallback(() => {
     navigate("/owner/equipment?action=create");
-  }, [navigate]);
-
-  const handleViewEquipment = useCallback(() => {
-    navigate("/owner/equipment");
   }, [navigate]);
 
   const handleBookingStatusChange = useCallback(async () => {
@@ -164,14 +158,16 @@ const OwnerDashboard = () => {
               </Button>
             </div>
           ) : (
-            activeRentals.slice(0, 5).map((rental) => (
-              <RentalListItem
-                key={rental.id}
-                booking={rental}
-                viewerRole="owner"
-                showInspectionStatus
-              />
-            ))
+            activeRentals
+              .slice(0, 5)
+              .map((rental) => (
+                <RentalListItem
+                  key={rental.id}
+                  booking={rental}
+                  viewerRole="owner"
+                  showInspectionStatus
+                />
+              ))
           )}
         </CollapsibleSection>
 
@@ -181,17 +177,23 @@ const OwnerDashboard = () => {
           icon={Clock}
           count={pendingRequests.length}
           defaultExpanded={pendingRequests.length > 0}
-          emptyMessage={t("owner.pending_requests.empty", "No pending requests")}
+          emptyMessage={t(
+            "owner.pending_requests.empty",
+            "No pending requests"
+          )}
           loading={bookingsLoading}
           seeAllHref={
-            pendingRequests.length > 5 ? "/owner/bookings?status=pending" : undefined
+            pendingRequests.length > 5
+              ? "/owner/bookings?status=pending"
+              : undefined
           }
         >
           {pendingRequests.length > 0 && (
             <div className="mb-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
               <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                 <AlertCircle className="h-3.5 w-3.5" />
-                {pendingRequests.length} request{pendingRequests.length !== 1 ? "s" : ""} awaiting your response
+                {pendingRequests.length} request
+                {pendingRequests.length !== 1 ? "s" : ""} awaiting your response
               </p>
             </div>
           )}
@@ -214,7 +216,9 @@ const OwnerDashboard = () => {
           emptyMessage={t("owner.upcoming.empty", "No upcoming rentals")}
           loading={bookingsLoading}
           seeAllHref={
-            upcomingRentals.length > 5 ? "/owner/bookings?status=upcoming" : undefined
+            upcomingRentals.length > 5
+              ? "/owner/bookings?status=upcoming"
+              : undefined
           }
         >
           {upcomingRentals.slice(0, 5).map((booking) => (
@@ -237,7 +241,9 @@ const OwnerDashboard = () => {
           emptyMessage={t("owner.history.empty", "No completed rentals yet")}
           loading={bookingsLoading}
           seeAllHref={
-            historyBookings.length > 5 ? "/owner/bookings?status=history" : undefined
+            historyBookings.length > 5
+              ? "/owner/bookings?status=history"
+              : undefined
           }
         >
           {historyBookings.slice(0, 5).map((booking) => (
@@ -248,36 +254,6 @@ const OwnerDashboard = () => {
             />
           ))}
         </CollapsibleSection>
-
-        {/* Quick Actions - At the bottom */}
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={handleCreateEquipment} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t("owner.overview.quick_actions.add_equipment.button", "Add Equipment")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewEquipment}
-            className="gap-2"
-          >
-            <Calendar className="h-4 w-4" />
-            {t("owner.overview.quick_actions.manage_listings.button", "Manage Listings")}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled
-            className="gap-2 text-muted-foreground"
-            aria-describedby={analyticsDisabledId}
-          >
-            <BarChart3 className="h-4 w-4" />
-            {t("owner.overview.quick_actions.analytics.button", "Analytics")}
-          </Button>
-          <span id={analyticsDisabledId} className="sr-only">
-            Analytics feature coming soon
-          </span>
-        </div>
       </div>
     </DashboardLayout>
   );
