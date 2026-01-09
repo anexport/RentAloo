@@ -1,31 +1,27 @@
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Package } from "lucide-react";
+import { Package, AlertCircle, Calendar, History, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import BookingRequestCard from "@/components/booking/BookingRequestCard";
 import { useBookingRequests } from "@/hooks/useBookingRequests";
 import { useBookingSubscriptions } from "@/hooks/useBookingSubscriptions";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import StatsOverview from "@/components/renter/StatsOverview";
-import NotificationsPanel from "@/components/renter/NotificationsPanel";
-import WelcomeHero from "@/components/renter/WelcomeHero";
-import UpcomingCalendar from "@/components/renter/UpcomingCalendar";
 import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useToast } from "@/hooks/useToast";
-import PendingClaimsList from "@/components/claims/PendingClaimsList";
 import { MobileInspectionCTA } from "@/components/booking/inspection-flow";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { supabase } from "@/lib/supabase";
-import { differenceInDays, isPast } from "date-fns";
+import { differenceInDays, isPast, isFuture } from "date-fns";
 import type { BookingRequestWithDetails } from "@/types/booking";
 import { useActiveRentals } from "@/hooks/useActiveRental";
-import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { BookingCardSkeleton } from "@/components/ui/PageSkeleton";
 import VerificationBanner from "@/components/verification/VerificationBanner";
+import CompactStats from "@/components/dashboard/CompactStats";
+import CollapsibleSection from "@/components/dashboard/CollapsibleSection";
+import RentalListItem from "@/components/rental/RentalListItem";
+import BookingListItem from "@/components/booking/BookingListItem";
+import { formatDateForStorage } from "@/lib/utils";
 
 interface InspectionStatus {
   bookingId: string;
@@ -67,17 +63,20 @@ const RenterDashboard = () => {
 
   const { toast } = useToast();
 
-  // Fetch inspection statuses for all approved bookings (for mobile CTA)
+  // Stable "today" value computed once on mount to avoid date boundary inconsistencies
+  const todayRef = useRef(formatDateForStorage(new Date()));
+
+  // Fetch inspection statuses for all approved/active bookings
   useEffect(() => {
     const fetchInspectionStatuses = async () => {
       if (!user) return;
 
-      const approvedBookings = renterBookings.filter(
-        (b) => b.status === "approved"
+      const relevantBookings = renterBookings.filter(
+        (b) => b.status === "approved" || b.status === "active"
       );
-      if (approvedBookings.length === 0) return;
+      if (relevantBookings.length === 0) return;
 
-      const bookingIds = approvedBookings.map((b) => b.id);
+      const bookingIds = relevantBookings.map((b) => b.id);
 
       try {
         const { data, error } = await supabase
@@ -87,14 +86,6 @@ const RenterDashboard = () => {
 
         if (error) {
           console.error("Error fetching inspection statuses:", error);
-          toast({
-            variant: "destructive",
-            title: "Failed to load inspection statuses",
-            description:
-              error instanceof Error
-                ? error.message
-                : "An error occurred while loading inspection statuses.",
-          });
           return;
         }
 
@@ -124,32 +115,21 @@ const RenterDashboard = () => {
         setInspectionStatuses(statusMap);
       } catch (err) {
         console.error("Error fetching inspection statuses:", err);
-        toast({
-          variant: "destructive",
-          title: "Failed to load inspection statuses",
-          description:
-            err instanceof Error
-              ? err.message
-              : "An error occurred while loading inspection statuses.",
-        });
       }
     };
 
     void fetchInspectionStatuses();
-  }, [renterBookings, toast, user]);
+  }, [renterBookings, user]);
 
   // Find the most urgent booking that needs inspection (for mobile CTA)
   const urgentInspectionBooking = useMemo(() => {
     if (!isMobile) return null;
 
     const today = new Date();
-
-    // Filter to approved bookings only
     const approvedBookings = renterBookings.filter(
       (b) => b.status === "approved"
     );
 
-    // Find bookings that need inspection, sorted by urgency
     const bookingsNeedingInspection = approvedBookings
       .map<InspectionCandidate | null>((booking) => {
         const status = inspectionStatuses.get(booking.id);
@@ -158,7 +138,6 @@ const RenterDashboard = () => {
         const daysUntilStart = differenceInDays(startDate, today);
         const daysUntilEnd = differenceInDays(endDate, today);
 
-        // Determine what inspection is needed
         const needsPickup = !status?.hasPickup;
         const needsReturn =
           status?.hasPickup &&
@@ -167,7 +146,6 @@ const RenterDashboard = () => {
 
         if (!needsPickup && !needsReturn) return null;
 
-        // Calculate urgency score (lower = more urgent)
         let urgencyScore = 100;
         if (needsPickup) {
           if (isPast(startDate)) urgencyScore = 0;
@@ -181,26 +159,19 @@ const RenterDashboard = () => {
           else urgencyScore = 10 + daysUntilEnd;
         }
 
-        return {
-          booking,
-          status,
-          urgencyScore,
-        };
+        return { booking, status, urgencyScore };
       })
-      .filter(
-        (candidate): candidate is InspectionCandidate => candidate !== null
-      )
+      .filter((c): c is InspectionCandidate => c !== null)
       .sort((a, b) => a.urgencyScore - b.urgencyScore);
 
     return bookingsNeedingInspection[0]?.booking || null;
   }, [renterBookings, inspectionStatuses, isMobile]);
 
-  // Get inspection status for urgent booking
   const urgentBookingStatus = urgentInspectionBooking
     ? inspectionStatuses.get(urgentInspectionBooking.id)
     : null;
 
-  // Memoize the status change callback to prevent effect re-runs
+  // Memoize the status change callback
   const handleBookingStatusChange = useCallback(async () => {
     try {
       await fetchRenterBookings();
@@ -209,43 +180,34 @@ const RenterDashboard = () => {
         variant: "destructive",
         title: "Failed to refresh bookings",
         description:
-          err instanceof Error
-            ? err.message
-            : "An error occurred while refreshing bookings.",
+          err instanceof Error ? err.message : "An error occurred.",
       });
     }
   }, [fetchRenterBookings, toast]);
 
-  // Extract booking IDs for centralized subscriptions
-  // Use a stable reference that only changes when actual IDs change
+  // Stable booking IDs for subscriptions
   const prevBookingIdsRef = useRef<string[]>([]);
   const bookingIds = useMemo(() => {
     const newIds = renterBookings.map((b) => b.id);
     const prevIds = prevBookingIdsRef.current;
-    
-    // Check if IDs are actually different (same length and same values)
     const idsChanged =
       newIds.length !== prevIds.length ||
       newIds.some((id, i) => id !== prevIds[i]);
-    
     if (idsChanged) {
       prevBookingIdsRef.current = newIds;
       return newIds;
     }
-    
-    // Return previous reference if IDs haven't changed
     return prevIds;
   }, [renterBookings]);
 
-  // Centralized real-time subscriptions for all booking cards
-  // This replaces individual subscriptions in each BookingRequestCard
+  // Centralized real-time subscriptions
   useBookingSubscriptions({
     bookingIds,
     onUpdate: handleBookingStatusChange,
     enabled: bookingIds.length > 0,
   });
 
-  // Watch for errors from initial/background fetches
+  // Error handling
   useEffect(() => {
     if (renterError) {
       toast({
@@ -263,17 +225,37 @@ const RenterDashboard = () => {
     }
   }, [renterError, activeRentalsError, toast]);
 
+  // Categorize bookings
+  const { pendingBookings, upcomingBookings, historyBookings, needsAttentionCount } =
+    useMemo(() => {
+      const today = todayRef.current;
+      
+      const pending = renterBookings.filter((b) => b.status === "pending");
+      const upcoming = renterBookings.filter(
+        (b) => b.status === "approved" && b.start_date >= today
+      );
+      const history = renterBookings.filter(
+        (b) => b.status === "completed" || b.status === "cancelled"
+      );
+      
+      return {
+        pendingBookings: pending,
+        upcomingBookings: upcoming,
+        historyBookings: history,
+        // Count only pending bookings since that's what's rendered in the section
+        needsAttentionCount: pending.length,
+      };
+    }, [renterBookings]);
+
   const progress = profile ? getVerificationProgress(profile) : 0;
 
   return (
     <DashboardLayout>
       <div
-        className={`space-y-6 animate-page-enter ${
-          isMobile && urgentInspectionBooking ? "pb-24" : ""
-        }`}
+        className={`space-y-4 ${isMobile && urgentInspectionBooking ? "pb-24" : ""}`}
       >
-        {/* Welcome Hero */}
-        <WelcomeHero />
+        {/* Compact Stats - Always visible at top */}
+        <CompactStats variant="renter" />
 
         {/* Verification Alert */}
         {!verificationLoading && profile && !profile.identityVerified && (
@@ -283,93 +265,115 @@ const RenterDashboard = () => {
           />
         )}
 
-        {/* Stats Overview */}
-        <StatsOverview />
-
-        {/* Notifications & Claims */}
-        <div className="space-y-4">
-          <NotificationsPanel />
-          <PendingClaimsList />
-        </div>
-
-        {/* Active Rentals */}
-        {!activeRentalsLoading && activeRentals.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Package className="h-5 w-5 text-emerald-500" />
-              {t("renter.active_rentals.title")}
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activeRentals.map((rental, index) => (
-                <div
-                  key={rental.id}
-                  className="animate-content-reveal"
-                  style={{ "--stagger-index": index } as React.CSSProperties}
-                >
-                  <ActiveRentalCard booking={rental} />
-                </div>
-              ))}
+        {/* Active Rentals - Expanded by default (primary use case) */}
+        <CollapsibleSection
+          title={t("renter.active_rentals.title", "Active Rentals")}
+          icon={Package}
+          count={activeRentals.length}
+          defaultExpanded={true}
+          emptyMessage={t(
+            "renter.active_rentals.empty",
+            "No active rentals right now"
+          )}
+          loading={activeRentalsLoading}
+          seeAllHref={activeRentals.length > 5 ? "/renter/rentals" : undefined}
+        >
+          {activeRentals.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground mb-3">
+                {t("renter.active_rentals.empty_cta", "Ready to rent some gear?")}
+              </p>
+              <Button asChild size="sm">
+                <Link to="/equipment">
+                  <Search className="h-4 w-4 mr-2" />
+                  Browse Equipment
+                </Link>
+              </Button>
             </div>
-          </section>
+          ) : (
+            activeRentals.slice(0, 5).map((rental) => {
+              const status = inspectionStatuses.get(rental.id);
+              return (
+                <RentalListItem
+                  key={rental.id}
+                  booking={rental}
+                  viewerRole="renter"
+                  showInspectionStatus
+                  hasPickupInspection={status?.hasPickup}
+                  hasReturnInspection={status?.hasReturn}
+                />
+              );
+            })
+          )}
+        </CollapsibleSection>
+
+        {/* Needs Attention - Pending bookings and items requiring action */}
+        {(pendingBookings.length > 0 || needsAttentionCount > 0) && (
+          <CollapsibleSection
+            title="Needs Attention"
+            icon={AlertCircle}
+            count={needsAttentionCount}
+            defaultExpanded={false}
+            emptyMessage="All caught up!"
+          >
+            {pendingBookings.map((booking) => (
+              <BookingListItem
+                key={booking.id}
+                booking={booking}
+                viewerRole="renter"
+                onCancel={() => void handleBookingStatusChange()}
+              />
+            ))}
+          </CollapsibleSection>
         )}
 
-        {/* Bookings + Calendar Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Bookings Column */}
-          <div className="lg:col-span-2 space-y-4">
-            {renterLoading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <BookingCardSkeleton key={i} />
-                ))}
-              </div>
-            ) : renterBookings.length === 0 ? (
-              <EmptyState
-                icon={Calendar}
-                title={t("renter.bookings.empty_state.title")}
-                description={t("renter.bookings.empty_state.description")}
-                action={
-                  <Link to="/equipment">
-                    <Button>{t("renter.bookings.empty_state.button")}</Button>
-                  </Link>
-                }
+        {/* Upcoming Bookings - Approved, starting soon */}
+        <CollapsibleSection
+          title={t("renter.upcoming.title", "Upcoming")}
+          icon={Calendar}
+          count={upcomingBookings.length}
+          defaultExpanded={false}
+          emptyMessage={t("renter.upcoming.empty", "No upcoming bookings")}
+          loading={renterLoading}
+          seeAllHref={upcomingBookings.length > 5 ? "/renter/bookings?status=upcoming" : undefined}
+        >
+          {upcomingBookings.slice(0, 5).map((booking) => {
+            const status = inspectionStatuses.get(booking.id);
+            return (
+              <BookingListItem
+                key={booking.id}
+                booking={booking}
+                viewerRole="renter"
+                showInspectionStatus
+                hasPickupInspection={status?.hasPickup}
+                hasReturnInspection={status?.hasReturn}
+                onCancel={() => void handleBookingStatusChange()}
               />
-            ) : (
-              <div className="space-y-4">
-                {renterBookings.slice(0, 3).map((booking, index) => (
-                  <div
-                    key={booking.id}
-                    className="animate-content-reveal"
-                    style={{ "--stagger-index": index } as React.CSSProperties}
-                  >
-                    <BookingRequestCard
-                      bookingRequest={booking}
-                      onStatusChange={handleBookingStatusChange}
-                      showActions={true}
-                    />
-                  </div>
-                ))}
-                {renterBookings.length > 3 && (
-                  <div className="text-center pt-2">
-                    <Link to="/renter/bookings">
-                      <Button variant="ghost" className="text-muted-foreground">
-                        View all {renterBookings.length} bookings
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            );
+          })}
+        </CollapsibleSection>
 
-          {/* Calendar Sidebar */}
-          <div className="lg:col-span-1">
-            <UpcomingCalendar />
-          </div>
-        </div>
+        {/* History - Completed and cancelled */}
+        <CollapsibleSection
+          title={t("renter.history.title", "History")}
+          icon={History}
+          count={historyBookings.length}
+          defaultExpanded={false}
+          emptyMessage={t("renter.history.empty", "No past bookings yet")}
+          loading={renterLoading}
+          seeAllHref={historyBookings.length > 5 ? "/renter/bookings?status=history" : undefined}
+        >
+          {historyBookings.slice(0, 5).map((booking) => (
+            <BookingListItem
+              key={booking.id}
+              booking={booking}
+              viewerRole="renter"
+            />
+          ))}
+        </CollapsibleSection>
       </div>
 
-      {/* Mobile Inspection CTA */}
+      {/* Mobile Inspection CTA - Floating at bottom */}
       {isMobile && urgentInspectionBooking && (
         <MobileInspectionCTA
           bookingId={urgentInspectionBooking.id}
