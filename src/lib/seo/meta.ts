@@ -248,7 +248,7 @@ export function generateCanonicalUrl(
   path: string,
   preserveParams?: string[],
   currentSearch?: string
-) {
+): string {
   const url = new URL(path, BASE_URL);
 
   if (preserveParams && preserveParams.length > 0) {
