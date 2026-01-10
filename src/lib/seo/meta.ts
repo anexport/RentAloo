@@ -7,8 +7,27 @@
 import type { Listing } from "@/components/equipment/services/listings";
 
 const SITE_NAME = "Vaymo";
-const BASE_URL = "https://www.vaymo.it";
+
+const envBaseUrl =
+  (typeof import.meta !== "undefined" && typeof import.meta.env !== "undefined" && import.meta.env.VITE_BASE_URL) ||
+  (typeof process !== "undefined" && typeof process.env !== "undefined" && process.env.VITE_BASE_URL) ||
+  (typeof window !== "undefined" ? window.location.origin : undefined);
+
+const BASE_URL = envBaseUrl && envBaseUrl.trim().length > 0 ? envBaseUrl.trim() : "https://www.vaymo.it";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.svg`;
+
+export interface PageMeta {
+  title: string;
+  description: string;
+  canonical?: string;
+  keywords?: string[];
+  ogType?: "website" | "article" | "product";
+  ogImage?: string;
+  ogImageAlt?: string;
+  twitterCard?: "summary" | "summary_large_image" | "app" | "player";
+  noIndex?: boolean;
+  noFollow?: boolean;
+}
 
 /**
  * Truncate text to specified length with ellipsis
@@ -18,10 +37,22 @@ function truncate(text: string, maxLength: number): string {
   return text.substring(0, maxLength - 3) + "...";
 }
 
+function capitalizeFirst(value: string): string {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function sanitizeMetaInput(value?: string | null, maxLength = 160): string {
+  if (!value) return "";
+  const normalized = value.replace(/[\r\n]+/g, " ").replace(/[<>\"`]/g, "").trim();
+  const collapsed = normalized.replace(/\s+/g, " ");
+  return truncate(collapsed, maxLength);
+}
+
 /**
  * Generate SEO meta for home page
  */
-export function generateHomePageMeta() {
+export function generateHomePageMeta(): PageMeta {
   return {
     title: "Vaymo - Rent Sports Gear, Tools & Equipment Near You",
     description:
@@ -47,34 +78,41 @@ export function generateExplorePageMeta(params?: {
   search?: string;
   location?: string;
   category?: string;
-}) {
+}): PageMeta {
+  const searchTerm = sanitizeMetaInput(params?.search, 60);
+  const categoryTerm = sanitizeMetaInput(params?.category, 60);
+  const location = sanitizeMetaInput(params?.location, 60);
+
   let title = "Browse Equipment Rentals";
-  let description =
-    "Explore thousands of equipment rentals from verified owners. Find the perfect gear for your next adventure.";
+  let baseDescription = "Explore thousands of equipment rentals from verified owners.";
+  let detailDescription = "Find the perfect gear for your next adventure.";
+  const locationSuffix = location ? ` in ${location}` : "";
 
-  if (params?.search) {
-    title = `${params.search} Rentals - Vaymo`;
-    description = `Find ${params.search.toLowerCase()} rentals near you. Browse equipment from verified owners with instant booking.`;
-  } else if (params?.category) {
-    const categoryName = params.category.charAt(0).toUpperCase() + params.category.slice(1);
-    title = `${categoryName} Equipment Rentals - Vaymo`;
-    description = `Rent ${categoryName.toLowerCase()} equipment from trusted owners. Affordable daily rates and verified listings.`;
+  if (searchTerm) {
+    title = `${searchTerm} Rentals - ${SITE_NAME}`;
+    baseDescription = `Find ${searchTerm.toLowerCase()} rentals${locationSuffix}.`;
+    detailDescription = "Browse equipment from verified owners with instant booking.";
+  } else if (categoryTerm) {
+    const categoryName = capitalizeFirst(categoryTerm);
+    title = `${categoryName} Equipment Rentals - ${SITE_NAME}`;
+    baseDescription = `Rent ${categoryTerm.toLowerCase()} equipment${locationSuffix} from trusted owners.`;
+    detailDescription = "Affordable daily rates and verified listings.";
+  } else if (location) {
+    baseDescription = `Explore thousands of equipment rentals in ${location} from verified owners.`;
   }
 
-  if (params?.location) {
-    description = description.replace("near you", `in ${params.location}`);
-  }
+  const description = truncate(`${baseDescription} ${detailDescription}`.trim(), 160);
 
   return {
     title: truncate(title, 60),
-    description: truncate(description, 160),
+    description,
     canonical: `${BASE_URL}/explore`,
     keywords: [
       "equipment rental",
       "rent equipment",
-      params?.category || "sports gear",
-      params?.location || "local rental",
-    ],
+      categoryTerm || "sports gear",
+      location || "local rental",
+    ].filter(Boolean),
     ogImage: DEFAULT_OG_IMAGE,
   };
 }
@@ -82,7 +120,7 @@ export function generateExplorePageMeta(params?: {
 /**
  * Generate SEO meta for equipment detail page
  */
-export function generateEquipmentPageMeta(listing: Listing) {
+export function generateEquipmentPageMeta(listing: Listing): PageMeta {
   // Calculate average rating
   const reviews = listing.reviews || [];
   const avgRating =
@@ -90,36 +128,44 @@ export function generateEquipmentPageMeta(listing: Listing) {
       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
       : null;
 
+  const sanitizedTitle = sanitizeMetaInput(listing.title, 70) || "Equipment Rental";
+  const sanitizedDescription = sanitizeMetaInput(listing.description, 160);
+  const sanitizedLocation = sanitizeMetaInput(listing.location, 60);
+  const sanitizedCondition = sanitizeMetaInput(listing.condition, 20);
+
   // Build title (50-60 chars)
-  let title = `${listing.title} - $${listing.daily_rate}/day`;
+  let title = `${sanitizedTitle} - $${listing.daily_rate}/day`;
   if (avgRating && reviews.length > 0) {
     title += ` ⭐${avgRating}`;
   }
   title = truncate(title, 60);
 
   // Build description (150-160 chars)
-  let description = listing.description || "";
-  if (listing.location) {
-    description = `Rent in ${listing.location}. ${description}`;
+  const descriptionParts: string[] = [];
+  if (sanitizedLocation) {
+    descriptionParts.push(`Rent in ${sanitizedLocation}.`);
   }
-  if (listing.condition) {
-    description += ` ${listing.condition.charAt(0).toUpperCase() + listing.condition.slice(1)} condition.`;
+  if (sanitizedDescription) {
+    descriptionParts.push(sanitizedDescription);
+  }
+  if (sanitizedCondition) {
+    descriptionParts.push(`${capitalizeFirst(sanitizedCondition)} condition.`);
   }
   if (avgRating && reviews.length > 0) {
-    description += ` Rated ${avgRating}/5 from ${reviews.length} reviews.`;
+    descriptionParts.push(`Rated ${avgRating}/5 from ${reviews.length} reviews.`);
   }
-  description = truncate(description, 160);
+  const description = truncate(descriptionParts.join(" ").trim() || sanitizedTitle, 160);
 
   // Get primary image
   const primaryImage = listing.photos?.find((p) => p.is_primary)?.photo_url || listing.photos?.[0]?.photo_url;
 
   // Build keywords
   const keywords = [
-    listing.title,
-    `rent ${listing.title}`,
+    sanitizedTitle,
+    sanitizedTitle ? `rent ${sanitizedTitle}` : "",
     listing.category?.name || "equipment",
-    listing.location || "",
-    listing.condition ? `${listing.condition} condition` : "",
+    sanitizedLocation || "",
+    sanitizedCondition ? `${sanitizedCondition} condition` : "",
   ].filter(Boolean);
 
   return {
@@ -129,25 +175,27 @@ export function generateEquipmentPageMeta(listing: Listing) {
     keywords,
     ogType: "product" as const,
     ogImage: primaryImage || DEFAULT_OG_IMAGE,
-    ogImageAlt: `${listing.title} - Equipment rental on Vaymo`,
+    ogImageAlt: `${sanitizedTitle} - Equipment rental on ${SITE_NAME}`,
   };
 }
 
 /**
  * Generate SEO meta for category pages
  */
-export function getCategoryPageMeta(categoryName: string, itemCount?: number) {
-  const title = `${categoryName} Equipment Rentals - Browse ${itemCount || "Top"} Listings`;
-  const description = `Rent ${categoryName.toLowerCase()} equipment from verified owners. Compare prices, read reviews, and book instantly. ${itemCount ? `${itemCount} listings available.` : ""}`;
+export function getCategoryPageMeta(categoryName: string, itemCount?: number): PageMeta {
+  const sanitizedCategory = sanitizeMetaInput(categoryName, 60) || "Category";
+  const lowerCategory = sanitizedCategory.toLowerCase();
+  const title = `${capitalizeFirst(sanitizedCategory)} Equipment Rentals - Browse ${itemCount || "Top"} Listings`;
+  const description = `Rent ${lowerCategory} equipment from verified owners. Compare prices, read reviews, and book instantly. ${itemCount ? `${itemCount} listings available.` : ""}`;
 
   return {
     title: truncate(title, 60),
     description: truncate(description, 160),
-    canonical: `${BASE_URL}/explore?category=${encodeURIComponent(categoryName.toLowerCase())}`,
+    canonical: `${BASE_URL}/explore?category=${encodeURIComponent(lowerCategory)}`,
     keywords: [
-      `${categoryName} rental`,
-      `rent ${categoryName}`,
-      `${categoryName} equipment`,
+      `${lowerCategory} rental`,
+      `rent ${lowerCategory}`,
+      `${lowerCategory} equipment`,
       "peer-to-peer rental",
     ],
     ogImage: DEFAULT_OG_IMAGE,
@@ -157,9 +205,10 @@ export function getCategoryPageMeta(categoryName: string, itemCount?: number) {
 /**
  * Generate SEO meta for user profile pages (if public)
  */
-export function getUserProfileMeta(userName: string, stats?: { listings?: number; rating?: number }) {
-  const title = `${userName} - Equipment Owner on Vaymo`;
-  let description = `View ${userName}'s equipment rentals on Vaymo.`;
+export function getUserProfileMeta(userName: string, stats?: { listings?: number; rating?: number }): PageMeta {
+  const sanitizedUserName = sanitizeMetaInput(userName, 60) || "User";
+  const title = `${sanitizedUserName} - Equipment Owner on ${SITE_NAME}`;
+  let description = `View ${sanitizedUserName}'s equipment rentals on ${SITE_NAME}.`;
 
   if (stats?.listings) {
     description += ` ${stats.listings} listings available.`;
@@ -179,9 +228,10 @@ export function getUserProfileMeta(userName: string, stats?: { listings?: number
 /**
  * Generate SEO meta for dashboard pages (protected)
  */
-export function getDashboardMeta(pageTitle: string) {
+export function getDashboardMeta(pageTitle: string): PageMeta {
+  const sanitizedPageTitle = sanitizeMetaInput(pageTitle, 60) || "Dashboard";
   return {
-    title: `${pageTitle} - Vaymo Dashboard`,
+    title: `${sanitizedPageTitle} - ${SITE_NAME} Dashboard`,
     description: "Manage your Vaymo account, bookings, and listings.",
     noIndex: true, // Dashboard pages should not be indexed
     noFollow: true,
