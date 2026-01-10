@@ -17,6 +17,15 @@ interface UseVerificationOptions {
   userId?: string;
 }
 
+// Local type for verification records (includes rejection_reason which may not be in generated types yet)
+interface VerificationRecord {
+  verification_type: string;
+  status: string;
+  document_url: string | null;
+  created_at: string;
+  rejection_reason?: string | null;
+}
+
 // ============================================================================
 // FETCH FUNCTIONS
 // ============================================================================
@@ -25,12 +34,13 @@ const fetchVerificationProfile = async (
   targetUserId: string,
   authUser: { id: string; email_confirmed_at?: string | null } | null
 ): Promise<UserVerificationProfile> => {
-  // Fetch profile, reviews, renter bookings, and equipment IDs in parallel
+  // Fetch profile, reviews, renter bookings, equipment IDs, and verification records in parallel
   const [
     { data: profileData, error: profileError },
     { data: reviews, error: reviewsError },
     { count: renterCount, error: renterCountError },
     { data: equipmentData, error: equipmentError },
+    { data: verificationRecords, error: verificationError },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", targetUserId).maybeSingle(),
     supabase.from("reviews").select("rating").eq("reviewee_id", targetUserId),
@@ -40,6 +50,12 @@ const fetchVerificationProfile = async (
       .eq("status", "completed")
       .eq("renter_id", targetUserId),
     supabase.from("equipment").select("id").eq("owner_id", targetUserId),
+    // Select verification records including rejection_reason, ordered by newest first
+    supabase
+      .from("user_verifications")
+      .select("verification_type,status,document_url,created_at,rejection_reason")
+      .eq("user_id", targetUserId)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Profile error is fatal - we cannot proceed without profile data
@@ -62,11 +78,18 @@ const fetchVerificationProfile = async (
   if (equipmentError) {
     console.warn("Failed to load equipment list:", equipmentError);
   }
+  if (verificationError) {
+    console.warn("Failed to load verification records:", verificationError);
+  }
 
   // Default to safe values for non-critical data
   const safeReviews = reviewsError ? [] : reviews || [];
   const safeRenterCount = renterCountError ? 0 : renterCount || 0;
   const safeEquipmentData = equipmentError ? [] : equipmentData || [];
+  // Cast to VerificationRecord[] to include future rejection_reason field
+  const safeVerificationRecords: VerificationRecord[] = verificationError 
+    ? [] 
+    : (verificationRecords as unknown as VerificationRecord[]) || [];
 
   const equipmentIds = safeEquipmentData.map((eq) => eq.id);
   let ownerCount = 0;
@@ -88,7 +111,7 @@ const fetchVerificationProfile = async (
   const bookingsCount = safeRenterCount + ownerCount;
 
   // Calculate trust score
-  const accountAgeDays = calculateAccountAge(profileData.created_at);
+  const accountAgeDays = calculateAccountAge(profileData.created_at ?? new Date().toISOString());
   const averageRating =
     safeReviews.length > 0
       ? safeReviews.reduce((sum, r) => sum + r.rating, 0) / safeReviews.length
@@ -113,6 +136,16 @@ const fetchVerificationProfile = async (
     accountAgeDays,
   });
 
+  // Extract verification status for each type
+  // Records are already sorted by created_at descending from the query,
+  // so find() will return the most recent record for each type
+  const identityRecord = safeVerificationRecords.find(
+    (r) => r.verification_type === "identity"
+  );
+  const phoneRecord = safeVerificationRecords.find(
+    (r) => r.verification_type === "phone"
+  );
+
   return {
     userId: targetUserId,
     identityVerified: profileData.identity_verified || false,
@@ -120,7 +153,16 @@ const fetchVerificationProfile = async (
     emailVerified,
     addressVerified: profileData.address_verified || false,
     trustScore,
-    verifiedAt: profileData.verified_at,
+    verifiedAt: profileData.verified_at ?? undefined,
+    // Identity verification status
+    identityStatus: identityRecord?.status as UserVerificationProfile["identityStatus"],
+    identityDocumentUrl: identityRecord?.document_url ?? undefined,
+    identitySubmittedAt: identityRecord?.created_at ?? undefined,
+    identityRejectionReason: identityRecord?.rejection_reason ?? undefined,
+    // Phone verification status
+    phoneStatus: phoneRecord?.status as UserVerificationProfile["phoneStatus"],
+    phoneSubmittedAt: phoneRecord?.created_at ?? undefined,
+    phoneRejectionReason: phoneRecord?.rejection_reason ?? undefined,
   };
 };
 

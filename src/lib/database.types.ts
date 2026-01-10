@@ -1358,7 +1358,7 @@ export type Database = {
       equipment_condition: "new" | "excellent" | "good" | "fair"
       inspection_type: "pickup" | "return"
       user_role: "renter" | "owner" | "admin"
-      verification_status: "unverified" | "pending" | "verified"
+      verification_status: "unverified" | "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -1513,7 +1513,7 @@ export const Constants = {
       equipment_condition: ["new", "excellent", "good", "fair"],
       inspection_type: ["pickup", "return"],
       user_role: ["renter", "owner", "admin"],
-      verification_status: ["unverified", "pending", "verified"],
+      verification_status: ["unverified", "pending", "verified", "rejected"],
     },
   },
 } as const

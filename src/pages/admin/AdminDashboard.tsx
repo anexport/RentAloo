@@ -98,10 +98,23 @@ type InspectionListItem = {
   } | null;
 };
 
+type VerificationListItem = {
+  id: string;
+  user_id: string;
+  verification_type: string;
+  status: string;
+  document_url: string | null;
+  created_at: string;
+  verified_at: string | null;
+  rejection_reason: string | null;
+  user: { email: string; full_name: string | null } | null;
+};
+
 type SummaryStats = {
   totalUsers: number;
   totalListings: number;
   pendingPayouts: number;
+  pendingVerifications: number;
 };
 
 type AdminData = {
@@ -111,6 +124,7 @@ type AdminData = {
   payouts: PaymentListItem[];
   claims: ClaimListItem[];
   inspections: InspectionListItem[];
+  verifications: VerificationListItem[];
 };
 
 const USERS_PER_PAGE = 50;
@@ -150,7 +164,12 @@ async function fetchUsers(
 }
 
 async function fetchAdminData(): Promise<AdminData> {
-  const [userCount, listingCount, pendingPayoutCount] = await Promise.all([
+  const [
+    userCount,
+    listingCount,
+    pendingPayoutCount,
+    pendingVerificationCount,
+  ] = await Promise.all([
     supabase
       .from("profiles")
       .select("*", { count: "exact", head: true })
@@ -164,6 +183,11 @@ async function fetchAdminData(): Promise<AdminData> {
       .select("*", { count: "exact", head: true })
       .eq("payout_status", "pending")
       .throwOnError(),
+    supabase
+      .from("user_verifications")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending")
+      .throwOnError(),
   ]);
 
   const [
@@ -172,6 +196,7 @@ async function fetchAdminData(): Promise<AdminData> {
     { data: payoutRows },
     { data: claimRows },
     { data: inspectionRows },
+    { data: verificationRows },
   ] = await Promise.all([
     fetchUsers(0, USERS_PER_PAGE),
     supabase
@@ -206,6 +231,15 @@ async function fetchAdminData(): Promise<AdminData> {
       .order("created_at", { ascending: false })
       .limit(50)
       .throwOnError(),
+    supabase
+      .from("user_verifications")
+      .select(
+        "id,user_id,verification_type,status,document_url,created_at,verified_at,user:user_id(email,full_name)"
+      )
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(50)
+      .throwOnError(),
   ]);
 
   return {
@@ -213,12 +247,15 @@ async function fetchAdminData(): Promise<AdminData> {
       totalUsers: userCount.count ?? 0,
       totalListings: listingCount.count ?? 0,
       pendingPayouts: pendingPayoutCount.count ?? 0,
+      pendingVerifications: pendingVerificationCount.count ?? 0,
     },
     users: userRows || [],
     listings: equipmentRows || [],
     payouts: (payoutRows as unknown as PaymentListItem[] | null) || [],
     claims: (claimRows as ClaimListItem[] | null) || [],
     inspections: (inspectionRows as InspectionListItem[] | null) || [],
+    verifications:
+      (verificationRows as unknown as VerificationListItem[] | null) || [],
   };
 }
 
@@ -257,10 +294,12 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalListings: 0,
     pendingPayouts: 0,
+    pendingVerifications: 0,
   };
   const initialUsers = data?.users ?? [];
   const listings = data?.listings ?? [];
   const payouts = data?.payouts ?? [];
+  const verifications = data?.verifications ?? [];
   const claims = data?.claims ?? [];
   const inspections = data?.inspections ?? [];
 
@@ -900,6 +939,119 @@ const AdminDashboard = () => {
     },
   });
 
+  // Verification approval mutation
+  const approveVerificationMutation = useMutation({
+    mutationFn: async ({
+      verificationId,
+      userId,
+      verificationType,
+    }: {
+      verificationId: string;
+      userId: string;
+      verificationType: string;
+    }) => {
+      // Update user_verifications status to verified
+      const { error: verificationError } = await supabase
+        .from("user_verifications")
+        .update({
+          status: "verified",
+          verified_at: new Date().toISOString(),
+        })
+        .eq("id", verificationId);
+
+      if (verificationError) throw verificationError;
+
+      // Update the corresponding verified flag in profiles
+      const verifiedField = `${verificationType}_verified`;
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          [verifiedField]: true,
+          verified_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast({
+        title: "Verification approved",
+        description: "User verification has been approved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to approve verification",
+        description: error.message,
+      });
+    },
+  });
+
+  const approveVerification = (
+    verificationId: string,
+    userId: string,
+    verificationType: string
+  ) => {
+    const confirmed = window.confirm(
+      "Approve this verification? The user will be marked as verified."
+    );
+    if (!confirmed) return;
+    approveVerificationMutation.mutate({
+      verificationId,
+      userId,
+      verificationType,
+    });
+  };
+
+  // Verification rejection mutation
+  const rejectVerificationMutation = useMutation({
+    mutationFn: async ({
+      verificationId,
+      rejectionReason,
+    }: {
+      verificationId: string;
+      rejectionReason: string;
+    }) => {
+      const { error } = await supabase
+        .from("user_verifications")
+        .update({
+          status: "rejected",
+          rejection_reason: rejectionReason,
+        })
+        .eq("id", verificationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      toast({
+        title: "Verification rejected",
+        description: "User has been notified of the rejection.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to reject verification",
+        description: error.message,
+      });
+    },
+  });
+
+  const rejectVerification = (verificationId: string) => {
+    const reason = window.prompt(
+      "Enter rejection reason (will be shown to user):",
+      "Document was unclear or invalid. Please upload a clearer image."
+    );
+    if (!reason?.trim()) return;
+    rejectVerificationMutation.mutate({
+      verificationId,
+      rejectionReason: reason,
+    });
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -956,7 +1108,7 @@ const AdminDashboard = () => {
         }
       >
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card className="rounded-2xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -997,6 +1149,21 @@ const AdminDashboard = () => {
                 <p className="text-sm text-muted-foreground">
                   Awaiting processing
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pending Verifications
+                </CardTitle>
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">
+                  {summary.pendingVerifications}
+                </p>
+                <p className="text-sm text-muted-foreground">Awaiting review</p>
               </CardContent>
             </Card>
           </div>
@@ -1550,6 +1717,120 @@ const AdminDashboard = () => {
                               disabled={payment.payment_status === "refunded"}
                             >
                               Refund
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Pending Verifications Section */}
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" />
+                Pending Verifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead>Document</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {verifications.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        <div role="status" aria-live="polite">
+                          <p className="font-medium">
+                            No pending verifications
+                          </p>
+                          <p className="mt-1 text-sm">
+                            All verification documents have been reviewed.
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    verifications.map((verification) => (
+                      <TableRow key={verification.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {verification.user?.email ?? "Unknown"}
+                            </p>
+                            {verification.user?.full_name && (
+                              <p className="text-xs text-muted-foreground">
+                                {verification.user.full_name}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {verification.verification_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDateLabel(verification.created_at ?? null)}
+                        </TableCell>
+                        <TableCell>
+                          {verification.document_url ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  verification.document_url!,
+                                  "_blank"
+                                )
+                              }
+                            >
+                              View Document
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">
+                              No document
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex gap-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() =>
+                                approveVerification(
+                                  verification.id,
+                                  verification.user_id,
+                                  verification.verification_type
+                                )
+                              }
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() =>
+                                rejectVerification(verification.id)
+                              }
+                            >
+                              Reject
                             </Button>
                           </div>
                         </TableCell>
