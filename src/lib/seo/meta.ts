@@ -21,7 +21,7 @@ function truncate(text: string, maxLength: number): string {
 /**
  * Generate SEO meta for home page
  */
-export function getHomePageMeta() {
+export function generateHomePageMeta() {
   return {
     title: "Vaymo - Rent Sports Gear, Tools & Equipment Near You",
     description:
@@ -43,7 +43,7 @@ export function getHomePageMeta() {
 /**
  * Generate SEO meta for explore/search page
  */
-export function getExplorePageMeta(params?: {
+export function generateExplorePageMeta(params?: {
   search?: string;
   location?: string;
   category?: string;
@@ -82,7 +82,7 @@ export function getExplorePageMeta(params?: {
 /**
  * Generate SEO meta for equipment detail page
  */
-export function getEquipmentDetailMeta(listing: Listing) {
+export function generateEquipmentPageMeta(listing: Listing) {
   // Calculate average rating
   const reviews = listing.reviews || [];
   const avgRating =
@@ -216,3 +216,8 @@ export function generateCanonicalUrl(
 
   return url.toString();
 }
+
+// Legacy exports maintained for backward compatibility
+export { generateHomePageMeta as getHomePageMeta };
+export { generateExplorePageMeta as getExplorePageMeta };
+export { generateEquipmentPageMeta as getEquipmentDetailMeta };

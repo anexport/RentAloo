@@ -68,22 +68,8 @@ const EquipmentDetailPage = () => {
   })();
 
   // SEO data
-  const equipmentMeta = generateEquipmentPageMeta({
-    title: data.title,
-    description: data.description,
-    imageUrl: data.photos?.[0]?.photo_url,
-    dailyRate: data.daily_rate,
-  });
-  const productSchema = generateProductSchema({
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    imageUrl: data.photos?.[0]?.photo_url,
-    dailyRate: data.daily_rate,
-    condition: data.condition,
-    rating: avgRating,
-    reviewCount: data.reviews?.length ?? 0,
-  });
+  const equipmentMeta = generateEquipmentPageMeta(data);
+  const productSchema = generateProductSchema(data);
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: "Home", url: "/" },
     { name: "Explore", url: "/explore" },
