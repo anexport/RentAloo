@@ -8,24 +8,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Lightbulb } from "lucide-react";
 import type { Database } from "@/lib/database.types";
-import SmartTip from "../components/SmartTip";
-import type { WizardFormData, EquipmentCondition } from "../hooks/useListingWizard";
 
-const CONDITIONS: { value: EquipmentCondition; label: string; description: string }[] = [
+import type {
+  WizardFormData,
+  EquipmentCondition,
+} from "../hooks/useListingWizard";
+
+const CONDITIONS: {
+  value: EquipmentCondition;
+  label: string;
+  description: string;
+}[] = [
   { value: "new", label: "New", description: "Never used, original packaging" },
-  { value: "excellent", label: "Excellent", description: "Like new, minimal signs of use" },
-  { value: "good", label: "Good", description: "Normal wear, fully functional" },
+  {
+    value: "excellent",
+    label: "Excellent",
+    description: "Like new, minimal signs of use",
+  },
+  {
+    value: "good",
+    label: "Good",
+    description: "Normal wear, fully functional",
+  },
   { value: "fair", label: "Fair", description: "Visible wear, works well" },
 ];
 
 interface BasicsStepProps {
   formData: WizardFormData;
   categories: Database["public"]["Tables"]["categories"]["Row"][];
-  onUpdate: <K extends keyof WizardFormData>(field: K, value: WizardFormData[K]) => void;
+  onUpdate: <K extends keyof WizardFormData>(
+    field: K,
+    value: WizardFormData[K]
+  ) => void;
 }
 
-export default function BasicsStep({ formData, categories, onUpdate }: BasicsStepProps) {
+export default function BasicsStep({
+  formData,
+  categories,
+  onUpdate,
+}: BasicsStepProps) {
   const titleLength = formData.title.length;
   const descriptionLength = formData.description.length;
 
@@ -33,9 +61,12 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Tell us about your equipment</h2>
+        <h2 className="text-2xl font-semibold text-foreground mb-2">
+          Tell us about your equipment
+        </h2>
         <p className="text-muted-foreground">
-          Help renters understand what you're offering with a clear title and detailed description.
+          Help renters understand what you're offering with a clear title and
+          detailed description.
         </p>
       </div>
 
@@ -49,7 +80,7 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
           type="text"
           value={formData.title}
           onChange={(e) => onUpdate("title", e.target.value)}
-          placeholder="e.g., Professional Canon EOS R5 Camera Kit"
+          placeholder="e.g., Professional Trek Domane SLR 9 Gen 4"
           className="text-lg h-12"
           maxLength={100}
         />
@@ -90,7 +121,9 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
           </Label>
           <Select
             value={formData.condition}
-            onValueChange={(value) => onUpdate("condition", value as EquipmentCondition)}
+            onValueChange={(value) =>
+              onUpdate("condition", value as EquipmentCondition)
+            }
           >
             <SelectTrigger id="condition" className="h-12">
               <SelectValue placeholder="Select condition" />
@@ -100,7 +133,9 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
                 <SelectItem key={condition.value} value={condition.value}>
                   <div className="flex flex-col">
                     <span>{condition.label}</span>
-                    <span className="text-xs text-muted-foreground">{condition.description}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {condition.description}
+                    </span>
                   </div>
                 </SelectItem>
               ))}
@@ -111,9 +146,35 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
 
       {/* Description */}
       <div className="space-y-3">
-        <Label htmlFor="description" className="text-base font-medium">
-          Description
-        </Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="description" className="text-base font-medium">
+            Description
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="text-amber-500 hover:text-amber-600 transition-colors"
+                aria-label="View description tips"
+              >
+                <Lightbulb className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-80 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
+              align="start"
+            >
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Pro tip</h4>
+                <p className="text-sm text-foreground">
+                  Mention what makes your equipment special, any included
+                  accessories, and ideal use cases. Listings with detailed
+                  descriptions get 40% more inquiries.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
         <Textarea
           id="description"
           value={formData.description}
@@ -126,27 +187,28 @@ export default function BasicsStep({ formData, categories, onUpdate }: BasicsSte
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>
             {descriptionLength < 10 ? (
-              <span className="text-amber-600">Minimum 10 characters required</span>
+              <span className="text-amber-600">
+                Minimum 10 characters required
+              </span>
             ) : descriptionLength < 100 ? (
-              <span className="text-amber-600">Add more detail for better results</span>
+              <span className="text-amber-600">
+                Add more detail for better results
+              </span>
             ) : (
-              <span className="text-emerald-600">Great description length!</span>
+              <span className="text-emerald-600">
+                Great description length!
+              </span>
             )}
           </span>
           <span>{descriptionLength}/2000</span>
         </div>
       </div>
 
-      {/* Smart Tip */}
-      <SmartTip variant="tip">
-        <strong>Pro tip:</strong> Mention what makes your equipment special, any included
-        accessories, and ideal use cases. Listings with detailed descriptions get 40% more
-        inquiries.
-      </SmartTip>
-
       {/* Description Helpers */}
       <div className="bg-muted/50 rounded-lg p-4">
-        <h3 className="font-medium text-foreground mb-3">What to include in your description:</h3>
+        <h3 className="font-medium text-foreground mb-3">
+          What to include in your description:
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <span className="text-primary">•</span>

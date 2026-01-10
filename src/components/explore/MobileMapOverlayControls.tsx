@@ -26,6 +26,9 @@ import { cn } from "@/lib/utils";
 import { useAddressAutocomplete } from "@/features/location/useAddressAutocomplete";
 import { useToast } from "@/hooks/useToast";
 import { ToastAction } from "@/components/ui/toast";
+import { DateFilterChip } from "@/components/explore/filters/DateFilterChip";
+import { PriceFilterChip } from "@/components/explore/filters/PriceFilterChip";
+
 import {
   getCurrentPosition,
   checkGeolocationSupport,
@@ -75,7 +78,7 @@ type Props = {
 
 // Glassmorphism base classes - matching filter/category pill styling
 const GLASS_BASE =
-  "bg-background/90 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-sm";
+  "bg-background/90 backdrop-blur-lg border border-white/20 dark:border-white/10";
 const GLASS_INTERACTIVE = "transition-all duration-150 active:scale-[0.98]";
 
 // FAB styling - uses theme background
@@ -254,20 +257,17 @@ const MobileMapOverlayControls = ({
 
   return (
     <>
-      {/* Search bar and controls - fixed at top like Google Maps */}
+      {/* Search bar and controls - Google Maps style layout */}
       <div
-        className="absolute top-0 left-0 right-0 z-20"
+        className="absolute top-0 left-0 right-0 z-20 pointer-events-none"
         style={{
           paddingTop: "max(env(safe-area-inset-top), 12px)",
-          paddingLeft: "env(safe-area-inset-left)",
-          paddingRight: "env(safe-area-inset-right)",
         }}
       >
-        {/* Google Maps style search bar - compact pill */}
-        <div className="px-4 pt-2 pb-3">
-          <div className="flex items-center gap-2">
-            {/* Main search input - Google Maps style */}
-            <div className="flex-1 relative">
+        <div className="flex flex-col gap-2 pointer-events-auto">
+          {/* Row 1: Search Bar */}
+          <div className="px-4">
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => {
@@ -276,7 +276,7 @@ const MobileMapOverlayControls = ({
                   setTimeout(() => inputRef.current?.focus(), 50);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 h-12 px-4 rounded-full text-left",
+                  "w-full flex items-center gap-3 h-12 px-4 rounded-full text-left shadow-md",
                   GLASS_BASE,
                   GLASS_INTERACTIVE,
                   !isInputFocused && "cursor-pointer"
@@ -323,7 +323,7 @@ const MobileMapOverlayControls = ({
                 <div
                   className={cn(
                     "absolute inset-x-0 top-0 z-50",
-                    "rounded-3xl overflow-hidden",
+                    "rounded-3xl overflow-hidden shadow-lg",
                     GLASS_BASE
                   )}
                 >
@@ -459,14 +459,23 @@ const MobileMapOverlayControls = ({
                 </div>
               )}
             </div>
+          </div>
 
+          {/* Row 2: Scrollable Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide w-full">
             {/* Category selector pill */}
             <CategorySheet
               activeCategoryId={categoryId}
               onCategoryChange={onCategoryChange}
             />
 
-            {/* Filter button */}
+            {/* Date Chip */}
+            <DateFilterChip value={filterValues} onChange={onFilterChange} />
+
+            {/* Price Chip */}
+            <PriceFilterChip value={filterValues} onChange={onFilterChange} />
+
+            {/* Main Filter button (More) */}
             <FiltersSheet
               value={filterValues}
               onChange={onFilterChange}
@@ -481,12 +490,19 @@ const MobileMapOverlayControls = ({
             >
               <SelectTrigger
                 className={cn(
-                  "h-10 w-10 p-0 rounded-full [&>svg:last-child]:hidden justify-center",
-                  GLASS_BASE
+                  "h-10 w-10 p-0 rounded-full flex items-center justify-center [&>svg:last-child]:hidden",
+                  sortBy === "recommended"
+                    ? [GLASS_BASE, "hover:bg-background/95 shadow-sm"]
+                    : "bg-foreground text-background border-transparent hover:bg-foreground/90 shadow-none"
                 )}
                 aria-label={t("filters.sort_by")}
               >
-                <ArrowUpDown className="h-4 w-4" />
+                <ArrowUpDown
+                  className={cn(
+                    "h-4 w-4",
+                    sortBy !== "recommended" && "text-background"
+                  )}
+                />
               </SelectTrigger>
               <SelectContent align="end" className="rounded-xl">
                 <SelectItem value="recommended">

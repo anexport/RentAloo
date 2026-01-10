@@ -55,7 +55,7 @@ const OWNER_NAV_ITEMS: NavItem[] = [
     matchPaths: ["/owner/equipment"],
   },
   {
-    to: "/owner/equipment/new",
+    to: "/owner/equipment?action=create",
     icon: Plus,
     label: "Add",
     isCenter: true,

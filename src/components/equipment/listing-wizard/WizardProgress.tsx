@@ -18,12 +18,14 @@ export default function WizardProgress({
       {/* Desktop Progress */}
       <div className="hidden sm:flex items-center justify-between">
         {WIZARD_STEPS.map((step, index) => {
-          const isCompleted = completedSteps.includes(step.id) || step.id < currentStep;
+          const isCompleted =
+            completedSteps.includes(step.id) || step.id < currentStep;
           const isCurrent = step.id === currentStep;
-          const isClickable = onStepClick && (isCompleted || step.id <= currentStep);
+          const isClickable =
+            onStepClick && (isCompleted || step.id <= currentStep);
 
           return (
-            <div key={step.id} className="flex items-center flex-1">
+            <div key={step.id} className="flex items-start flex-1">
               {/* Step Circle + Label */}
               <button
                 type="button"
@@ -66,7 +68,7 @@ export default function WizardProgress({
 
               {/* Connector Line */}
               {index < TOTAL_STEPS - 1 && (
-                <div className="flex-1 mx-3 h-0.5 bg-muted-foreground/20 relative">
+                <div className="flex-1 mx-3 h-0.5 bg-muted-foreground/20 relative mt-5">
                   <div
                     className={cn(
                       "absolute inset-y-0 left-0 bg-primary transition-all duration-500",
@@ -87,7 +89,9 @@ export default function WizardProgress({
           <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-500 ease-out"
-              style={{ width: `${((currentStep - 1) / (TOTAL_STEPS - 1)) * 100}%` }}
+              style={{
+                width: `${((currentStep - 1) / (TOTAL_STEPS - 1)) * 100}%`,
+              }}
             />
           </div>
           <span className="text-sm font-medium text-muted-foreground">
@@ -98,7 +102,9 @@ export default function WizardProgress({
         {/* Current Step Label */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-sm font-semibold text-primary-foreground">{currentStep}</span>
+            <span className="text-sm font-semibold text-primary-foreground">
+              {currentStep}
+            </span>
           </div>
           <span className="text-base font-semibold text-foreground">
             {WIZARD_STEPS[currentStep - 1]?.name}

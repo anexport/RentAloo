@@ -90,7 +90,7 @@
     "tabs": {
       "overview": "Overview",
       "equipment": "Equipment Management",
-      "bookings": "Booking Requests",
+      "bookings": "Active Bookings",
       "messages": "Messages",
       "reviews": "Reviews",
       "payments": "Payments & Escrow"
@@ -123,7 +123,7 @@
       }
     },
     "bookings": {
-      "section_title": "Booking Requests",
+      "section_title": "Active Bookings",
       "section_description": "Manage rental requests for your equipment",
       "loading": "Loading booking requests...",
       "empty_state": {

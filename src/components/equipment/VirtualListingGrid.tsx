@@ -17,6 +17,8 @@ import {
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
+const SELECTED_STYLES = "bg-muted/50 ring-2 ring-primary rounded-lg";
+
 export interface VirtualListingGridHandle {
   /** Scroll to a specific listing by ID. Returns true if successful, false if item not found. */
   scrollToItem: (id: string, behavior?: ScrollBehavior) => boolean;
@@ -46,6 +48,12 @@ type Props = {
   layout?: "grid" | "list";
   /** Custom class name for the container */
   className?: string;
+  /** Optional custom renderer for list items */
+  renderItem?: (props: {
+    listing: Listing;
+    isSelected: boolean;
+    onOpen?: (listing: Listing) => void;
+  }) => React.ReactNode;
 };
 
 /**
@@ -72,6 +80,7 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
       onItemRef,
       layout = "grid",
       className,
+      renderItem,
     },
     ref
   ) => {
@@ -139,7 +148,9 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
 
     const visibleListings = listings.slice(0, visibleCount);
     const hasMore = visibleCount < listings.length;
-    const preloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const preloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
     // Preload primary images for the next batch of listings (debounced)
     useEffect(() => {
@@ -191,7 +202,7 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
     // Clean up stale callbacks when listings change
     useEffect(() => {
       const currentIds = new Set(listings.map((l) => l.id));
-      
+
       // Remove callbacks for IDs that are no longer in listings
       for (const id of itemRefCallbacks.current.keys()) {
         if (!currentIds.has(id)) {
@@ -256,12 +267,20 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
                 ref={getItemRef(listing.id)}
                 role="option"
                 aria-selected={isSelected}
+                className={cn(
+                  "transition-all duration-200",
+                  isSelected && SELECTED_STYLES
+                )}
               >
-                <ListingCard
-                  listing={listing}
-                  onOpen={onOpenListing}
-                  className={cn(isSelected && "ring-2 ring-primary")}
-                />
+                {renderItem ? (
+                  renderItem({
+                    listing,
+                    isSelected,
+                    onOpen: onOpenListing,
+                  })
+                ) : (
+                  <ListingCard listing={listing} onOpen={onOpenListing} />
+                )}
               </div>
             );
           })}

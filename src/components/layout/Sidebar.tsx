@@ -47,7 +47,13 @@ interface NavSection {
 }
 
 // Trust score ring component
-const TrustScoreRing = ({ score, size = 40 }: { score: number; size?: number }) => {
+const TrustScoreRing = ({
+  score,
+  size = 40,
+}: {
+  score: number;
+  size?: number;
+}) => {
   const circumference = 2 * Math.PI * 15; // radius = 15
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -88,9 +94,11 @@ const TrustScoreRing = ({ score, size = 40 }: { score: number; size?: number }) 
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           className="animate-trust-ring transition-all duration-500"
-          style={{
-            "--trust-offset": strokeDashoffset
-          } as React.CSSProperties}
+          style={
+            {
+              "--trust-offset": strokeDashoffset,
+            } as React.CSSProperties
+          }
         />
       </svg>
       {/* Center content */}
@@ -299,22 +307,48 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     const renterSections: NavSection[] = [
       {
         items: [
-          { label: t("sidebar.dashboard"), icon: Home, href: "/renter/dashboard" },
-          { label: t("sidebar.browse_equipment"), icon: Search, href: "/equipment" },
+          {
+            label: t("sidebar.dashboard"),
+            icon: Home,
+            href: "/renter/dashboard",
+          },
+          {
+            label: t("sidebar.browse_equipment"),
+            icon: Search,
+            href: "/equipment",
+          },
           { label: t("sidebar.watchlist"), icon: Heart, href: "/renter/saved" },
         ],
       },
       {
         title: t("sidebar.activity"),
         items: [
-          { label: t("sidebar.my_bookings"), icon: Calendar, href: "/renter/bookings" },
-          { label: t("sidebar.messages"), icon: MessageSquare, href: "/messages", ...(unreadMessages > 0 && { badge: unreadMessages }) },
-          { label: t("sidebar.payments"), icon: CreditCard, href: "/renter/payments" },
+          {
+            label: t("sidebar.my_bookings"),
+            icon: Calendar,
+            href: "/renter/bookings",
+          },
+          {
+            label: t("sidebar.messages"),
+            icon: MessageSquare,
+            href: "/messages",
+            ...(unreadMessages > 0 && { badge: unreadMessages }),
+          },
+          {
+            label: t("sidebar.payments"),
+            icon: CreditCard,
+            href: "/renter/payments",
+          },
         ],
       },
       {
         items: [
-          { label: t("sidebar.support"), icon: LifeBuoy, href: "/support", ...(openSupportTickets > 0 && { badge: openSupportTickets }) },
+          {
+            label: t("sidebar.support"),
+            icon: LifeBuoy,
+            href: "/support",
+            ...(openSupportTickets > 0 && { badge: openSupportTickets }),
+          },
           { label: t("sidebar.settings"), icon: User, href: "/settings" },
         ],
       },
@@ -323,32 +357,67 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     const ownerSections: NavSection[] = [
       {
         items: [
-          { label: t("sidebar.dashboard"), icon: Home, href: "/owner/dashboard" },
-          { label: t("sidebar.my_equipment_listings"), icon: Package, href: "/owner/equipment" },
+          {
+            label: t("sidebar.dashboard"),
+            icon: Home,
+            href: "/owner/dashboard",
+          },
+          {
+            label: t("sidebar.my_equipment_listings"),
+            icon: Package,
+            href: "/owner/equipment",
+          },
         ],
       },
       {
         title: t("sidebar.activity"),
         items: [
-          { label: t("sidebar.my_bookings"), icon: ListChecks, href: "/owner/bookings", ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }) },
-          { label: t("sidebar.messages"), icon: MessageSquare, href: "/messages", ...(unreadMessages > 0 && { badge: unreadMessages }) },
+          {
+            label: t("sidebar.active_bookings"),
+            icon: ListChecks,
+            href: "/owner/bookings",
+            ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
+          },
+          {
+            label: t("sidebar.messages"),
+            icon: MessageSquare,
+            href: "/messages",
+            ...(unreadMessages > 0 && { badge: unreadMessages }),
+          },
           { label: t("sidebar.reviews"), icon: Star, href: "/owner/reviews" },
-          { label: t("sidebar.payouts"), icon: PiggyBank, href: "/owner/payments", ...(pendingPayouts > 0 && { badge: pendingPayouts }) },
+          {
+            label: t("sidebar.payouts"),
+            icon: PiggyBank,
+            href: "/owner/payments",
+            ...(pendingPayouts > 0 && { badge: pendingPayouts }),
+          },
         ],
       },
       {
         items: [
-          { label: t("sidebar.support"), icon: LifeBuoy, href: "/support", ...(openSupportTickets > 0 && { badge: openSupportTickets }) },
+          {
+            label: t("sidebar.support"),
+            icon: LifeBuoy,
+            href: "/support",
+            ...(openSupportTickets > 0 && { badge: openSupportTickets }),
+          },
           { label: t("sidebar.settings"), icon: User, href: "/settings" },
         ],
       },
     ];
 
     return activeMode === "owner" ? ownerSections : renterSections;
-  }, [activeMode, t, unreadMessages, openSupportTickets, activeOwnerBookings, pendingPayouts]);
+  }, [
+    activeMode,
+    t,
+    unreadMessages,
+    openSupportTickets,
+    activeOwnerBookings,
+    pendingPayouts,
+  ]);
 
   // Flatten items for animation indexing
-  const allItems = navSections.flatMap(s => s.items);
+  const allItems = navSections.flatMap((s) => s.items);
 
   return (
     <aside
@@ -367,10 +436,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
 
       <div className="relative flex h-full flex-col">
         {/* Header */}
-        <div className={cn(
-          "flex h-16 items-center border-b border-sidebar-border/40",
-          collapsed ? "justify-center px-2" : "justify-between px-4"
-        )}>
+        <div
+          className={cn(
+            "flex h-16 items-center border-b border-sidebar-border/40",
+            collapsed ? "justify-center px-2" : "justify-between px-4"
+          )}
+        >
           <Link
             to="/"
             className={cn(
@@ -380,13 +451,15 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             )}
           >
             {/* Logo with gradient and glow */}
-            <div className={cn(
-              "relative flex items-center justify-center w-9 h-9 rounded-xl",
-              "bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80",
-              "shadow-lg shadow-sidebar-primary/20",
-              "animate-logo-glow transition-all duration-300",
-              "group-hover:shadow-sidebar-primary/40 group-hover:shadow-xl"
-            )}>
+            <div
+              className={cn(
+                "relative flex items-center justify-center w-9 h-9 rounded-xl",
+                "bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80",
+                "shadow-lg shadow-sidebar-primary/20",
+                "animate-logo-glow transition-all duration-300",
+                "group-hover:shadow-sidebar-primary/40 group-hover:shadow-xl"
+              )}
+            >
               <Mountain className="h-[18px] w-[18px] text-sidebar-primary-foreground" />
               <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-sidebar-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
@@ -443,7 +516,9 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.href);
-                  const itemIndex = allItems.findIndex(i => i.href === item.href);
+                  const itemIndex = allItems.findIndex(
+                    (i) => i.href === item.href
+                  );
 
                   return (
                     <Link
@@ -480,24 +555,30 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                       )}
 
                       {/* Icon with hover animation */}
-                      <div className={cn(
-                        "relative shrink-0",
-                        collapsed && "relative"
-                      )}>
-                        <Icon className={cn(
-                          "h-[18px] w-[18px] transition-transform duration-200",
-                          "group-hover:scale-110",
-                          active && "text-sidebar-primary"
-                        )} />
+                      <div
+                        className={cn(
+                          "relative shrink-0",
+                          collapsed && "relative"
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-[18px] w-[18px] transition-transform duration-200",
+                            "group-hover:scale-110",
+                            active && "text-sidebar-primary"
+                          )}
+                        />
 
                         {/* Badge for collapsed state */}
                         {collapsed && item.badge && item.badge > 0 && (
-                          <span className={cn(
-                            "absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center",
-                            "rounded-full bg-destructive px-1 text-[9px] font-semibold text-white",
-                            "shadow-lg shadow-destructive/30",
-                            "animate-badge-pulse"
-                          )}>
+                          <span
+                            className={cn(
+                              "absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center",
+                              "rounded-full bg-destructive px-1 text-[9px] font-semibold text-white",
+                              "shadow-lg shadow-destructive/30",
+                              "animate-badge-pulse"
+                            )}
+                          >
                             {item.badge > 9 ? "9+" : item.badge}
                           </span>
                         )}
@@ -508,12 +589,14 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                         <>
                           <span className="flex-1 truncate">{item.label}</span>
                           {item.badge && item.badge > 0 && (
-                            <span className={cn(
-                              "flex h-5 min-w-5 items-center justify-center",
-                              "rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-white",
-                              "shadow-md shadow-destructive/25",
-                              "animate-badge-pulse"
-                            )}>
+                            <span
+                              className={cn(
+                                "flex h-5 min-w-5 items-center justify-center",
+                                "rounded-full bg-destructive px-1.5 text-[10px] font-semibold text-white",
+                                "shadow-md shadow-destructive/25",
+                                "animate-badge-pulse"
+                              )}
+                            >
                               {item.badge > 99 ? "99+" : item.badge}
                             </span>
                           )}
@@ -528,10 +611,12 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
         </nav>
 
         {/* Bottom section */}
-        <div className={cn(
-          "mt-auto border-t border-sidebar-border/40 p-3",
-          "bg-gradient-to-t from-sidebar-accent/30 to-transparent"
-        )}>
+        <div
+          className={cn(
+            "mt-auto border-t border-sidebar-border/40 p-3",
+            "bg-gradient-to-t from-sidebar-accent/30 to-transparent"
+          )}
+        >
           {/* Collapsed expand button */}
           {collapsed && (
             <Button
@@ -571,21 +656,38 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
                   <span className="text-xs font-medium text-sidebar-foreground/60">
                     {t("trustScore.label", { defaultValue: "Trust Score" })}
                   </span>
-                  <span className={cn(
-                    "text-sm font-semibold tabular-nums",
-                    trustScore >= 80 && "text-[color:var(--trust-excellent)]",
-                    trustScore >= 60 && trustScore < 80 && "text-[color:var(--trust-good)]",
-                    trustScore >= 40 && trustScore < 60 && "text-[color:var(--trust-fair)]",
-                    trustScore < 40 && "text-[color:var(--trust-low)]"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold tabular-nums",
+                      trustScore >= 80 && "text-[color:var(--trust-excellent)]",
+                      trustScore >= 60 &&
+                        trustScore < 80 &&
+                        "text-[color:var(--trust-good)]",
+                      trustScore >= 40 &&
+                        trustScore < 60 &&
+                        "text-[color:var(--trust-fair)]",
+                      trustScore < 40 && "text-[color:var(--trust-low)]"
+                    )}
+                  >
                     {trustScore}%
                   </span>
                 </div>
                 <p className="text-[10px] text-sidebar-foreground/40 mt-0.5 truncate">
-                  {trustScore >= 80 ? t("trustScore.status.excellent", { defaultValue: "Excellent standing" }) :
-                   trustScore >= 60 ? t("trustScore.status.good", { defaultValue: "Good standing" }) :
-                   trustScore >= 40 ? t("trustScore.status.building", { defaultValue: "Building trust" }) : 
-                   t("trustScore.status.getVerified", { defaultValue: "Get verified" })}
+                  {trustScore >= 80
+                    ? t("trustScore.status.excellent", {
+                        defaultValue: "Excellent standing",
+                      })
+                    : trustScore >= 60
+                    ? t("trustScore.status.good", {
+                        defaultValue: "Good standing",
+                      })
+                    : trustScore >= 40
+                    ? t("trustScore.status.building", {
+                        defaultValue: "Building trust",
+                      })
+                    : t("trustScore.status.getVerified", {
+                        defaultValue: "Get verified",
+                      })}
                 </p>
               </div>
 

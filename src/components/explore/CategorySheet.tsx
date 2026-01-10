@@ -53,7 +53,10 @@ const CategorySheet = ({
     if (!open) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (overlayRef.current && !overlayRef.current.contains(e.target as Node)) {
+      if (
+        overlayRef.current &&
+        !overlayRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -168,7 +171,11 @@ const CategorySheet = ({
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Filter by ${name}${typeof count === "number" ? `, ${t("category_bar.items_aria", { count })}` : ""}`}
+      aria-label={`Filter by ${name}${
+        typeof count === "number"
+          ? `, ${t("category_bar.items_aria", { count })}`
+          : ""
+      }`}
       aria-pressed={isActive}
       className={cn(
         "group relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-200 whitespace-nowrap text-xs font-medium",
@@ -198,8 +205,8 @@ const CategorySheet = ({
           {loading
             ? "..."
             : count! > MAX_DISPLAY_COUNT
-              ? `${MAX_DISPLAY_COUNT}+`
-              : count}
+            ? `${MAX_DISPLAY_COUNT}+`
+            : count}
         </Badge>
       )}
     </button>
@@ -242,7 +249,7 @@ const CategorySheet = ({
           ref={overlayRef}
           className={cn(
             "fixed left-1/2 -translate-x-1/2 z-50",
-            "top-20",
+            "top-32",
             "w-[calc(100vw-24px)] max-w-[500px]",
             "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
           )}
@@ -265,9 +272,9 @@ const CategorySheet = ({
             </button>
 
             {/* Scrollable category pills */}
-            <div 
+            <div
               className="overflow-x-auto overflow-y-hidden scrollbar-hide overscroll-x-contain cursor-grab active:cursor-grabbing"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              style={{ WebkitOverflowScrolling: "touch" }}
             >
               <div className="flex items-center gap-2 py-0.5 px-0.5 w-max">
                 {/* All Categories */}
