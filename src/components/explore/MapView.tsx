@@ -153,41 +153,43 @@ const MapView = ({
           ).toFixed(1)
         : null;
 
-    // Mobile-optimized info window with larger touch targets (min 44px)
+    // Google Maps iOS-style info window: larger radius, cleaner design
     return `
-      <div style="min-width: 260px; max-width: 300px; font-family: system-ui, -apple-system, sans-serif; padding: 4px;">
+      <div style="min-width: 280px; max-width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
         ${
           photoUrl
             ? `<img src="${escapeHtml(
                 photoUrl
-              )}" alt="${safeTitle}" style="width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 10px;" />`
+              )}" alt="${safeTitle}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 16px 16px 0 0; display: block;" />`
             : ""
         }
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
-          <div style="font-weight: 600; font-size: 15px; color: #111; line-height: 1.3; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeTitle}</div>
-          ${
-            avgRating
-              ? `<div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0; background: #fef3c7; padding: 2px 6px; border-radius: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span style="font-size: 12px; font-weight: 600; color: #92400e;">${avgRating}</span>
-          </div>`
-              : ""
-          }
+        <div style="padding: 14px 16px 16px;">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px;">
+            <div style="font-weight: 600; font-size: 16px; color: #1f2937; line-height: 1.35; flex: 1; min-width: 0;">${safeTitle}</div>
+            ${
+              avgRating
+                ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; background: #fef9c3; padding: 4px 8px; border-radius: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#eab308" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span style="font-size: 13px; font-weight: 600; color: #854d0e;">${avgRating}</span>
+            </div>`
+                : ""
+            }
+          </div>
+          <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px; display: flex; align-items: center; gap: 5px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeLocation}</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="font-size: 20px; font-weight: 700; color: #111827;">$${
+              listing.daily_rate
+            }<span style="font-size: 13px; font-weight: 400; color: #6b7280;">/day</span></div>
+            <button data-listing-id="${
+              listing.id
+            }" style="flex-shrink: 0; min-height: 44px; padding: 10px 20px; background: #111827; color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background 0.15s;">
+              View
+            </button>
+          </div>
         </div>
-        <div style="font-size: 13px; color: #666; margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          ${safeLocation}
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-          <div style="font-size: 18px; font-weight: 700; color: #111;">$${
-            listing.daily_rate
-          }<span style="font-size: 13px; font-weight: 400; color: #666;">/day</span></div>
-        </div>
-        <button data-listing-id="${
-          listing.id
-        }" style="width: 100%; min-height: 48px; padding: 12px 16px; background: #111827; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
-          View Details
-        </button>
       </div>
     `;
   }, []);

@@ -6,18 +6,17 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   Search,
   MapPin,
   ArrowUpDown,
   X,
-  Layers,
+  Navigation,
   Crosshair,
   Loader2,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import type { FilterValues } from "@/components/explore/FiltersSheet";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
@@ -74,9 +73,14 @@ type Props = {
   resultCount: number;
 };
 
-// Glassmorphism base classes for consistent styling
-const GLASS_BASE = "bg-background/90 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-xl";
-const GLASS_INTERACTIVE = "transition-all duration-200 active:scale-[0.98] hover:bg-background/95";
+// Glassmorphism base classes - matching filter/category pill styling
+const GLASS_BASE =
+  "bg-background/90 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-sm";
+const GLASS_INTERACTIVE = "transition-all duration-150 active:scale-[0.98]";
+
+// FAB styling - uses theme background
+const FAB_STYLE =
+  "bg-background border border-border shadow-[0_2px_6px_rgba(0,0,0,0.1),0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.15),0_8px_24px_rgba(0,0,0,0.1)]";
 
 const MobileMapOverlayControls = ({
   location,
@@ -92,8 +96,6 @@ const MobileMapOverlayControls = ({
 }: Props) => {
   const { t } = useTranslation("equipment");
   const { toast } = useToast();
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [recentLocations, setRecentLocations] = useState<string[]>([]);
@@ -111,15 +113,6 @@ const MobileMapOverlayControls = ({
     setRecentLocations(getRecentLocations());
   }, []);
 
-  // Handle animation states for smoother transitions
-  useEffect(() => {
-    if (!controlsVisible) {
-      setIsAnimating(true);
-      const timer = setTimeout(() => setIsAnimating(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [controlsVisible]);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -135,7 +128,8 @@ const MobileMapOverlayControls = ({
 
     if (isInputFocused) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isInputFocused]);
 
@@ -172,7 +166,9 @@ const MobileMapOverlayControls = ({
 
       toast({
         title: t("search_bar.location_set", { defaultValue: "Location set" }),
-        description: t("search_bar.using_current_location", { defaultValue: "Using your current location." }),
+        description: t("search_bar.using_current_location", {
+          defaultValue: "Using your current location.",
+        }),
       });
     } catch (error) {
       const geolocationError = error as
@@ -195,13 +191,20 @@ const MobileMapOverlayControls = ({
       switch (errorCode) {
         case "denied":
           toast({
-            title: t("search_bar.location_denied", { defaultValue: "Location permission denied" }),
+            title: t("search_bar.location_denied", {
+              defaultValue: "Location permission denied",
+            }),
             description:
               errorMessage ||
-              t("search_bar.location_denied_description", { defaultValue: "Allow location access in your browser settings." }),
+              t("search_bar.location_denied_description", {
+                defaultValue: "Allow location access in your browser settings.",
+              }),
             variant: "destructive",
             action: (
-              <ToastAction altText="Try again" onClick={() => void handleUseCurrentLocation()}>
+              <ToastAction
+                altText="Try again"
+                onClick={() => void handleUseCurrentLocation()}
+              >
                 {t("common.try_again", { defaultValue: "Try Again" })}
               </ToastAction>
             ),
@@ -209,17 +212,23 @@ const MobileMapOverlayControls = ({
           break;
         case "timeout":
           toast({
-            title: t("search_bar.location_timeout", { defaultValue: "Location timeout" }),
+            title: t("search_bar.location_timeout", {
+              defaultValue: "Location timeout",
+            }),
             description:
               errorMessage ||
-              t("search_bar.location_timeout_description", { defaultValue: "Couldn't get your location. Try again." }),
+              t("search_bar.location_timeout_description", {
+                defaultValue: "Couldn't get your location. Try again.",
+              }),
             variant: "destructive",
           });
           break;
         case "insecure_origin": {
           const geoSupport = checkGeolocationSupport();
           toast({
-            title: t("search_bar.location_unavailable", { defaultValue: "Location unavailable" }),
+            title: t("search_bar.location_unavailable", {
+              defaultValue: "Location unavailable",
+            }),
             description: `Location requires HTTPS. Current: ${geoSupport.protocol}//${geoSupport.hostname}`,
             variant: "destructive",
           });
@@ -227,10 +236,14 @@ const MobileMapOverlayControls = ({
         }
         default:
           toast({
-            title: t("search_bar.location_error", { defaultValue: "Location error" }),
+            title: t("search_bar.location_error", {
+              defaultValue: "Location error",
+            }),
             description:
               errorMessage ||
-              t("search_bar.location_error_description", { defaultValue: "Try entering a location manually." }),
+              t("search_bar.location_error_description", {
+                defaultValue: "Try entering a location manually.",
+              }),
             variant: "destructive",
           });
       }
@@ -239,189 +252,229 @@ const MobileMapOverlayControls = ({
     }
   };
 
-  const showDropdown = isInputFocused && (
-    addressAutocomplete.query.trim().length >= 2 ||
-    recentLocations.length > 0
-  );
-
   return (
     <>
-      {/* Main controls container - positioned at top with safe area */}
+      {/* Search bar and controls - fixed at top like Google Maps */}
       <div
-        className={cn(
-          "absolute top-0 left-0 right-0 z-20",
-          "transition-all duration-300 ease-out",
-          controlsVisible
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-full pointer-events-none"
-        )}
-        style={{ 
+        className="absolute top-0 left-0 right-0 z-20"
+        style={{
           paddingTop: "max(env(safe-area-inset-top), 12px)",
           paddingLeft: "env(safe-area-inset-left)",
           paddingRight: "env(safe-area-inset-right)",
         }}
       >
-        {/* Top bar: Location input + Filter/Sort */}
-        <div className="px-3 pt-2 pb-2">
+        {/* Google Maps style search bar - compact pill */}
+        <div className="px-4 pt-2 pb-3">
           <div className="flex items-center gap-2">
-            {/* Location input with autocomplete - glassmorphism style */}
+            {/* Main search input - Google Maps style */}
             <div className="flex-1 relative">
-              <div
+              <button
+                type="button"
+                onClick={() => {
+                  setIsInputFocused(true);
+                  addressAutocomplete.setQuery(location || "");
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
                 className={cn(
-                  "flex items-center gap-3 min-h-[52px] px-4 py-2 rounded-3xl",
+                  "w-full flex items-center gap-3 h-12 px-4 rounded-full text-left",
                   GLASS_BASE,
-                  "shadow-[0_4px_20px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.1)]",
-                  isInputFocused && "ring-2 ring-primary/50"
+                  GLASS_INTERACTIVE,
+                  !isInputFocused && "cursor-pointer"
                 )}
               >
-                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  {addressAutocomplete.loading ? (
-                    <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4 text-primary" />
-                  )}
-                </div>
+                <Search className="h-5 w-5 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={isInputFocused ? addressAutocomplete.query : (location || "")}
-                    onChange={(e) => addressAutocomplete.setQuery(e.target.value)}
-                    onFocus={() => {
-                      setIsInputFocused(true);
-                      addressAutocomplete.setQuery(location || "");
-                    }}
-                    placeholder={t("search_bar.where_placeholder", { defaultValue: "Where to?" })}
-                    className="w-full bg-transparent border-none outline-none text-sm font-semibold text-foreground placeholder:text-muted-foreground"
-                    aria-label={t("search_bar.search_location_aria", { defaultValue: "Search location" })}
-                    autoComplete="off"
-                  />
-                  {!isInputFocused && location && (
-                    <span className="text-xs text-muted-foreground truncate block">
-                      {t("search_bar.search_equipment_hint", { defaultValue: "Search equipment..." })}
+                  {location ? (
+                    <>
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {location}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t("search_bar.search_equipment_hint", {
+                          defaultValue: "Search equipment",
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {t("search_bar.where_placeholder", {
+                        defaultValue: "Search here",
+                      })}
                     </span>
                   )}
                 </div>
-                {location && !isInputFocused && (
+                {location && (
                   <button
                     type="button"
-                    onClick={handleClearLocation}
-                    className="h-6 w-6 rounded-full bg-muted/50 flex items-center justify-center shrink-0 hover:bg-muted transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearLocation();
+                    }}
+                    className="h-6 w-6 rounded-full bg-muted/60 flex items-center justify-center shrink-0 hover:bg-muted"
                     aria-label={t("common.clear", { defaultValue: "Clear" })}
                   >
                     <X className="h-3 w-3" />
                   </button>
                 )}
-              </div>
+              </button>
 
-              {/* Autocomplete dropdown */}
-              {showDropdown && (
+              {/* Expanded search input */}
+              {isInputFocused && (
                 <div
-                  ref={dropdownRef}
                   className={cn(
-                    "absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50",
-                    GLASS_BASE,
-                    "shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
-                    "max-h-[60vh] overflow-y-auto"
+                    "absolute inset-x-0 top-0 z-50",
+                    "rounded-3xl overflow-hidden",
+                    GLASS_BASE
                   )}
                 >
-                  {/* Use current location button */}
-                  <button
-                    type="button"
-                    onClick={() => void handleUseCurrentLocation()}
-                    disabled={isLocating}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50"
+                  <div className="flex items-center gap-3 h-12 px-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsInputFocused(false);
+                        addressAutocomplete.setQuery("");
+                      }}
+                      className="h-8 w-8 -ml-1 rounded-full flex items-center justify-center hover:bg-muted"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={addressAutocomplete.query}
+                      onChange={(e) =>
+                        addressAutocomplete.setQuery(e.target.value)
+                      }
+                      placeholder={t("search_bar.where_placeholder", {
+                        defaultValue: "Search here",
+                      })}
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+                      autoComplete="off"
+                    />
+                    {addressAutocomplete.loading && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+
+                  {/* Dropdown content */}
+                  <div
+                    ref={dropdownRef}
+                    className="max-h-[50vh] overflow-y-auto border-t border-border/30"
                   >
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      {isLocating ? (
-                        <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                      ) : (
-                        <Crosshair className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      {isLocating
-                        ? t("search_bar.detecting_location", { defaultValue: "Detecting location..." })
-                        : t("search_bar.use_current_location", { defaultValue: "Use current location" })}
-                    </span>
-                  </button>
-
-                  {/* Recent locations - shown when query is empty */}
-                  {addressAutocomplete.query.trim().length < 2 && recentLocations.length > 0 && (
-                    <div className="py-2">
-                      <div className="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        {t("search_bar.recent", { defaultValue: "Recent" })}
+                    {/* Use current location */}
+                    <button
+                      type="button"
+                      onClick={() => void handleUseCurrentLocation()}
+                      disabled={isLocating}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        {isLocating ? (
+                          <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                        ) : (
+                          <Navigation className="h-5 w-5 text-primary" />
+                        )}
                       </div>
-                      {recentLocations.map((loc, idx) => (
-                        <button
-                          key={`recent-${idx}`}
-                          type="button"
-                          onClick={() => handleLocationSelect(loc)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
-                        >
-                          <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <span className="text-sm text-foreground truncate">{loc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                      <div className="text-left">
+                        <div className="text-sm font-medium">
+                          {isLocating
+                            ? t("search_bar.detecting_location", {
+                                defaultValue: "Detecting...",
+                              })
+                            : t("search_bar.use_current_location", {
+                                defaultValue: "Your location",
+                              })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {t("search_bar.use_gps", { defaultValue: "Use GPS" })}
+                        </div>
+                      </div>
+                    </button>
 
-                  {/* Autocomplete suggestions */}
-                  {addressAutocomplete.query.trim().length >= 2 && (
-                    <div className="py-2">
-                      {addressAutocomplete.suggestions.length > 0 ? (
+                    {/* Recent locations */}
+                    {addressAutocomplete.query.trim().length < 2 &&
+                      recentLocations.length > 0 && (
                         <>
-                          <div className="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            {t("search_bar.suggestions", { defaultValue: "Suggestions" })}
+                          <div className="px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                            {t("search_bar.recent", { defaultValue: "Recent" })}
                           </div>
-                          {addressAutocomplete.suggestions.map((suggestion, idx) => (
+                          {recentLocations.map((loc, idx) => (
                             <button
-                              key={suggestion.id}
+                              key={`recent-${idx}`}
                               type="button"
-                              onClick={() => handleLocationSelect(suggestion.label)}
+                              onClick={() => handleLocationSelect(loc)}
                               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                             >
-                              <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                                <Clock className="h-5 w-5 text-muted-foreground" />
                               </div>
                               <span className="text-sm text-foreground truncate">
-                                {highlightMatchingText(suggestion.label, addressAutocomplete.query)}
+                                {loc}
                               </span>
                             </button>
                           ))}
                         </>
-                      ) : !addressAutocomplete.loading && (
-                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                          {addressAutocomplete.error
-                            ? t("search_bar.error_loading", { defaultValue: "Error loading suggestions" })
-                            : t("search_bar.no_results", { defaultValue: "No locations found" })}
-                        </div>
                       )}
-                    </div>
-                  )}
+
+                    {/* Autocomplete suggestions */}
+                    {addressAutocomplete.query.trim().length >= 2 && (
+                      <>
+                        {addressAutocomplete.suggestions.length > 0
+                          ? addressAutocomplete.suggestions.map(
+                              (suggestion) => (
+                                <button
+                                  key={suggestion.id}
+                                  type="button"
+                                  onClick={() =>
+                                    handleLocationSelect(suggestion.label)
+                                  }
+                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
+                                >
+                                  <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                  <span className="text-sm text-foreground truncate">
+                                    {highlightMatchingText(
+                                      suggestion.label,
+                                      addressAutocomplete.query
+                                    )}
+                                  </span>
+                                </button>
+                              )
+                            )
+                          : !addressAutocomplete.loading && (
+                              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                                {addressAutocomplete.error
+                                  ? t("search_bar.error_loading", {
+                                      defaultValue: "Error loading",
+                                    })
+                                  : t("search_bar.no_results", {
+                                      defaultValue: "No results",
+                                    })}
+                              </div>
+                            )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Category selector - compact chip */}
+            {/* Category selector pill */}
             <CategorySheet
               activeCategoryId={categoryId}
               onCategoryChange={onCategoryChange}
             />
 
-            {/* Filter button - with glassmorphism wrapper */}
-            <div className={cn("rounded-full", GLASS_BASE, "p-0.5")}>
-              <FiltersSheet
-                value={filterValues}
-                onChange={onFilterChange}
-                resultCount={resultCount}
-                activeFilterCount={activeFilterCount}
-              />
-            </div>
+            {/* Filter button */}
+            <FiltersSheet
+              value={filterValues}
+              onChange={onFilterChange}
+              resultCount={resultCount}
+              activeFilterCount={activeFilterCount}
+            />
 
-            {/* Sort dropdown - compact with glassmorphism */}
+            {/* Sort button */}
             <Select
               value={sortBy}
               onValueChange={(value) => onSortChange(value as SortOption)}
@@ -429,8 +482,7 @@ const MobileMapOverlayControls = ({
               <SelectTrigger
                 className={cn(
                   "h-10 w-10 p-0 rounded-full [&>svg:last-child]:hidden justify-center",
-                  GLASS_BASE,
-                  "hover:bg-background/95"
+                  GLASS_BASE
                 )}
                 aria-label={t("filters.sort_by")}
               >
@@ -458,74 +510,41 @@ const MobileMapOverlayControls = ({
         </div>
       </div>
 
-      {/* Toggle FAB - always visible, positioned above bottom sheet */}
+      {/* Location FAB - Google Maps style, positioned above bottom sheet */}
       <Button
-        variant={controlsVisible ? "secondary" : "default"}
+        variant="secondary"
         size="icon"
-        onClick={() => setControlsVisible((prev) => !prev)}
+        onClick={() => void handleUseCurrentLocation()}
+        disabled={isLocating}
         className={cn(
-          "absolute z-30 h-14 w-14 rounded-full shadow-xl",
-          "transition-all duration-300 ease-out",
-          "right-4 bottom-[160px]", // Position above the bottom sheet peek height + safe margin
-          controlsVisible
-            ? cn(GLASS_BASE, "hover:bg-background/95")
-            : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25"
+          "absolute z-30 h-12 w-12 rounded-full",
+          "transition-all duration-200",
+          "right-4 bottom-[180px]",
+          FAB_STYLE
         )}
         style={{
           marginRight: "env(safe-area-inset-right)",
         }}
-        aria-label={
-          controlsVisible
-            ? t("common.hide_controls", { defaultValue: "Hide controls" })
-            : t("common.show_controls", { defaultValue: "Show controls" })
-        }
-        aria-expanded={controlsVisible}
+        aria-label={t("search_bar.use_current_location", {
+          defaultValue: "Use current location",
+        })}
       >
-        <div className={cn(
-          "transition-transform duration-300",
-          controlsVisible ? "rotate-0" : "rotate-180"
-        )}>
-          {controlsVisible ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Layers className="h-5 w-5" />
-          )}
-        </div>
+        {isLocating ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <Crosshair className="h-5 w-5 text-foreground" />
+        )}
       </Button>
 
-      {/* Results count badge - shown when controls are hidden */}
-      {!controlsVisible && !isAnimating && (
+      {/* Backdrop when search is focused */}
+      {isInputFocused && (
         <div
-          className="absolute z-20 top-0 left-0 right-0 flex justify-center animate-in fade-in-0 slide-in-from-top-4 duration-300"
-          style={{ 
-            paddingTop: "max(calc(env(safe-area-inset-top) + 8px), 20px)",
-            paddingLeft: "env(safe-area-inset-left)",
-            paddingRight: "env(safe-area-inset-right)",
+          className="fixed inset-0 z-10 bg-black/20 backdrop-blur-[2px]"
+          onClick={() => {
+            setIsInputFocused(false);
+            addressAutocomplete.setQuery("");
           }}
-        >
-          <button
-            type="button"
-            onClick={() => setControlsVisible(true)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-full",
-              GLASS_BASE,
-              GLASS_INTERACTIVE
-            )}
-          >
-            <Search className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold">
-              {t("browse.items_count", { count: resultCount })}
-            </span>
-            {activeFilterCount > 0 && (
-              <Badge 
-                variant="default" 
-                className="h-5 min-w-5 rounded-full text-xs px-1.5"
-              >
-                {activeFilterCount}
-              </Badge>
-            )}
-          </button>
-        </div>
+        />
       )}
     </>
   );

@@ -1254,9 +1254,9 @@ const FiltersSheet = ({
       type="button"
       onClick={() => setIsOpen(true)}
       aria-label={t("filters_sheet.title")}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 h-10 px-3 rounded-full text-xs font-medium bg-background/90 backdrop-blur-lg border border-white/20 dark:border-white/10 hover:bg-background/95 shadow-sm transition-colors whitespace-nowrap"
     >
-      <Filter className="h-3.5 w-3.5" />
+      <Filter className="h-4 w-4" />
       <span className="hidden sm:inline">{t("filters_sheet.title")}</span>
       {activeFilterCount > 0 && (
         <Badge

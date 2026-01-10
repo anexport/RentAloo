@@ -656,6 +656,62 @@ const ExplorePage = () => {
         {hasResults || isLoading || isError ? (
           <MobileListingsBottomSheet
             title={t("browse.items_count", { count: data?.length ?? 0 })}
+            peekContent={
+              // Horizontal peek carousel - compact cards for first 5 listings
+              sortedListings.slice(0, 5).map((listing) => (
+                <button
+                  key={listing.id}
+                  type="button"
+                  onClick={() => handleOpenListing(listing)}
+                  className={cn(
+                    "flex-shrink-0 w-[200px] rounded-xl overflow-hidden",
+                    "bg-card border border-border/50 shadow-sm",
+                    "text-left transition-all active:scale-[0.98]",
+                    selectedListingId === listing.id && "ring-2 ring-primary"
+                  )}
+                >
+                  {/* Image */}
+                  <div className="relative h-24 w-full bg-muted">
+                    {listing.photos?.[0]?.photo_url ? (
+                      <img
+                        src={listing.photos[0].photo_url}
+                        alt={listing.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
+                        No image
+                      </div>
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div className="p-2">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+                      {listing.reviews && listing.reviews.length > 0 && (
+                        <>
+                          <span className="text-foreground font-medium">
+                            {(
+                              listing.reviews.reduce(
+                                (sum, r) => sum + r.rating,
+                                0
+                              ) / listing.reviews.length
+                            ).toFixed(1)}
+                          </span>
+                          <span>★</span>
+                          <span>({listing.reviews.length})</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-foreground line-clamp-1">
+                      {listing.title}
+                    </p>
+                    <p className="text-sm font-semibold text-primary">
+                      ${listing.daily_rate}/day
+                    </p>
+                  </div>
+                </button>
+              ))
+            }
           >
             {renderListingsList()}
           </MobileListingsBottomSheet>
