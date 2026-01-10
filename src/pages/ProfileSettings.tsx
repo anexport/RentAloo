@@ -2,17 +2,32 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useVerification } from "@/hooks/useVerification";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Building2, Save, CheckCircle, Settings } from "lucide-react";
+import {
+  Building2,
+  Save,
+  CheckCircle,
+  Settings,
+  Shield,
+  ChevronRight,
+  Phone,
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageShell from "@/components/layout/PageShell";
-import { ContentCard, ContentCardHeader, ContentCardContent } from "@/components/ui/ContentCard";
+import {
+  ContentCard,
+  ContentCardHeader,
+  ContentCardContent,
+} from "@/components/ui/ContentCard";
 import { CardSkeleton } from "@/components/ui/PageSkeleton";
 
 const profileSchema = z.object({
@@ -34,10 +49,14 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 const ProfileSettings = () => {
   const { user } = useAuth();
+  const { profile: verificationProfile, loading: verificationLoading } =
+    useVerification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [userRole, setUserRole] = useState<"renter" | "owner" | null>(null);
+  const [userRole, setUserRole] = useState<"renter" | "owner" | "admin" | null>(
+    null
+  );
   const [renterProfileId, setRenterProfileId] = useState<string | null>(null);
   const [ownerProfileId, setOwnerProfileId] = useState<string | null>(null);
 
@@ -202,7 +221,9 @@ const ProfileSettings = () => {
 
           <ContentCard>
             <ContentCardHeader
-              title={userRole === "owner" ? "Business Profile" : "Renter Profile"}
+              title={
+                userRole === "owner" ? "Business Profile" : "Renter Profile"
+              }
               description={
                 userRole === "owner"
                   ? "Update your business details"
@@ -210,110 +231,110 @@ const ProfileSettings = () => {
               }
             />
             <ContentCardContent>
-            <form
-              onSubmit={(e) => {
-                void handleSubmit(onSubmit)(e);
-              }}
-              className="space-y-6"
-            >
-              {userRole === "renter" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="experience_level">Experience Level</Label>
-                    <select
-                      id="experience_level"
-                      {...register("experience_level")}
-                      className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">Select your experience</option>
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                      <option value="professional">Professional</option>
-                    </select>
-                    {errors.experience_level && (
-                      <p className="text-sm text-red-600">
-                        {errors.experience_level.message}
-                      </p>
-                    )}
-                  </div>
+              <form
+                onSubmit={(e) => {
+                  void handleSubmit(onSubmit)(e);
+                }}
+                className="space-y-6"
+              >
+                {userRole === "renter" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="experience_level">Experience Level</Label>
+                      <select
+                        id="experience_level"
+                        {...register("experience_level")}
+                        className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Select your experience</option>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="professional">Professional</option>
+                      </select>
+                      {errors.experience_level && (
+                        <p className="text-sm text-red-600">
+                          {errors.experience_level.message}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="preferences">
-                      Preferences (JSON format)
-                    </Label>
-                    <Textarea
-                      id="preferences"
-                      {...register("preferences")}
-                      placeholder='{"favorite_sports": ["skiing", "hiking"], "budget": "moderate"}'
-                      rows={4}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Optional: Add your preferences in JSON format
-                    </p>
-                    {errors.preferences && (
-                      <p className="text-sm text-red-600">
-                        {errors.preferences.message}
+                    <div className="space-y-2">
+                      <Label htmlFor="preferences">
+                        Preferences (JSON format)
+                      </Label>
+                      <Textarea
+                        id="preferences"
+                        {...register("preferences")}
+                        placeholder='{"favorite_sports": ["skiing", "hiking"], "budget": "moderate"}'
+                        rows={4}
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Optional: Add your preferences in JSON format
                       </p>
-                    )}
-                  </div>
-                </>
-              )}
+                      {errors.preferences && (
+                        <p className="text-sm text-red-600">
+                          {errors.preferences.message}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
-              {userRole === "owner" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="business_name">Business Name</Label>
-                    <Input
-                      id="business_name"
-                      {...register("business_name")}
-                      placeholder="Your Business Name"
-                    />
-                    {errors.business_name && (
-                      <p className="text-sm text-red-600">
-                        {errors.business_name.message}
+                {userRole === "owner" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="business_name">Business Name</Label>
+                      <Input
+                        id="business_name"
+                        {...register("business_name")}
+                        placeholder="Your Business Name"
+                      />
+                      {errors.business_name && (
+                        <p className="text-sm text-red-600">
+                          {errors.business_name.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="business_description">
+                        Business Description
+                      </Label>
+                      <Textarea
+                        id="business_description"
+                        {...register("business_description")}
+                        placeholder="Tell renters about your business..."
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Describe your business and what makes your equipment
+                        special
                       </p>
-                    )}
-                  </div>
+                      {errors.business_description && (
+                        <p className="text-sm text-red-600">
+                          {errors.business_description.message}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="business_description">
-                      Business Description
-                    </Label>
-                    <Textarea
-                      id="business_description"
-                      {...register("business_description")}
-                      placeholder="Tell renters about your business..."
-                      rows={4}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Describe your business and what makes your equipment
-                      special
-                    </p>
-                    {errors.business_description && (
-                      <p className="text-sm text-red-600">
-                        {errors.business_description.message}
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.history.back()}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.history.back()}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </form>
             </ContentCardContent>
           </ContentCard>
 
@@ -329,6 +350,182 @@ const ProfileSettings = () => {
                 <span className="text-muted-foreground">Account Type:</span>
                 <span className="font-medium capitalize">{userRole}</span>
               </div>
+            </ContentCardContent>
+          </ContentCard>
+
+          {/* Verification Card */}
+          <ContentCard>
+            <ContentCardHeader
+              title="Verification Status"
+              description="Build trust with the community by verifying your identity"
+            />
+            <ContentCardContent className="space-y-4">
+              {verificationLoading ? (
+                <div className="animate-pulse space-y-3">
+                  <div className="h-2 bg-muted rounded w-full" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-16 bg-muted rounded-xl" />
+                    ))}
+                  </div>
+                </div>
+              ) : verificationProfile ? (
+                <>
+                  {/* Progress Bar - Based on 2 available steps */}
+                  {(() => {
+                    const completedSteps =
+                      (verificationProfile.identityVerified ? 1 : 0) +
+                      (verificationProfile.phoneVerified ? 1 : 0);
+                    const progress = Math.round((completedSteps / 2) * 100);
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">
+                            Verification Progress
+                          </span>
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {completedSteps}/2 complete
+                          </span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Verification Steps - Matching /verification page */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Identity Verification */}
+                    <div
+                      className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        verificationProfile.identityVerified
+                          ? "border-green-200/80 bg-gradient-to-br from-green-50/80 to-green-100/30 dark:border-green-800/50 dark:from-green-950/40 dark:to-green-900/20"
+                          : "border-border/50 bg-card/50"
+                      }`}
+                    >
+                      <div
+                        className={`p-2 rounded-lg ${
+                          verificationProfile.identityVerified
+                            ? "bg-green-100 dark:bg-green-900/50"
+                            : "bg-muted/80"
+                        }`}
+                      >
+                        <Shield
+                          className={`h-4 w-4 ${
+                            verificationProfile.identityVerified
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-muted-foreground"
+                          }`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Identity</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {verificationProfile.identityVerified ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
+                              <span className="text-[10px] font-medium text-green-600 dark:text-green-400">
+                                Verified
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">
+                              Not verified
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Phone Verification */}
+                    <div
+                      className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        verificationProfile.phoneVerified
+                          ? "border-green-200/80 bg-gradient-to-br from-green-50/80 to-green-100/30 dark:border-green-800/50 dark:from-green-950/40 dark:to-green-900/20"
+                          : "border-border/50 bg-card/50"
+                      }`}
+                    >
+                      <div
+                        className={`p-2 rounded-lg ${
+                          verificationProfile.phoneVerified
+                            ? "bg-green-100 dark:bg-green-900/50"
+                            : "bg-muted/80"
+                        }`}
+                      >
+                        <Phone
+                          className={`h-4 w-4 ${
+                            verificationProfile.phoneVerified
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-muted-foreground"
+                          }`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Phone</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {verificationProfile.phoneVerified ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
+                              <span className="text-[10px] font-medium text-green-600 dark:text-green-400">
+                                Verified
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">
+                              Not verified
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Trust Score Display */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">Trust Score</p>
+                        <p className="text-xs text-muted-foreground">
+                          Based on your verifications
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-bold text-primary tabular-nums">
+                      {verificationProfile.trustScore.overall}
+                    </span>
+                  </div>
+
+                  {/* Go to Verification CTA */}
+                  <Link to="/verification" className="block">
+                    <Button
+                      variant="outline"
+                      className="w-full group hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                    >
+                      <Shield className="h-4 w-4 mr-2 group-hover:text-primary" />
+                      <span className="flex-1 text-left group-hover:text-primary">
+                        {verificationProfile.identityVerified &&
+                        verificationProfile.phoneVerified
+                          ? "View Verification Details"
+                          : "Complete Your Verification"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-transform" />
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Get verified to unlock more features
+                  </p>
+                  <Link to="/verification">
+                    <Button variant="default" size="sm">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Start Verification
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </ContentCardContent>
           </ContentCard>
         </div>

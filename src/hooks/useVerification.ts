@@ -145,17 +145,39 @@ const uploadDocumentApi = async (params: {
     data: { publicUrl },
   } = supabase.storage.from("verification-documents").getPublicUrl(fileName);
 
-  // Update profile with verification status
-  const updateField = `${type}_verification_status`;
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      [updateField]: "pending",
-      [`${type}_verification_url`]: publicUrl,
-    })
-    .eq("id", userId);
+  // Check if a verification record already exists for this type
+  const { data: existingRecord } = await supabase
+    .from("user_verifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("verification_type", type)
+    .maybeSingle();
 
-  if (updateError) throw updateError;
+  if (existingRecord) {
+    // Update existing verification record
+    const { error: updateError } = await supabase
+      .from("user_verifications")
+      .update({
+        status: "pending",
+        document_url: publicUrl,
+        verified_at: null,
+      })
+      .eq("id", existingRecord.id);
+
+    if (updateError) throw updateError;
+  } else {
+    // Insert new verification record into user_verifications table
+    const { error: insertError } = await supabase
+      .from("user_verifications")
+      .insert({
+        user_id: userId,
+        verification_type: type,
+        status: "pending",
+        document_url: publicUrl,
+      });
+
+    if (insertError) throw insertError;
+  }
 };
 
 const requestPhoneVerificationApi = async (params: {
@@ -164,17 +186,42 @@ const requestPhoneVerificationApi = async (params: {
 }): Promise<void> => {
   const { userId, phoneNumber } = params;
 
-  // This would integrate with a phone verification service like Twilio
-  // For now, we'll just update the profile
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      phone: phoneNumber,
-      phone_verification_status: "pending",
-    })
-    .eq("id", userId);
+  // Note: Phone number is not stored in profiles table
+  // In a production app, this would be stored securely or used with Twilio
+  console.log(`Processing phone verification for: ${phoneNumber}`);
 
-  if (updateError) throw updateError;
+
+  // Check if a phone verification record already exists
+  const { data: existingRecord } = await supabase
+    .from("user_verifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("verification_type", "phone")
+    .maybeSingle();
+
+  if (existingRecord) {
+    // Update existing verification record
+    const { error: updateError } = await supabase
+      .from("user_verifications")
+      .update({
+        status: "pending",
+        verified_at: null,
+      })
+      .eq("id", existingRecord.id);
+
+    if (updateError) throw updateError;
+  } else {
+    // Insert new phone verification record
+    const { error: insertError } = await supabase
+      .from("user_verifications")
+      .insert({
+        user_id: userId,
+        verification_type: "phone",
+        status: "pending",
+      });
+
+    if (insertError) throw insertError;
+  }
 };
 
 // ============================================================================

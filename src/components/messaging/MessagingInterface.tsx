@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useMessaging } from "../../hooks/useMessaging";
 import { useAuth } from "../../hooks/useAuth";
 import { usePresence } from "../../hooks/usePresence";
 import { useProfileLookup } from "../../hooks/useProfileLookup";
 import type { ConversationWithDetails } from "../../types/messaging";
-import { MessageSquare, ArrowLeft, Search } from "lucide-react";
+import { MessageSquare, ArrowLeft, Search, ChevronDown } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import ConversationList from "./ConversationList";
 import ConversationSearch from "./ConversationSearch";
 import { supabase } from "@/lib/supabase";
 import MessageBubble from "./MessageBubble";
+import MobileMessageBubble from "./MobileMessageBubble";
 import MessageInput from "./MessageInput";
 import { OnlineStatusIndicator } from "./OnlineStatusIndicator";
 import { LastSeenBadge } from "./LastSeenBadge";
@@ -51,14 +52,16 @@ const MessagingInterface = ({
     useMessaging();
 
   // Collect all participant IDs from conversations
-  const participantIds = conversations.flatMap((conv) => conv.participants || []);
+  const participantIds = conversations.flatMap(
+    (conv) => conv.participants || []
+  );
   const { getProfile } = useProfileLookup(participantIds);
 
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationWithDetails | null>(null);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   // Mobile navigation: 'list' shows conversations, 'thread' shows messages
-  const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
+  const [mobileView, setMobileView] = useState<"list" | "thread">("list");
   const [filter, setFilter] = useState<ConversationFilter>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,15 +71,26 @@ const MessagingInterface = ({
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
     null
   );
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+
+  // Track scroll position for scroll-to-bottom FAB
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.currentTarget;
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+    setIsScrolledUp(!isNearBottom);
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    setIsScrolledUp(false);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Keyboard shortcut: Cmd/Ctrl + K to open conversation search
   useEffect(() => {
@@ -127,7 +141,7 @@ const MessagingInterface = ({
             });
           }
         })();
-        setMobileView('thread');
+        setMobileView("thread");
       }
     }
   }, [initialConversationId, conversations, fetchMessages]);
@@ -137,12 +151,12 @@ const MessagingInterface = ({
   ) => {
     setSelectedConversation(conversation);
     await fetchMessages(conversation.id);
-    setMobileView('thread');
+    setMobileView("thread");
   };
 
   // Handle mobile back navigation
   const handleMobileBack = () => {
-    setMobileView('list');
+    setMobileView("list");
     setSelectedConversation(null);
   };
 
@@ -314,7 +328,9 @@ const MessagingInterface = ({
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold leading-tight">{t("conversation_list.title")}</h2>
+              <h2 className="text-lg font-semibold leading-tight">
+                {t("conversation_list.title")}
+              </h2>
               <p className="text-muted-foreground text-xs">
                 {t("conversation_list.subtitle")}
               </p>
@@ -342,12 +358,20 @@ const MessagingInterface = ({
                 className="h-9 flex-1"
                 aria-label={t("aria_labels.filter_conversations")}
               >
-                <SelectValue placeholder={t("conversation_list.filter_placeholder")} />
+                <SelectValue
+                  placeholder={t("conversation_list.filter_placeholder")}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("conversation_list.all_conversations")}</SelectItem>
-                <SelectItem value="unread">{t("conversation_list.unread")}</SelectItem>
-                <SelectItem value="bookings">{t("conversation_list.bookings")}</SelectItem>
+                <SelectItem value="all">
+                  {t("conversation_list.all_conversations")}
+                </SelectItem>
+                <SelectItem value="unread">
+                  {t("conversation_list.unread")}
+                </SelectItem>
+                <SelectItem value="bookings">
+                  {t("conversation_list.bookings")}
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -394,7 +418,9 @@ const MessagingInterface = ({
         <div className="flex flex-1 flex-col items-center justify-center bg-background px-6">
           <div className="flex flex-col items-center text-center">
             <MessageSquare className="mb-4 h-12 w-12 text-muted-foreground/70" />
-            <h3 className="text-lg font-semibold">{t("empty_states.select_conversation_title")}</h3>
+            <h3 className="text-lg font-semibold">
+              {t("empty_states.select_conversation_title")}
+            </h3>
             <p className="text-muted-foreground text-sm">
               {t("empty_states.select_conversation_message")}
             </p>
@@ -411,10 +437,12 @@ const MessagingInterface = ({
     return (
       <div className="flex h-full flex-1 flex-col bg-background/80">
         {/* Simplified mobile header vs full desktop header */}
-        <div className={cn(
-          "flex items-center gap-3 border-b border-border",
-          isMobile ? "p-3" : "p-4 justify-between"
-        )}>
+        <div
+          className={cn(
+            "flex items-center gap-3 border-b border-border",
+            isMobile ? "p-3" : "p-4 justify-between"
+          )}
+        >
           <div className="flex flex-1 items-center gap-3">
             {isMobile && (
               <Button
@@ -446,14 +474,16 @@ const MessagingInterface = ({
               {/* Mobile: simplified header - just name */}
               {isMobile ? (
                 <h3 className="truncate text-sm font-semibold">
-                  {otherParticipant?.email || t("conversation_list.unknown_user")}
+                  {otherParticipant?.email ||
+                    t("conversation_list.unknown_user")}
                 </h3>
               ) : (
                 /* Desktop: full header with badge and details */
                 <>
                   <div className="flex items-center gap-2">
                     <h3 className="truncate text-base font-semibold">
-                      {otherParticipant?.email || t("conversation_list.unknown_user")}
+                      {otherParticipant?.email ||
+                        t("conversation_list.unknown_user")}
                     </h3>
                     {selectedConversation.booking_request && (
                       <Badge variant="outline" className="text-xs font-normal">
@@ -507,8 +537,14 @@ const MessagingInterface = ({
           )}
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="space-y-2 px-4 py-4">
+        <ScrollArea
+          className="flex-1"
+          ref={scrollAreaRef}
+          onScrollCapture={handleScroll}
+        >
+          <div
+            className={cn("px-4 py-4", isMobile ? "space-y-1" : "space-y-2")}
+          >
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/40 py-10 text-center text-sm text-muted-foreground">
                 <MessageSquare className="mb-3 h-9 w-9 text-muted-foreground/60" />
@@ -519,21 +555,45 @@ const MessagingInterface = ({
               </div>
             ) : (
               <>
-                {messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
-                ))}
+                {messages.map((message, index) => {
+                  // For mobile, use MobileMessageBubble with animations
+                  if (isMobile) {
+                    // Check if previous message was from same sender (hide avatar for consecutive)
+                    const prevMessage = messages[index - 1];
+                    const showAvatar =
+                      !prevMessage ||
+                      prevMessage.sender_id !== message.sender_id;
+                    const senderProfile =
+                      message.sender_id !== user?.id
+                        ? getProfile(message.sender_id)
+                        : undefined;
+
+                    return (
+                      <MobileMessageBubble
+                        key={message.id}
+                        message={message}
+                        senderName={senderProfile?.email}
+                        senderAvatar={senderProfile?.avatar_url}
+                        showAvatar={showAvatar}
+                        animationDelay={Math.min(index * 30, 300)}
+                      />
+                    );
+                  }
+
+                  // Desktop uses original MessageBubble
+                  return <MessageBubble key={message.id} message={message} />;
+                })}
                 {typingUsers.size > 0 && (
                   <TypingIndicator
-                    userName={
-                      (() => {
-                        const typingUserId = selectedConversation.participants?.find(
+                    userName={(() => {
+                      const typingUserId =
+                        selectedConversation.participants?.find(
                           (participantId) => typingUsers.has(participantId)
                         );
-                        return typingUserId
-                          ? getProfile(typingUserId)?.email ?? undefined
-                          : undefined;
-                      })()
-                    }
+                      return typingUserId
+                        ? getProfile(typingUserId)?.email ?? undefined
+                        : undefined;
+                    })()}
                   />
                 )}
               </>
@@ -542,7 +602,24 @@ const MessagingInterface = ({
           </div>
         </ScrollArea>
 
-        <div className="px-4 pb-5">
+        {/* Scroll to bottom FAB for mobile */}
+        {isMobile && isScrolledUp && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="absolute bottom-24 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 active:scale-95"
+            aria-label="Scroll to bottom"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        )}
+
+        <div
+          className={cn(
+            "border-t border-border/50 bg-background/95 backdrop-blur-sm",
+            isMobile ? "px-3 py-3" : "px-4 pb-5"
+          )}
+        >
           <MessageInput
             onSendMessage={handleSendMessage}
             onTyping={handleTyping}
@@ -562,13 +639,11 @@ const MessagingInterface = ({
     >
       {/* Mobile: Two-screen navigation pattern */}
       <div className="flex h-full flex-col md:hidden">
-        {mobileView === 'list' ? (
-          // Mobile: Conversation list view
-          conversationSidebar
-        ) : (
-          // Mobile: Thread view
-          renderMessagePane(true)
-        )}
+        {mobileView === "list"
+          ? // Mobile: Conversation list view
+            conversationSidebar
+          : // Mobile: Thread view
+            renderMessagePane(true)}
       </div>
 
       <div className="hidden h-full md:block">

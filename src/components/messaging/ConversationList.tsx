@@ -2,6 +2,8 @@ import type { ConversationWithDetails } from "../../types/messaging";
 import { useAuth } from "../../hooks/useAuth";
 import { usePresence } from "../../hooks/usePresence";
 import { useProfileLookup } from "../../hooks/useProfileLookup";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { createMaxWidthQuery } from "../../config/breakpoints";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "../ui/skeleton";
 import {
@@ -14,7 +16,9 @@ import {
 import { MessageSquare } from "lucide-react";
 import { TooltipProvider } from "../ui/tooltip";
 import { ConversationListItem } from "./shared/ConversationListItem";
+import { MobileConversationRow } from "./shared/MobileConversationRow";
 import { useEffect, useRef, useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface ConversationListProps {
   conversations: ConversationWithDetails[];
@@ -95,6 +99,7 @@ const ConversationList = ({
   const { user } = useAuth();
   const { isOnline } = usePresence();
   const { t } = useTranslation("messaging");
+  const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const prevConversationIdsRef = useRef<Set<string>>(new Set());
 
   // Collect all participant IDs from conversations (memoized to prevent unnecessary re-runs)
@@ -141,7 +146,7 @@ const ConversationList = ({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="space-y-2">
+      <div className={cn(isMobile ? "divide-y-0" : "space-y-2")}>
         {conversations.map((conversation) => {
           const otherParticipantId = conversation.participants?.find(
             (participantId) => participantId !== user?.id
@@ -249,6 +254,26 @@ const ConversationList = ({
 
           const unread = getUnreadStatus();
 
+          // Mobile uses cleaner row design
+          if (isMobile) {
+            return (
+              <MobileConversationRow
+                key={conversation.id}
+                conversation={conversation}
+                isSelected={conversation.id === selectedConversationId}
+                onSelect={onSelectConversation}
+                otherParticipantName={otherParticipantName}
+                otherParticipantInitials={otherParticipantInitials}
+                otherParticipantAvatar={otherParticipant?.avatar_url}
+                isOnline={
+                  otherParticipantId ? isOnline(otherParticipantId) : false
+                }
+                unread={Boolean(unread)}
+              />
+            );
+          }
+
+          // Desktop uses full card design
           return (
             <ConversationListItem
               key={conversation.id}

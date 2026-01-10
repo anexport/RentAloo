@@ -302,7 +302,7 @@ BEGIN
   END IF;
 
   -- Get sender display name (avoid exposing email for privacy)
-  SELECT COALESCE(display_name, first_name, 'Someone') INTO v_sender_name
+  SELECT COALESCE(full_name, username, 'Someone') INTO v_sender_name
   FROM profiles
   WHERE id = NEW.sender_id;
 
@@ -430,7 +430,7 @@ DECLARE
   v_reviewer_name TEXT;
 BEGIN
   -- Get reviewer display name (avoid exposing email for privacy)
-  SELECT COALESCE(display_name, first_name, 'someone') INTO v_reviewer_name
+  SELECT COALESCE(full_name, username, 'someone') INTO v_reviewer_name
   FROM profiles
   WHERE id = NEW.reviewer_id;
 
