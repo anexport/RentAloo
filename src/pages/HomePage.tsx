@@ -3,6 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { usePrefetchData } from "@/hooks/usePrefetchData";
+import SEOHead from "@/components/seo/SEOHead";
+import StructuredData from "@/components/seo/StructuredData";
+import { generateHomePageMeta } from "@/lib/seo/meta";
+import { generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo/schema";
 import ExploreHeader from "@/components/layout/ExploreHeader";
 import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
@@ -306,8 +310,16 @@ export default function HomePage() {
     setCategoryId("all");
   };
 
+  const homeMeta = generateHomePageMeta();
+  const organizationSchema = generateOrganizationSchema();
+  const webSiteSchema = generateWebSiteSchema();
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead {...homeMeta} />
+      <StructuredData data={organizationSchema} />
+      <StructuredData data={webSiteSchema} />
+
       {/* Header with Sign In / Sign Up */}
       <ExploreHeader
         onLoginClick={() => handleLoginOpenChange(true)}
