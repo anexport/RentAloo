@@ -117,8 +117,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (provider: 'google' | 'apple'): Promise<void> => {
       setError(null);
 
-      // For mobile, we need a deep link redirect URL
-      const redirectTo = 'rentaloo://auth/callback';
+      // Use HTTPS bridge URL that's in Supabase allowlist
+      // The bridge page will redirect to the app via deep link
+      // This avoids needing to add rentaloo:// to Supabase Dashboard
+      const BRIDGE_URL = import.meta.env.VITE_APP_URL 
+        ? `${import.meta.env.VITE_APP_URL}/auth/bridge`
+        : 'https://rentaloo.app/auth/bridge';
+      
+      const redirectTo = Capacitor.isNativePlatform() 
+        ? BRIDGE_URL  // Mobile: use HTTPS bridge → deep link
+        : 'rentaloo://auth/callback';  // Fallback direct deep link
+
+      console.log('[OAuth] Using redirectTo:', redirectTo);
 
       try {
         const { url, error: oauthError } = await apiSignInWithOAuth(

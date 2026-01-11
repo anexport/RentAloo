@@ -47,6 +47,7 @@ const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const OnboardingPage = lazy(() => import("@/pages/auth/OnboardingPage"));
+const AuthBridge = lazy(() => import("@/pages/auth/AuthBridge"));
 const NotificationsSettings = lazy(
   () => import("@/pages/settings/NotificationsSettings")
 );
@@ -124,6 +125,7 @@ function App() {
                     element={<Navigate to="/?login=true" replace />}
                   />
                   <Route path="/verify" element={<EmailVerification />} />
+                  <Route path="/auth/bridge" element={<AuthBridge />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
                   <Route
                     path="/equipment"
