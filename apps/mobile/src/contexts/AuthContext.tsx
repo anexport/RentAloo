@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from 'react';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { supabase } from '@/lib/supabase';
 import {
   signInWithPassword as apiSignIn,
@@ -123,7 +125,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (url) {
           // Open in system browser for OAuth flow
           // The deep link will bring user back to the app
-          window.open(url, '_blank');
+          if (Capacitor.isNativePlatform()) {
+            // Use Capacitor Browser for proper Custom Tabs behavior
+            await Browser.open({ url });
+          } else {
+            // Fallback for web
+            window.open(url, '_blank');
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'OAuth failed');

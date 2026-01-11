@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/lib/supabase';
 
@@ -29,6 +30,8 @@ export function useDeepLinks() {
 
         // OAuth callback - parse access token from hash
         if (path.includes('/auth/callback') || hash.includes('access_token')) {
+          // Close the browser that was opened for OAuth
+          await Browser.close();
           await handleOAuthCallback(hash || url);
           navigate('/');
           return;
