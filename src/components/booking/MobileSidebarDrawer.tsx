@@ -84,8 +84,10 @@ export const MobileSidebarDrawer = ({
   const hasValidDates =
     !!sidebarProps.dateRange?.from && !!sidebarProps.dateRange?.to;
   const hasConflicts = sidebarProps.conflicts.length > 0;
-  const showVerificationNudge =
-    sidebarProps.user && !isOwner && !isVerified && !verificationLoading;
+  // TODO: Re-enable verification requirement
+  // const showVerificationNudge =
+  //   sidebarProps.user && !isOwner && !isVerified && !verificationLoading;
+  const showVerificationNudge = false;
 
   // Determine button state and text
   const getButtonState = () => {
@@ -103,12 +105,13 @@ export const MobileSidebarDrawer = ({
         }),
       };
     }
-    if (!isVerified && !verificationLoading) {
-      return {
-        disabled: true,
-        text: t("button.verify_to_book", { defaultValue: "Verify to Book" }),
-      };
-    }
+    // TODO: Re-enable verification requirement
+    // if (!isVerified && !verificationLoading) {
+    //   return {
+    //     disabled: true,
+    //     text: t("button.verify_to_book", { defaultValue: "Verify to Book" }),
+    //   };
+    // }
     if (!hasValidDates) {
       return {
         disabled: true,

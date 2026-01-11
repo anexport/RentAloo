@@ -21,14 +21,15 @@ const getButtonText = ({
   hasValidDates,
   hasConflicts,
   isLoading,
-  isVerified,
+  // isVerified, // TODO: Re-enable verification requirement
 }: Omit<
   BookingButtonProps,
   "hasCalculation" | "onBook" | "verificationLoading"
 >): string => {
   if (!user) return "Login to Book";
   if (isOwner) return "Your Equipment";
-  if (!isVerified) return "Verify to Book";
+  // TODO: Re-enable verification requirement
+  // if (!isVerified) return "Verify to Book";
   if (!hasValidDates) return "Select Dates to Book";
   if (hasConflicts) return "Dates Unavailable";
   if (isLoading) return "Processing...";
@@ -55,9 +56,11 @@ const BookingButton = ({
     isVerified,
   });
 
+  // TODO: Re-enable verification requirement
   // Show verification nudge when user is logged in but not verified
-  const showVerificationNudge =
-    user && !isOwner && !isVerified && !verificationLoading;
+  // const showVerificationNudge =
+  //   user && !isOwner && !isVerified && !verificationLoading;
+  const showVerificationNudge = false;
 
   return (
     <div className="space-y-3">
@@ -96,8 +99,9 @@ const BookingButton = ({
           hasConflicts ||
           isLoading ||
           !hasCalculation ||
-          isOwner ||
-          !isVerified
+          isOwner
+          // TODO: Re-enable verification requirement
+          // || !isVerified
         }
         onClick={onBook}
       >
