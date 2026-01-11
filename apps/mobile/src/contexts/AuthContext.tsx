@@ -6,7 +6,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
+import type { User, Session, AuthChangeEvent, AuthError } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +18,15 @@ import {
   setRealtimeAuth,
 } from '@rentaloo/shared/api';
 
+// User metadata for signup (excludes admin role for security)
+type UserMetadata = {
+  role: 'renter' | 'owner';
+  fullName: string;
+  location: string;
+  interests?: string[];
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -25,6 +34,7 @@ interface AuthContextType {
   error: string | null;
   signInWithPassword: (email: string, password: string) => Promise<boolean>;
   signInWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
+  signUp: (email: string, password: string, userData: UserMetadata) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -150,6 +160,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signUp = useCallback(
+    async (email: string, password: string, userData: UserMetadata) => {
+      // Client-side role validation
+      const ALLOWED_ROLES = ['renter', 'owner'] as const;
+      const providedRole = userData?.role;
+
+      if (
+        providedRole &&
+        !ALLOWED_ROLES.includes(providedRole as (typeof ALLOWED_ROLES)[number])
+      ) {
+        return {
+          error: {
+            message: `Invalid role: "${providedRole}". Only "renter" or "owner" roles are allowed for signup.`,
+            name: 'AuthError',
+            status: 400,
+          } as AuthError,
+        };
+      }
+
+      // Sanitize: ensure role is set to a safe default if missing or invalid
+      const sanitizedUserData: UserMetadata = {
+        ...userData,
+        role:
+          providedRole &&
+          ALLOWED_ROLES.includes(providedRole as (typeof ALLOWED_ROLES)[number])
+            ? providedRole
+            : 'renter', // Safe default
+      };
+
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: sanitizedUserData,
+          },
+        });
+        return { error };
+      } catch (error) {
+        return { error: error as AuthError };
+      }
+    },
+    []
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -159,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         signInWithPassword,
         signInWithOAuth,
+        signUp,
         signOut,
       }}
     >

@@ -6,6 +6,8 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { RentalsScreen } from './screens/RentalsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { LoginScreen } from './screens/auth/LoginScreen';
+import SignupScreen from './screens/auth/SignupScreen';
+import VerifyScreen from './screens/auth/VerifyScreen';
 import { EquipmentDetailScreen } from './screens/EquipmentDetailScreen';
 import { BookingDetailScreen } from './screens/BookingDetailScreen';
 import { ConversationScreen } from './screens/ConversationScreen';
@@ -33,6 +35,11 @@ export function App() {
         path="/login"
         element={user ? <Navigate to="/" replace /> : <LoginScreen />}
       />
+      <Route
+        path="/signup"
+        element={user ? <Navigate to="/" replace /> : <SignupScreen />}
+      />
+      <Route path="/verify" element={<VerifyScreen />} />
 
       {/* Protected routes with tab navigation */}
       <Route
