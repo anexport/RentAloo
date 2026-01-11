@@ -14,6 +14,7 @@ type Props = {
   onSelectListing?: (listing: Listing) => void;
   onOpenListing?: (listing: Listing) => void;
   className?: string;
+  isMobile?: boolean;
 };
 
 type MapState = "loading" | "ready" | "error" | "no-api-key";
@@ -43,6 +44,7 @@ const MapView = ({
   onSelectListing,
   onOpenListing,
   className,
+  isMobile,
 }: Props) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -243,12 +245,21 @@ const MapView = ({
         zoom: ITALY_ZOOM,
         minZoom: 5, // Prevent zooming out beyond country level
         mapId: "explore-map",
+
+        // Use "greedy" on mobile for native full-screen feel (single-finger pan/zoom)
+        // Use "cooperative" on desktop to preserve normal page scrolling (requires Ctrl/Cmd+scroll to zoom)
+        gestureHandling: isMobile ? "greedy" : "cooperative",
+
+        // UI Controls - hide zoom on mobile
         disableDefaultUI: false,
-        zoomControl: true,
+        zoomControl: !isMobile,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: "cooperative",
+
+        // Additional native-feel options
+        clickableIcons: false, // Prevent accidental POI clicks
+        keyboardShortcuts: !isMobile, // Disable keyboard shortcuts on mobile
       });
 
       mapInstanceRef.current = map;
@@ -257,7 +268,7 @@ const MapView = ({
       console.error("Failed to initialize Explore map:", error);
       setMapState("error");
     }
-  }, [apiKey, computeInitialCenter, getMarkerLibrary]);
+  }, [apiKey, computeInitialCenter, getMarkerLibrary, isMobile]);
 
   useEffect(() => {
     if (mapState === "loading") {

@@ -1,66 +1,45 @@
-# Code Review Findings - RESOLVED
+Starting CodeRabbit review in plain text mode...
 
-All issues from the original review have been validated and fixed. Summary below:
+Connecting to review service
+Setting up
+Analyzing
+Reviewing
 
----
+============================================================================
+File: docs/rippling-hatching-aurora.md
+Line: 86 to 98
+Type: potential_issue
 
-## ✅ FIXED: src/types/verification.ts (Lines 39-46)
-**Issue:** Verification tracking fields only covered identity and phone while VerificationType also includes email and address.
+Prompt for AI Agent:
+In @docs/rippling-hatching-aurora.md around lines 86 - 98, The EquipmentLocationMap currently sets zoomControl: true while MapView uses zoomControl: !isMobile, causing inconsistent behavior; either document the intentional exception or align behavior by making EquipmentLocationMap use the same mobile detection and conditional (reuse the same isMobile check or hook used in MapView) so zoom controls are hidden on mobile as in MapView, and update any comment rationale ("keep for this smaller map") to explain why it's an exception if you choose to keep it.
 
-**Resolution:** Added comprehensive JSDoc comment explaining the design decision:
-- Identity: Requires document upload and admin review workflow
-- Phone: Requires OTP/SMS verification workflow
-- Email: Uses Supabase Auth's built-in `email_confirmed_at` (no custom workflow needed)
-- Address: Not yet implemented
 
----
 
-## ✅ FIXED: src/hooks/useVerification.ts (Lines 53-57)
-**Issue:** The select query was missing the `rejection_reason` field required by the VerificationRecord type.
+============================================================================
+File: docs/rippling-hatching-aurora.md
+Line: 44 to 64
+Type: potential_issue
 
-**Resolution:** Added `rejection_reason` to the select query:
-```typescript
-.select("verification_type,status,document_url,created_at,rejection_reason")
-```
+Prompt for AI Agent:
+In @docs/rippling-hatching-aurora.md around lines 44 - 64, Document that setting gestureHandling: "greedy" on the Google Map causes the map to consume all touch gestures (preventing page scrolling while a finger is on the map), and either confirm the page layout for this file does not require scrolling during map interaction or change the behavior: e.g., wrap the map in a scrollable container or conditionally set gestureHandling to "cooperative" for embedded/scrollable explore pages (use the existing gestureHandling option and isMobile flag in the map configuration to implement or describe the alternative).
 
----
 
-## ✅ FIXED: src/hooks/useVerification.ts (Lines 138-144)
-**Issue:** Using `find()` on verification records could return outdated records if user had multiple submissions.
 
-**Resolution:** Added `.order("created_at", { ascending: false })` to the query to ensure records are sorted newest-first, so `find()` will always return the most recent record for each type.
+============================================================================
+File: src/components/equipment/EquipmentLocationMap.tsx
+Line: 94
+Type: potential_issue
 
----
+Prompt for AI Agent:
+In @src/components/equipment/EquipmentLocationMap.tsx at line 94, The map's gestureHandling is set to "greedy" which hijacks page scroll; change the gestureHandling prop in the EquipmentLocationMap component back to "cooperative" (replace the "greedy" value on the gestureHandling prop in EquipmentLocationMap.tsx) so users must use Ctrl/Cmd+scroll to zoom and normal page scrolling is preserved; optionally add a comment explaining the UX rationale.
 
-## ✅ FIXED: src/pages/admin/AdminDashboard.tsx (Lines 1008-1044)
-**Issue:** Unsafe type cast for "rejected" status that wasn't in the generated Supabase types.
 
-**Resolution:** Cleaned up the type assertion with proper eslint-disable comment and added documentation explaining:
-- "rejected" is a valid VerificationStatus per our application types
-- Generated Supabase types may need regeneration if they don't include it
-- Command provided: `npx supabase gen types typescript --local > src/types/supabase.ts`
 
----
+============================================================================
+File: supabase/migrations/1001_fix_rls_lints.sql
+Line: 71 to 89
+Type: potential_issue
 
-## ✅ FIXED: src/components/verification/DocumentUpload.tsx (Lines 82-91)
-**Issue:** `formatDate` function didn't validate dates and used hardcoded "en-US" locale.
+Prompt for AI Agent:
+In @supabase/migrations/1001_fix_rls_lints.sql around lines 71 - 89, The SELECT policy "Authenticated users can view booking requests" on booking_requests is overly permissive because the OR EXISTS branch that checks equipment.is_available = true lets any authenticated user see booking requests; remove that OR EXISTS (...) clause (the one querying equipment WHERE equipment.id = booking_requests.equipment_id AND equipment.is_available = true) so the USING condition only allows access to admins (is_admin((select auth.uid()))), the renter ((select auth.uid()) = renter_id), or the equipment owner (EXISTS clause checking equipment.owner_id = (select auth.uid())), while keeping the auth.uid() IS NOT NULL guard.
 
-**Resolution:** Updated `formatDate` to:
-- Validate the parsed date using `isNaN(date.getTime())`
-- Return empty string for invalid dates instead of "Invalid Date"
-- Use `undefined` (browser default) instead of hardcoded "en-US" locale
-
----
-
-## ✅ FIXED: src/components/verification/DocumentUpload.tsx (Lines 186-225)
-**Issue:** Using `pendingDocument.url` directly for img src without URL validation.
-
-**Resolution:** Added `isSafeDocumentUrl()` helper function that:
-- Validates URLs are from trusted sources (Supabase storage)
-- Allows data URLs for local previews
-- Falls back to FileText icon if URL is not from trusted source
-- Prevents rendering arbitrary external URLs in img src
-
----
-
-All TypeScript compilation passes successfully.

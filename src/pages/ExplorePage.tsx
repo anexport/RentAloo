@@ -653,6 +653,7 @@ const ExplorePage = () => {
             onSelectListing={handleSelectListing}
             onOpenListing={handleOpenListing}
             className="h-full w-full"
+            isMobile={isMobile}
           />
         </div>
 
@@ -836,6 +837,7 @@ const ExplorePage = () => {
               selectedListingId={selectedListingId}
               onSelectListing={handleSelectListing}
               onOpenListing={handleOpenListing}
+              isMobile={isMobile}
             />
           </div>
           <div className="h-[60vh] lg:h-full overflow-y-auto pr-1">

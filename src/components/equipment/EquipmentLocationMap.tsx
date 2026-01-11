@@ -2,7 +2,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { loadGoogleMaps, importMarkerLibrary, geocodeAddress } from "@/lib/googleMapsLoader";
+import {
+  loadGoogleMaps,
+  importMarkerLibrary,
+  geocodeAddress,
+} from "@/lib/googleMapsLoader";
 
 type EquipmentLocationMapProps = {
   location: string;
@@ -22,13 +26,20 @@ const EquipmentLocationMap = ({
 }: EquipmentLocationMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(
+    null
+  );
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
   const [mapState, setMapState] = useState<MapState>("loading");
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
-    latitude != null && longitude != null ? { lat: latitude, lng: longitude } : null
+  const [coordinates, setCoordinates] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(
+    latitude != null && longitude != null
+      ? { lat: latitude, lng: longitude }
+      : null
   );
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -80,12 +91,15 @@ const EquipmentLocationMap = ({
         center: coordinates,
         zoom: 15,
         mapId: "equipment-location-map", // Required for Advanced Markers
+        // Use "cooperative" to preserve normal page scrolling for this embedded map.
+        // Users must use Ctrl/Cmd+scroll to zoom, preventing the map from hijacking page scroll.
+        gestureHandling: "cooperative",
         disableDefaultUI: false,
-        zoomControl: true,
+        zoomControl: true, // Keep zoom controls for this detail map
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: true,
-        gestureHandling: "cooperative",
+        clickableIcons: false, // Prevent accidental POI clicks
       });
 
       mapInstanceRef.current = map;
@@ -196,7 +210,10 @@ const EquipmentLocationMap = ({
     return (
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <PlaceholderMap location={location} message="Could not locate address on map" />
+          <PlaceholderMap
+            location={location}
+            message="Could not locate address on map"
+          />
           <LocationDetails location={location} />
         </CardContent>
       </Card>
@@ -286,7 +303,7 @@ const escapeHtml = (str: string): string => {
 const createInfoWindowContent = (title?: string, address?: string): string => {
   const safeTitle = title ? escapeHtml(title) : "Pickup Location";
   const safeAddress = address ? escapeHtml(address) : "";
-  
+
   return `
     <div style="padding: 8px; max-width: 200px;">
       <h4 style="margin: 0 0 4px 0; font-weight: 600; font-size: 14px; color: #111;">
@@ -300,16 +317,19 @@ const createInfoWindowContent = (title?: string, address?: string): string => {
 };
 
 // Placeholder map component for fallback states
-const PlaceholderMap = ({ location, message }: { location: string; message: string }) => (
+const PlaceholderMap = ({
+  location,
+  message,
+}: {
+  location: string;
+  message: string;
+}) => (
   <div className="h-64 w-full bg-muted flex flex-col items-center justify-center border-b border-border relative overflow-hidden">
     {/* Grid pattern background */}
     <div className="absolute inset-0 opacity-10">
       <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
         {Array.from({ length: 64 }).map((_, i) => (
-          <div
-            key={i}
-            className="border border-border/20"
-          />
+          <div key={i} className="border border-border/20" />
         ))}
       </div>
     </div>
@@ -321,9 +341,7 @@ const PlaceholderMap = ({ location, message }: { location: string; message: stri
       </div>
       <div>
         <p className="text-sm font-medium text-foreground">{message}</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {location}
-        </p>
+        <p className="text-xs text-muted-foreground mt-1">{location}</p>
       </div>
     </div>
   </div>
