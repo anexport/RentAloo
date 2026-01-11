@@ -8,7 +8,7 @@
 
 ## 📊 Executive Summary
 
-This document outlines the plan to complete the rental lifecycle UI/UX flow in Rentaloo. Currently, there are significant gaps after a user completes a pickup inspection, leaving the rental in an ambiguous state with no clear path to completion.
+This document outlines the plan to complete the rental lifecycle UI/UX flow in Vaymo. Currently, there are significant gaps after a user completes a pickup inspection, leaving the rental in an ambiguous state with no clear path to completion.
 
 ### Current Problem
 After a renter completes the pickup inspection, there is:

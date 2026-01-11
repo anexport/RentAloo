@@ -1,6 +1,6 @@
-# CLAUDE.md - AI Assistant Guide for RentAloo
+# CLAUDE.md - AI Assistant Guide for Vaymo
 
-Comprehensive guidance for AI assistants working on the RentAloo peer-to-peer rental marketplace.
+Comprehensive guidance for AI assistants working on the Vaymo peer-to-peer rental marketplace.
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -16,7 +16,7 @@ Comprehensive guidance for AI assistants working on the RentAloo peer-to-peer re
 
 ## Project Overview
 
-**RentAloo** is a peer-to-peer rental marketplace enabling users to rent and lend equipment across various categories.
+**Vaymo** is a peer-to-peer rental marketplace enabling users to rent and lend equipment across various categories.
 
 ### Core Features
 - **Dual User Roles**: Renter and owner experiences with role-specific dashboards
@@ -61,7 +61,7 @@ Comprehensive guidance for AI assistants working on the RentAloo peer-to-peer re
 
 ### Root Structure
 ```
-rentaloo-ai/
+vaymo/
 ├── src/                     # Source code
 ├── supabase/                # Database migrations & edge functions
 ├── public/                  # Static assets

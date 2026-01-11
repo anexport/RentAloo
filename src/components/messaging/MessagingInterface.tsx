@@ -5,7 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { usePresence } from "../../hooks/usePresence";
 import { useProfileLookup } from "../../hooks/useProfileLookup";
 import type { ConversationWithDetails } from "../../types/messaging";
-import { MessageSquare, ArrowLeft, Menu, Search, Filter } from "lucide-react";
+import { MessageSquare, ArrowLeft, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import ConversationList from "./ConversationList";
@@ -16,7 +16,6 @@ import MessageInput from "./MessageInput";
 import { OnlineStatusIndicator } from "./OnlineStatusIndicator";
 import { LastSeenBadge } from "./LastSeenBadge";
 import { TypingIndicator } from "./TypingIndicator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -58,7 +57,8 @@ const MessagingInterface = ({
   const [selectedConversation, setSelectedConversation] =
     useState<ConversationWithDetails | null>(null);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  // Mobile navigation: 'list' shows conversations, 'thread' shows messages
+  const [mobileView, setMobileView] = useState<'list' | 'thread'>('list');
   const [filter, setFilter] = useState<ConversationFilter>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -127,7 +127,7 @@ const MessagingInterface = ({
             });
           }
         })();
-        setIsMobileSidebarOpen(false);
+        setMobileView('thread');
       }
     }
   }, [initialConversationId, conversations, fetchMessages]);
@@ -137,7 +137,13 @@ const MessagingInterface = ({
   ) => {
     setSelectedConversation(conversation);
     await fetchMessages(conversation.id);
-    setIsMobileSidebarOpen(false);
+    setMobileView('thread');
+  };
+
+  // Handle mobile back navigation
+  const handleMobileBack = () => {
+    setMobileView('list');
+    setSelectedConversation(null);
   };
 
   const handleSendMessage = async (content: string) => {
@@ -404,21 +410,25 @@ const MessagingInterface = ({
 
     return (
       <div className="flex h-full flex-1 flex-col bg-background/80">
-        <div className="flex items-start justify-between gap-3 border-b border-border p-4">
+        {/* Simplified mobile header vs full desktop header */}
+        <div className={cn(
+          "flex items-center gap-3 border-b border-border",
+          isMobile ? "p-3" : "p-4 justify-between"
+        )}>
           <div className="flex flex-1 items-center gap-3">
             {isMobile && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsMobileSidebarOpen(true)}
-                aria-label={t("aria_labels.open_conversations")}
+                onClick={handleMobileBack}
+                aria-label={t("aria_labels.back_to_conversations")}
               >
-                <Menu className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             )}
 
             <div className="relative flex shrink-0 items-center">
-              <Avatar className="h-11 w-11">
+              <Avatar className={isMobile ? "h-9 w-9" : "h-11 w-11"}>
                 <AvatarFallback>
                   {otherParticipant?.email?.charAt(0).toUpperCase() || "?"}
                 </AvatarFallback>
@@ -426,63 +436,75 @@ const MessagingInterface = ({
               {otherParticipantId && (
                 <OnlineStatusIndicator
                   isOnline={isOnline(otherParticipantId)}
-                  size="md"
+                  size={isMobile ? "sm" : "md"}
                   className="absolute -bottom-1 -right-1"
                 />
               )}
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="truncate text-base font-semibold">
+              {/* Mobile: simplified header - just name */}
+              {isMobile ? (
+                <h3 className="truncate text-sm font-semibold">
                   {otherParticipant?.email || t("conversation_list.unknown_user")}
                 </h3>
-                {selectedConversation.booking_request && (
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {selectedConversation.booking_request.status}
-                  </Badge>
-                )}
-              </div>
-              {otherParticipantId && (
-                <LastSeenBadge
-                  isOnline={isOnline(otherParticipantId)}
-                  lastSeenAt={otherParticipant?.last_seen_at || null}
-                  className="mt-1"
-                />
-              )}
-              {selectedConversation.booking_request && (
-                <p className="text-xs text-muted-foreground">
-                  {t("empty_states.regarding")}{" "}
-                  <span className="font-medium">
-                    {selectedConversation.booking_request.equipment.title}
-                  </span>
-                </p>
+              ) : (
+                /* Desktop: full header with badge and details */
+                <>
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-base font-semibold">
+                      {otherParticipant?.email || t("conversation_list.unknown_user")}
+                    </h3>
+                    {selectedConversation.booking_request && (
+                      <Badge variant="outline" className="text-xs font-normal">
+                        {selectedConversation.booking_request.status}
+                      </Badge>
+                    )}
+                  </div>
+                  {otherParticipantId && (
+                    <LastSeenBadge
+                      isOnline={isOnline(otherParticipantId)}
+                      lastSeenAt={otherParticipant?.last_seen_at || null}
+                      className="mt-1"
+                    />
+                  )}
+                  {selectedConversation.booking_request && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("empty_states.regarding")}{" "}
+                      <span className="font-medium">
+                        {selectedConversation.booking_request.equipment.title}
+                      </span>
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              type="button"
-              onClick={() => setIsSearchOpen(true)}
-              aria-label={t("aria_labels.search_messages")}
-              aria-expanded={isSearchOpen}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            {onClose && (
+          {/* Desktop only: search and close buttons */}
+          {!isMobile && (
+            <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="md:hidden"
-                onClick={onClose}
-                aria-label={t("aria_labels.close_messaging")}
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                aria-label={t("aria_labels.search_messages")}
+                aria-expanded={isSearchOpen}
               >
-                <ArrowLeft className="h-4 w-4" />
+                <Search className="h-4 w-4" />
               </Button>
-            )}
-          </div>
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  aria-label={t("aria_labels.close_messaging")}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <ScrollArea className="flex-1">
@@ -535,22 +557,19 @@ const MessagingInterface = ({
     <div
       className={cn(
         "grid w-full h-full gap-0 overflow-hidden rounded-2xl border border-border/80 bg-card/40 shadow-sm",
-        "min-h-[520px]"
+        "md:min-h-[520px]"
       )}
     >
-      <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
-        <SheetContent side="left" className="w-[90vw] max-w-sm p-0 md:hidden">
-          <SheetHeader className="border-b border-border px-4 py-4">
-            <SheetTitle className="flex items-center gap-2 text-base">
-              <Filter className="h-4 w-4" />
-              {t("conversation_list.conversations")}
-            </SheetTitle>
-          </SheetHeader>
-          {conversationSidebar}
-        </SheetContent>
-      </Sheet>
-
-      <div className="flex h-full md:hidden">{renderMessagePane(true)}</div>
+      {/* Mobile: Two-screen navigation pattern */}
+      <div className="flex h-full flex-col md:hidden">
+        {mobileView === 'list' ? (
+          // Mobile: Conversation list view
+          conversationSidebar
+        ) : (
+          // Mobile: Thread view
+          renderMessagePane(true)
+        )}
+      </div>
 
       <div className="hidden h-full md:block">
         <ResizablePanelGroup

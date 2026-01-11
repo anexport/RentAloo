@@ -21,10 +21,13 @@ const MessagingPage = () => {
 
   return (
     <DashboardLayout>
-      <PageHeader
-        title="Messages"
-        description="Communicate with other users about your bookings"
-      />
+      {/* Hide PageHeader on mobile to save vertical space */}
+      <div className="hidden md:block">
+        <PageHeader
+          title="Messages"
+          description="Communicate with other users about your bookings"
+        />
+      </div>
 
       <MessagingInterface />
     </DashboardLayout>

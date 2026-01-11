@@ -1,4 +1,4 @@
-# Mobile UX Anti-Patterns Analysis - RentAloo Codebase
+# Mobile UX Anti-Patterns Analysis - Vaymo Codebase
 
 ## Executive Summary
 Found **8 major categories** of mobile UX anti-patterns affecting user experience on small screens. Most critical issues involve hover-dependent interactions, fixed positioning conflicts, and undersized touch targets.
@@ -12,7 +12,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 **Affected Files:**
 
-#### `/home/user/rentaloo-ai/src/components/equipment/ListingCard.tsx` (Lines 109, 121, 162)
+#### `/home/user/vaymo/src/components/equipment/ListingCard.tsx` (Lines 109, 121, 162)
 **Problem:** Photo carousel navigation arrows hidden by default with `opacity-0 group-hover:opacity-100`
 ```tsx
 <button
@@ -32,7 +32,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 ---
 
-#### `/home/user/rentaloo-ai/src/components/EquipmentListingForm.tsx` (Lines 497, 524)
+#### `/home/user/vaymo/src/components/EquipmentListingForm.tsx` (Lines 497, 524)
 **Problem:** Photo delete buttons hidden until hover
 ```tsx
 <div className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full 
@@ -48,7 +48,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 ---
 
-#### `/home/user/rentaloo-ai/src/components/AvailabilityCalendar.tsx` (Line 258)
+#### `/home/user/vaymo/src/components/AvailabilityCalendar.tsx` (Line 258)
 **Problem:** Date availability indicator hidden on hover
 ```tsx
 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity" />
@@ -57,7 +57,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 ---
 
-#### `/home/user/rentaloo-ai/src/components/layout/Sidebar.tsx` (Lines 336, 376, 416, 449)
+#### `/home/user/vaymo/src/components/layout/Sidebar.tsx` (Lines 336, 376, 416, 449)
 **Problem:** Icon scale animation only on hover
 ```tsx
 !active && "group-hover:scale-110"
@@ -66,7 +66,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 ---
 
-#### `/home/user/rentaloo-ai/src/components/reviews/StarRating.tsx` (Line 43)
+#### `/home/user/vaymo/src/components/reviews/StarRating.tsx` (Line 43)
 **Problem:** Interactive star rating only scales on hover
 ```tsx
 ? "cursor-pointer hover:scale-110 transition-transform"
@@ -75,7 +75,7 @@ Carousel navigation arrows, delete buttons, and wishlist controls disappear on t
 
 ---
 
-#### `/home/user/rentaloo-ai/src/components/booking/sidebar/BookingButton.tsx` (Line 49)
+#### `/home/user/vaymo/src/components/booking/sidebar/BookingButton.tsx` (Line 49)
 **Problem:** Button animations use hover states
 ```tsx
 className="w-full transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
@@ -93,7 +93,7 @@ className="w-full transition-all duration-200 hover:shadow-lg hover:scale-[1.02]
 
 ### Issue: Icon buttons undersized (minimum should be 44x44px per mobile guidelines)
 
-#### `/home/user/rentaloo-ai/src/components/ui/button-variants.ts`
+#### `/home/user/vaymo/src/components/ui/button-variants.ts`
 **Current Sizes:**
 ```ts
 size: {
@@ -104,9 +104,9 @@ size: {
 ```
 
 **Affected Components Using Small Buttons:**
-- `/home/user/rentaloo-ai/src/components/layout/DashboardLayout.tsx` (Line 38): Menu icon `size="icon"`
-- `/home/user/rentaloo-ai/src/components/layout/ExploreHeader.tsx` (Line 154): Mobile menu button `size="icon"`
-- `/home/user/rentaloo-ai/src/components/verification/VerifyIdentity.tsx` (Line 218): Icon buttons
+- `/home/user/vaymo/src/components/layout/DashboardLayout.tsx` (Line 38): Menu icon `size="icon"`
+- `/home/user/vaymo/src/components/layout/ExploreHeader.tsx` (Line 154): Mobile menu button `size="icon"`
+- `/home/user/vaymo/src/components/verification/VerifyIdentity.tsx` (Line 218): Icon buttons
 
 **Recommendation:**
 ```ts
@@ -128,14 +128,14 @@ size: {
 
 ### Issue: Fixed elements can hide content, conflict with keyboard, overlap input fields
 
-#### `/home/user/rentaloo-ai/src/components/layout/DashboardLayout.tsx` (Line 34)
+#### `/home/user/vaymo/src/components/layout/DashboardLayout.tsx` (Line 34)
 **Problem:** Fixed mobile header doesn't account for all screen sizes
 ```tsx
 <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-16 border-b border-border bg-card">
 ```
 **Impact:** Header always 16px (64px), no responsive sizing for very small screens.
 
-#### `/home/user/rentaloo-ai/src/components/booking/FloatingBookingCTA.tsx` (Line 131)
+#### `/home/user/vaymo/src/components/booking/FloatingBookingCTA.tsx` (Line 131)
 **Problem:** Fixed floating button at bottom can obscure content
 ```tsx
 <div className="fixed bottom-0 left-0 right-0 z-50 p-4 
@@ -156,7 +156,7 @@ style={{ paddingBottom: 'calc(var(--bottom-safe, 0px) + 1rem)' }}
 
 ---
 
-#### `/home/user/rentaloo-ai/src/pages/EquipmentSearch.tsx` (Lines 674, 779, 1126, 1229)
+#### `/home/user/vaymo/src/pages/EquipmentSearch.tsx` (Lines 674, 779, 1126, 1229)
 **Problem:** Fixed modal backdrop with `p-4` but no `max-h` constraint
 ```tsx
 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -178,7 +178,7 @@ style={{ paddingBottom: 'calc(var(--bottom-safe, 0px) + 1rem)' }}
 
 ## 4. RESPONSIVE MODAL SIZING ISSUES (HIGH)
 
-### `/home/user/rentaloo-ai/src/components/booking/MobileSidebarDrawer.tsx` (Line 48)
+### `/home/user/vaymo/src/components/booking/MobileSidebarDrawer.tsx` (Line 48)
 **Problem:** Fixed drawer height (85vh) may not fit on very short screens
 ```tsx
 className="h-[85vh] max-h-[85vh] rounded-t-2xl overflow-y-auto"
@@ -195,7 +195,7 @@ className="h-[min(85vh,calc(100vh-120px))] max-h-[min(85vh,calc(100vh-120px))]
 
 ---
 
-### `/home/user/rentaloo-ai/src/components/explore/FiltersSheet.tsx` (Line 271)
+### `/home/user/vaymo/src/components/explore/FiltersSheet.tsx` (Line 271)
 **Problem:** Dialog modal fixed to 500px width on mobile
 ```tsx
 <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
@@ -213,14 +213,14 @@ className="max-w-[95vw] sm:max-w-[500px] max-h-[min(80vh,calc(100vh-100px))] ove
 
 ### Lines Clipped Without Context
 
-#### `/home/user/rentaloo-ai/src/components/UserMenu.tsx` (Lines 106, 109)
+#### `/home/user/vaymo/src/components/UserMenu.tsx` (Lines 106, 109)
 ```tsx
 <p className="text-sm font-semibold text-foreground truncate">
 <p className="text-xs text-gray-500 truncate mt-0.5">
 ```
 **Problem:** User email truncated without "…", hard to tell if it's complete.
 
-#### `/home/user/rentaloo-ai/src/components/equipment/ListingCard.tsx` (Lines 190, 200, 208)
+#### `/home/user/vaymo/src/components/equipment/ListingCard.tsx` (Lines 190, 200, 208)
 ```tsx
 <h3 className="font-semibold text-lg line-clamp-1">
 <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
@@ -243,7 +243,7 @@ className="max-w-[95vw] sm:max-w-[500px] max-h-[min(80vh,calc(100vh-100px))] ove
 ### Padding Not Optimized for Mobile Touch
 
 #### Form Input Padding
-**File:** `/home/user/rentaloo-ai/src/components/ui/input.tsx`
+**File:** `/home/user/vaymo/src/components/ui/input.tsx`
 ```tsx
 "h-9 px-3 py-1 text-base shadow-xs transition-[color,box-shadow]"
 ```
@@ -260,7 +260,7 @@ className="max-w-[95vw] sm:max-w-[500px] max-h-[min(80vh,calc(100vh-100px))] ove
 ---
 
 #### Button Spacing Inconsistency
-**File:** `/home/user/rentaloo-ai/src/components/ui/button-variants.ts`
+**File:** `/home/user/vaymo/src/components/ui/button-variants.ts`
 ```ts
 default: "h-9 px-4 py-2"      // 36px tall, inconsistent with h-10
 sm: "h-8 rounded-md"          // 32px - too small
@@ -275,11 +275,11 @@ lg: "h-10"                    // 40px
 
 #### Images Without Lazy Loading
 Multiple image tags lack `loading="lazy"` attribute:
-- `/home/user/rentaloo-ai/src/pages/EquipmentSearch.tsx` (Lines 553, 710, 1007, 1162): No `loading` attribute
-- `/home/user/rentaloo-ai/src/components/equipment/ListingCard.tsx` (Line 97): No `loading` attribute
-- `/home/user/rentaloo-ai/src/components/EquipmentManagement.tsx` (Line 255): No `loading` attribute
+- `/home/user/vaymo/src/pages/EquipmentSearch.tsx` (Lines 553, 710, 1007, 1162): No `loading` attribute
+- `/home/user/vaymo/src/components/equipment/ListingCard.tsx` (Line 97): No `loading` attribute
+- `/home/user/vaymo/src/components/EquipmentManagement.tsx` (Line 255): No `loading` attribute
 
-**Good Example:** `/home/user/rentaloo-ai/src/components/equipment/detail/EquipmentPhotoGallery.tsx` (Lines 30, 46)
+**Good Example:** `/home/user/vaymo/src/components/equipment/detail/EquipmentPhotoGallery.tsx` (Lines 30, 46)
 ```tsx
 <img loading="lazy" alt={equipmentTitle} className="..." />  ✅
 ```
@@ -312,15 +312,15 @@ All `<img>` tags lack `width` and `height` attributes, causing **Cumulative Layo
 - `aria-label="Open menu"` ✅
 
 #### Missing Labels:
-**File:** `/home/user/rentaloo-ai/src/components/UserMenu.tsx`
+**File:** `/home/user/vaymo/src/components/UserMenu.tsx`
 - Close menu button: `<X className="h-4 w-4" />` - No label
 
-**File:** `/home/user/rentaloo-ai/src/components/verify/DocumentUpload.tsx` (Line 195)
+**File:** `/home/user/vaymo/src/components/verify/DocumentUpload.tsx` (Line 195)
 ```tsx
 <X className="h-4 w-4" />  // No aria-label
 ```
 
-**File:** `/home/user/rentaloo-ai/src/components/messaging/MessageInput.tsx`
+**File:** `/home/user/vaymo/src/components/messaging/MessageInput.tsx`
 - Action buttons: Missing labels on icon-only buttons
 
 **Recommendation:**
@@ -340,7 +340,7 @@ focus-visible:ring-2 focus-visible:ring-ring/50
 ```
 
 #### Concern: Focus might be trapped
-- `/home/user/rentaloo-ai/src/components/booking/FloatingBookingCTA.tsx` - Button might trap focus on mobile scroll
+- `/home/user/vaymo/src/components/booking/FloatingBookingCTA.tsx` - Button might trap focus on mobile scroll
 
 ---
 
@@ -348,7 +348,7 @@ focus-visible:ring-2 focus-visible:ring-ring/50
 
 ### Unintended Horizontal Scrolling
 
-#### `/home/user/rentaloo-ai/src/components/equipment/detail/EquipmentPhotoGallery.tsx` (Line 24)
+#### `/home/user/vaymo/src/components/equipment/detail/EquipmentPhotoGallery.tsx` (Line 24)
 **Responsive Heights:**
 ```tsx
 className="h-[300px] sm:h-[400px] md:h-[500px]"
@@ -358,7 +358,7 @@ className="h-[300px] sm:h-[400px] md:h-[500px]"
 ---
 
 #### Container Padding Not Responsive
-**File:** `/home/user/rentaloo-ai/src/pages/ExplorePage.tsx` (Line 158)
+**File:** `/home/user/vaymo/src/pages/ExplorePage.tsx` (Line 158)
 ```tsx
 className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
 ```
@@ -376,12 +376,12 @@ className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
 - Properly positioned for thumb reach on one-handed use
 
 #### Top Navigation Actions (Concern)
-**File:** `/home/user/rentaloo-ai/src/components/layout/ExploreHeader.tsx` (Line 79)
+**File:** `/home/user/vaymo/src/components/layout/ExploreHeader.tsx` (Line 79)
 - Desktop buttons `hidden md:flex` - Good for desktop
 - Mobile has hamburger menu - Good accessibility
 
 #### Owner Dashboard Actions (Concern)
-**File:** `/home/user/rentaloo-ai/src/components/EquipmentManagement.tsx` (Line 249+)
+**File:** `/home/user/vaymo/src/components/EquipmentManagement.tsx` (Line 249+)
 - Edit/Delete buttons in card footer - Not ideal for large hands
 - Could use swipe-to-delete pattern instead
 

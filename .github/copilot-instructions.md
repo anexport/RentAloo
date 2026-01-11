@@ -1,8 +1,8 @@
-# GitHub Copilot Instructions for RentAloo
+# GitHub Copilot Instructions for Vaymo
 
 ## Project Overview
 
-RentAloo is a modern peer-to-peer rental marketplace platform built with React, TypeScript, and Supabase. The platform enables users to rent and lend equipment across various categories including skiing, photography, camping, construction, and more.
+Vaymo is a modern peer-to-peer rental marketplace platform built with React, TypeScript, and Supabase. The platform enables users to rent and lend equipment across various categories including skiing, photography, camping, construction, and more.
 
 ### Tech Stack
 
@@ -17,7 +17,7 @@ RentAloo is a modern peer-to-peer rental marketplace platform built with React, 
 ## Project Structure
 
 ```
-rentaloo-ai/
+vaymo/
 ├── src/
 │   ├── components/       # Reusable UI components
 │   │   ├── booking/      # Booking-related components

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#ffffff"/>
+  
+  <!-- Gradient background for visual appeal -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a1a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#333333;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- Logo - Mountain icon (simplified SVG path) -->
+  <g transform="translate(450, 200)">
+    <!-- Mountain shape -->
+    <path d="M 0 80 L 40 20 L 80 50 L 120 10 L 160 60 L 200 80 L 200 80 L 0 80 Z" 
+          fill="url(#logoGradient)" 
+          stroke="none"/>
+  </g>
+  
+  <!-- Vaymo text -->
+  <text x="600" y="320" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="72" 
+        font-weight="bold" 
+        fill="#1a1a1a" 
+        text-anchor="middle">
+    Vaymo
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="380" 
+        font-family="system-ui, -apple-system, sans-serif" 
+        font-size="28" 
+        fill="#666666" 
+        text-anchor="middle">
+    Peer-to-Peer Equipment Rental Marketplace
+  </text>
+</svg>

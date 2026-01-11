@@ -3,9 +3,12 @@ import {
   Plus,
   BarChart3,
   Calendar,
+  Package,
   Star,
   MessageSquare,
   Shield,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,8 +18,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import { useRoleMode } from "@/contexts/RoleModeContext";
@@ -28,26 +32,81 @@ import ReviewList from "@/components/reviews/ReviewList";
 import EscrowDashboard from "@/components/payment/EscrowDashboard";
 import TransactionHistory from "@/components/payment/TransactionHistory";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import WelcomeHero from "@/components/owner/WelcomeHero";
+import OwnerNotificationsPanel from "@/components/owner/NotificationsPanel";
+import OwnerClaimsList from "@/components/claims/OwnerClaimsList";
+import { useVerification } from "@/hooks/useVerification";
+import { getVerificationProgress } from "@/lib/verification";
+import { formatDateForStorage } from "@/lib/utils";
+import { useActiveRentals } from "@/hooks/useActiveRental";
+import ActiveRentalCard from "@/components/rental/ActiveRentalCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const OWNER_DASHBOARD_TABS = [
+  "overview",
+  "equipment",
+  "bookings",
+  "messages",
+  "reviews",
+  "payments",
+] as const;
+
+type OwnerDashboardTab = (typeof OWNER_DASHBOARD_TABS)[number];
+
+const isOwnerDashboardTab = (
+  tab: string | null
+): tab is OwnerDashboardTab => {
+  return OWNER_DASHBOARD_TABS.includes(tab as OwnerDashboardTab);
+};
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("dashboard");
   const { isAlsoOwner, isLoading: isCheckingOwner } = useRoleMode();
+  const { profile, loading: verificationLoading } = useVerification();
   const [stats, setStats] = useState({
     totalListings: 0,
     activeBookings: 0,
     totalEarnings: 0,
     averageRating: 0,
   });
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "equipment" | "bookings" | "messages" | "reviews" | "payments"
-  >("overview");
+  const tabParam = searchParams.get("tab");
+  const activeTab: OwnerDashboardTab = isOwnerDashboardTab(tabParam)
+    ? tabParam
+    : "overview";
+  const setActiveTab = useCallback(
+    (tab: OwnerDashboardTab) => {
+      setSearchParams(tab === "overview" ? {} : { tab }, { replace: true });
+    },
+    [setSearchParams]
+  );
   const {
     bookingRequests,
     loading: bookingsLoading,
     fetchBookingRequests,
   } = useBookingRequests("owner");
+  const {
+    rentals: activeRentals,
+    isLoading: activeRentalsLoading,
+    error: activeRentalsError,
+  } = useActiveRentals("owner");
+
+  const progress = profile ? getVerificationProgress(profile) : 0;
+
+  const bookingSummary = useMemo(() => {
+    const today = formatDateForStorage(new Date());
+    const upcomingBookings = bookingRequests
+      .filter((r) => r.status === "approved" && r.start_date >= today)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+    return {
+      pendingCount: bookingRequests.filter((r) => r.status === "pending").length,
+      upcomingCount: upcomingBookings.length,
+      nextStartDate: upcomingBookings[0]?.start_date ?? null,
+    };
+  }, [bookingRequests]);
 
   // Redirect non-owners to become-owner page
   useEffect(() => {
@@ -125,15 +184,148 @@ const OwnerDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-in fade-in duration-500">
-        {/* Header */}
-        <div>
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            {t("owner.header.title")}
-          </h2>
-          <p className="text-muted-foreground">
-            {t("owner.header.description")}
-          </p>
+        {/* Welcome Hero Section */}
+        <WelcomeHero
+          subtitle={t("owner.header.description")}
+          isVerified={!!profile?.identityVerified}
+          bookingsLoading={bookingsLoading}
+          pendingCount={bookingSummary.pendingCount}
+          upcomingCount={bookingSummary.upcomingCount}
+          nextStartDate={bookingSummary.nextStartDate}
+        />
+
+        {/* High-Emphasis Banner for unverified identity */}
+        {!verificationLoading && profile && !profile.identityVerified && (
+          <Card className="border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20 animate-in slide-in-from-top-4 duration-500">
+            <CardContent className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-destructive">
+                    {t("owner.verification.incomplete_title")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("owner.verification.incomplete_message", { progress })}
+                  </p>
+                </div>
+              </div>
+              <Link to="/verification">
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="font-semibold shadow-lg ring-2 ring-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+                  aria-label={t("owner.verification.verify_button")}
+                  data-testid="verify-now-banner-owner"
+                >
+                  {t("owner.verification.verify_button")}
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notifications / Tasks */}
+        <OwnerNotificationsPanel />
+
+        {/* Claims Requiring Action */}
+        <div className="animate-in slide-in-from-top-4 duration-500 delay-100">
+          <OwnerClaimsList />
         </div>
+
+        {/* Active Rentals Section - Show error only when no data to fall back on */}
+        {activeRentalsLoading && (
+          <div
+            className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-150"
+            aria-busy="true"
+            aria-label={t("owner.active_rentals.title")}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <Package className="h-6 w-6 text-emerald-500" />
+                  {t("owner.active_rentals.title")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("owner.active_rentals.description")}
+                </p>
+              </div>
+              <div
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+                role="status"
+                aria-label="Loading active rentals"
+              >
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                <span className="sr-only">Loading active rentals</span>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={`active-rental-skeleton-${index}`}
+                  className="animate-in slide-in-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${150 + index * 50}ms` }}
+                >
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
+                    <div className="relative h-36 bg-muted flex-shrink-0">
+                      <Skeleton className="h-full w-full rounded-none" />
+                      <Skeleton className="absolute top-3 left-3 h-5 w-24 rounded-full" />
+                    </div>
+                    <CardContent className="p-4 flex flex-col flex-1">
+                      <div className="h-14 mb-4">
+                        <Skeleton className="h-6 w-3/4" />
+                        <div className="flex items-center gap-2 mt-2">
+                          <Skeleton className="h-5 w-5 rounded-full" />
+                          <Skeleton className="h-4 w-2/3" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-4 w-2/3" />
+                      </div>
+                      <Skeleton className="mt-auto h-10 w-full" />
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!activeRentalsLoading && activeRentalsError && activeRentals.length === 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{activeRentalsError}</AlertDescription>
+          </Alert>
+        )}
+
+        {!activeRentalsLoading && activeRentals.length > 0 && (
+          <div className="space-y-4 animate-in slide-in-from-top-4 duration-500 delay-150">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  <Package className="h-6 w-6 text-emerald-500" />
+                  {t("owner.active_rentals.title")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("owner.active_rentals.description")}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {activeRentals.map((rental, index) => (
+                <div
+                  key={rental.id}
+                  className="animate-in slide-in-from-bottom-4 duration-500"
+                  style={{ animationDelay: `${150 + index * 50}ms` }}
+                >
+                  <ActiveRentalCard booking={rental} viewerRole="owner" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">

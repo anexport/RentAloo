@@ -11,6 +11,7 @@ import Sidebar from "./Sidebar";
 import UserMenu from "@/components/UserMenu";
 import BreadcrumbNav from "./BreadcrumbNav";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -31,13 +32,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <Sidebar collapsed={sidebarCollapsed} onToggle={handleToggleSidebar} />
       </div>
 
-      {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-16 border-b border-border bg-card">
+      {/* Mobile Header - Reduced height for more content space */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="flex h-full items-center justify-between gap-2 px-4">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
@@ -46,6 +47,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Sheet>
           <div className="flex items-center gap-2 flex-1 justify-end">
             <RoleSwitcher variant="header" />
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>
@@ -55,19 +57,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <main
         className={cn(
           "transition-all duration-300",
-          "pt-16 md:pt-0",
+          "pt-14 md:pt-0",
           sidebarCollapsed ? "md:pl-16" : "md:pl-64"
         )}
       >
         {/* Top Bar - Desktop Only */}
         <div className="hidden md:block sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-          <div className="flex h-16 items-center justify-end px-6">
+          <div className="flex h-16 items-center justify-end gap-2 px-6">
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Content Area - pb-20 accounts for mobile bottom nav + safe area */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8">
           {/* Breadcrumb Navigation */}
           <div className="mb-4">
             <BreadcrumbNav />

@@ -15,7 +15,6 @@ import {
   CreditCard,
   Heart,
   LifeBuoy,
-  Plus,
   Sparkles,
   PiggyBank,
   ListChecks,
@@ -29,7 +28,7 @@ import { useVerification } from "@/hooks/useVerification";
 import { getVerificationProgress } from "@/lib/verification";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleMode } from "@/contexts/RoleModeContext";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/payment";
 import { formatDateLabel } from "@/lib/format";
@@ -55,7 +54,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
   const verificationProgress = profile ? getVerificationProgress(profile) : 0;
   const trustScore = profile?.trustScore?.overall ?? 0;
   const { user } = useAuth();
-  const { activeMode } = useRoleMode();
+  const { activeMode, isAlsoOwner } = useRoleMode();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const userId = user?.id;
@@ -243,14 +242,37 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
     };
   }, [userId, refetchUnreadMessages]);
 
-  const isActive = (href: string) => {
-    if (href === "/renter/dashboard") {
-      return location.pathname === href && !location.search;
-    }
-    return (
-      location.pathname === href || location.pathname + location.search === href
-    );
-  };
+  const isActive = useCallback(
+    (href: string): boolean => {
+      const currentParams = new URLSearchParams(location.search);
+      const currentTab = currentParams.get("tab");
+
+      const [hrefPath, hrefSearch = ""] = href.split("?");
+      const hrefTab = hrefSearch
+        ? new URLSearchParams(hrefSearch).get("tab")
+        : null;
+
+      const isDashboardPath =
+        hrefPath === "/renter/dashboard" || hrefPath === "/owner/dashboard";
+
+      if (isDashboardPath && !hrefSearch) {
+        return (
+          location.pathname === hrefPath &&
+          (currentTab === null || currentTab === "overview")
+        );
+      }
+
+      if (isDashboardPath && hrefTab) {
+        return location.pathname === hrefPath && currentTab === hrefTab;
+      }
+
+      return (
+        location.pathname === href ||
+        location.pathname + location.search === href
+      );
+    },
+    [location.pathname, location.search]
+  );
 
   const hasEquipment = equipmentStatus?.hasEquipment ?? false;
   const activeOwnerBookings = activeOwnerBookingsData ?? 0;
@@ -357,7 +379,7 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             >
               <Mountain className="h-6 w-6 text-primary" />
               <span className="text-lg font-bold text-foreground">
-                RentAloo
+                Vaymo
               </span>
             </Link>
           )}
@@ -394,56 +416,6 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
 
         {/* Role Switcher */}
         <RoleSwitcher collapsed={collapsed} variant="sidebar" />
-
-        {/* Owner quick action - only show in owner mode or if user has equipment */}
-        {(activeMode === "owner" || hasEquipment) && (
-        <div className="px-2 pb-2">
-          {hasEquipment ? (
-            <Link
-              to="/owner/dashboard?tab=equipment"
-              className={cn(
-                "flex items-center gap-3 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-sm font-medium text-primary transition hover:border-primary hover:bg-primary/10",
-                collapsed ? "justify-center" : ""
-              )}
-              title={collapsed ? t("sidebar.add_new_listing") : undefined}
-            >
-              <Plus className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{t("sidebar.add_new_listing")}</span>}
-              {!collapsed && (
-                <span className="ml-auto text-xs text-primary/80">
-                  {t("sidebar.add_new_listing_subtitle")}
-                </span>
-              )}
-            </Link>
-          ) : (
-            // Only show "List your equipment" link if user is not already an owner
-            user?.user_metadata?.role !== "owner" && (
-              <Link
-                to={
-                  user
-                    ? "/owner/become-owner"
-                    : "/register/owner"
-                }
-                className={cn(
-                  "flex items-center gap-3 rounded-lg border border-dashed border-muted px-3 py-2.5 text-sm font-medium transition hover:border-primary hover:bg-primary/5",
-                  collapsed ? "justify-center" : ""
-                )}
-                title={collapsed ? t("sidebar.list_equipment") : undefined}
-              >
-                <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-                {!collapsed && (
-                  <div className="flex flex-col">
-                    <span>{t("sidebar.list_equipment")}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t("sidebar.list_equipment_subtitle")}
-                    </span>
-                  </div>
-                )}
-              </Link>
-            )
-          )}
-        </div>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-2">

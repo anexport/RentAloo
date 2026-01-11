@@ -104,5 +104,103 @@
   },
   "navigation": {
     "menu": "Menu"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "filters": {
+      "all": "All",
+      "bookings": "Bookings",
+      "messages": "Messages",
+      "payments": "Payments",
+      "reviews": "Reviews"
+    },
+    "actions": {
+      "mark_all_read": "Mark all read",
+      "delete": "Delete notification"
+    },
+    "empty": {
+      "title": "No notifications yet",
+      "description": "We'll notify you when something important happens"
+    },
+    "toast": {
+      "marked_as_read": "Marked as read",
+      "marked_as_read_description": "{{count}} notification marked as read.",
+      "marked_as_read_description_plural": "{{count}} notifications marked as read."
+    },
+    "settings": {
+      "title": "Notification Settings",
+      "description": "Manage how you receive notifications",
+      "updated": "Settings updated",
+      "updated_description": "Your notification preferences have been saved.",
+      "error": "Error",
+      "error_description": "Failed to update preferences. Please try again.",
+      "quiet_hours_updated": "Quiet hours updated",
+      "quiet_hours_updated_description": "Your quiet hours have been saved.",
+      "quiet_hours_error_description": "Failed to update quiet hours. Please try again.",
+      "in_app": {
+        "title": "In-App Notifications",
+        "description": "Choose which types of notifications you want to receive"
+      },
+      "toast": {
+        "title": "Toast Popups",
+        "description": "Show popup notifications for important events"
+      },
+      "quiet_hours": {
+        "title": "Quiet Hours",
+        "description": "Suppress toast popups during specific hours",
+        "enable": "Enable quiet hours",
+        "enable_description": "No toast notifications during these times",
+        "start_time": "Start time",
+        "end_time": "End time"
+      },
+      "categories": {
+        "booking": {
+          "label": "Booking updates",
+          "description": "Confirmations, cancellations, and reminders"
+        },
+        "message": {
+          "label": "New messages",
+          "description": "When someone sends you a message"
+        },
+        "payment": {
+          "label": "Payment notifications",
+          "description": "Payments received, payouts, and refunds"
+        },
+        "review": {
+          "label": "Reviews",
+          "description": "When someone leaves you a review"
+        },
+        "verification": {
+          "label": "Verification updates",
+          "description": "Status changes for your verification"
+        },
+        "equipment": {
+          "label": "Equipment activity",
+          "description": "When someone favorites your equipment or views milestones"
+        },
+        "promotion": {
+          "label": "Promotions & announcements",
+          "description": "Special offers and system announcements"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Critical notifications",
+          "description": "Payments, payouts, and refunds"
+        },
+        "high": {
+          "label": "High priority",
+          "description": "Booking confirmations and reviews"
+        },
+        "medium": {
+          "label": "Medium priority",
+          "description": "New messages and reminders"
+        },
+        "low": {
+          "label": "Low priority",
+          "description": "Favorites and view milestones"
+        }
+      }
+    }
   }
 }

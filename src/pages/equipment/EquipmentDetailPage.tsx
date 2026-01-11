@@ -4,6 +4,10 @@ import { fetchListingById } from "@/components/equipment/services/listings";
 import { Separator } from "@/components/ui/separator";
 import { MapPin } from "lucide-react";
 import StarRating from "@/components/reviews/StarRating";
+import SEOHead from "@/components/seo/SEOHead";
+import StructuredData from "@/components/seo/StructuredData";
+import { generateEquipmentPageMeta } from "@/lib/seo/meta";
+import { generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo/schema";
 
 const EquipmentDetailPage = () => {
   const { id } = useParams();
@@ -63,8 +67,21 @@ const EquipmentDetailPage = () => {
     return sum / validRatings.length;
   })();
 
+  // SEO data
+  const equipmentMeta = generateEquipmentPageMeta(data);
+  const productSchema = generateProductSchema(data);
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Explore", url: "/explore" },
+    { name: data.title, url: `/equipment/${data.id}` },
+  ]);
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead {...equipmentMeta} />
+      <StructuredData data={productSchema} />
+      <StructuredData data={breadcrumbSchema} />
+
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-semibold text-foreground">{data.title}</h1>
         <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">

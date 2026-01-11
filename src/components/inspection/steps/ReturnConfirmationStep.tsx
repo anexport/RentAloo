@@ -247,7 +247,7 @@ export default function ReturnConfirmationStep({
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold">Rental Complete!</h2>
           <p className="text-muted-foreground max-w-sm">
-            Thank you for using Rentaloo. We hope you enjoyed your experience!
+            Thank you for using Vaymo. We hope you enjoyed your experience!
           </p>
         </div>
 

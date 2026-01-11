@@ -8,6 +8,16 @@ import {
 } from "@/config/pagination";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
+// Preload images for upcoming listings
+const preloadImages = (urls: string[]) => {
+  urls.forEach((url) => {
+    if (url) {
+      const img = new Image();
+      img.src = url;
+    }
+  });
+};
+
 type Props = {
   listings: Listing[];
   onOpenListing?: (listing: Listing) => void;
@@ -90,6 +100,35 @@ const VirtualListingGrid = ({
 
   const visibleListings = listings.slice(0, visibleCount);
   const hasMore = visibleCount < listings.length;
+  const preloadTimeoutRef = useRef<number | null>(null);
+
+  // Preload primary images for the next batch of listings (debounced)
+  useEffect(() => {
+    if (!hasMore) return;
+
+    // Clear previous timeout to debounce rapid scrolling
+    if (preloadTimeoutRef.current) {
+      clearTimeout(preloadTimeoutRef.current);
+    }
+
+    // Debounce preloading by 300ms to avoid excessive requests during rapid scroll
+    preloadTimeoutRef.current = window.setTimeout(() => {
+      const nextBatch = listings.slice(visibleCount, visibleCount + threshold);
+      const imageUrls = nextBatch
+        .map((listing) => listing.photos?.[0]?.photo_url)
+        .filter((url): url is string => !!url);
+
+      if (imageUrls.length > 0) {
+        preloadImages(imageUrls);
+      }
+    }, 300);
+
+    return () => {
+      if (preloadTimeoutRef.current) {
+        clearTimeout(preloadTimeoutRef.current);
+      }
+    };
+  }, [visibleCount, listings, threshold, hasMore]);
 
   return (
     <>

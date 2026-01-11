@@ -3,6 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { usePrefetchData } from "@/hooks/usePrefetchData";
+import SEOHead from "@/components/seo/SEOHead";
+import StructuredData from "@/components/seo/StructuredData";
+import { generateHomePageMeta } from "@/lib/seo/meta";
+import { generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo/schema";
 import ExploreHeader from "@/components/layout/ExploreHeader";
 import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
@@ -43,7 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Map } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { format } from "date-fns";
 
@@ -144,7 +148,8 @@ export default function HomePage() {
       params.set("equipmentCategoryId", searchFilters.equipmentCategoryId);
     }
 
-    navigate(`/explore?${params.toString()}`);
+    const queryString = params.toString();
+    navigate(queryString ? `/explore?${queryString}` : "/explore");
   };
 
   const handleBrowseAll = () => {
@@ -305,8 +310,16 @@ export default function HomePage() {
     setCategoryId("all");
   };
 
+  const homeMeta = generateHomePageMeta();
+  const organizationSchema = generateOrganizationSchema();
+  const webSiteSchema = generateWebSiteSchema();
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead {...homeMeta} />
+      <StructuredData data={organizationSchema} />
+      <StructuredData data={webSiteSchema} />
+
       {/* Header with Sign In / Sign Up */}
       <ExploreHeader
         onLoginClick={() => handleLoginOpenChange(true)}
@@ -315,11 +328,19 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <HeroSection>
-        <SearchBarPopover
-          value={searchFilters}
-          onChange={setSearchFilters}
-          onSubmit={handleSearchSubmit}
-        />
+        <div className="space-y-4">
+          <SearchBarPopover
+            value={searchFilters}
+            onChange={setSearchFilters}
+            onSubmit={handleSearchSubmit}
+          />
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" onClick={handleSearchSubmit} className="sm:w-auto">
+              <Map className="mr-2 h-4 w-4" />
+              {t("cta.start_browsing")}
+            </Button>
+          </div>
+        </div>
       </HeroSection>
 
       {/* Featured Listings */}

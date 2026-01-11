@@ -10,6 +10,7 @@ import PhotoCapture from "@/components/inspection/PhotoCapture";
 import ConditionChecklist from "@/components/inspection/ConditionChecklist";
 import SignaturePad from "@/components/inspection/SignaturePad";
 import type { InspectionType, ChecklistItem } from "@/types/inspection";
+import type { Json } from "@/lib/database.types";
 
 interface InspectionFormProps {
   bookingId: string;
@@ -113,7 +114,7 @@ export default function InspectionForm({
         inspection_type: inspectionType,
         photos: photoUrls,
         condition_notes: conditionNotes || null,
-        checklist_items: checklistItems,
+        checklist_items: checklistItems as unknown as Json,
         verified_by_owner: isOwner,
         verified_by_renter: !isOwner,
         owner_signature: isOwner ? signature : null,

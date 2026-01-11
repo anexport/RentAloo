@@ -1,0 +1,26 @@
+# Vaymo Robots.txt
+# https://www.vaymo.it/robots.txt
+
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /equipment/
+Disallow: /admin
+Disallow: /renter
+Disallow: /owner
+Disallow: /messages
+Disallow: /settings
+Disallow: /verification
+Disallow: /payment
+Disallow: /inspection
+Disallow: /claims
+Disallow: /rental
+Disallow: /api/
+Disallow: /*?login=
+Disallow: /*?signup=
+
+# Crawl-delay to prevent overloading server
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://www.vaymo.it/sitemap.xml

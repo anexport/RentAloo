@@ -85,7 +85,7 @@ const LoginPage = () => {
               <Mountain className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your RentAloo account</CardDescription>
+            <CardDescription>Sign in to your Vaymo account</CardDescription>
           </CardHeader>
           <CardContent>
             <form

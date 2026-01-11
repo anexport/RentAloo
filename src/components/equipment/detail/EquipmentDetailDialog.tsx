@@ -40,7 +40,7 @@ import { supabase } from "@/lib/supabase";
 import type { PaymentBookingData } from "@/lib/stripe";
 import type { Listing } from "@/components/equipment/services/listings";
 import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
-import { calculateBookingTotal, checkBookingConflicts } from "@/lib/booking";
+import { calculateBookingTotal, calculateDamageDeposit, checkBookingConflicts } from "@/lib/booking";
 import { formatDateForStorage } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
 
@@ -48,23 +48,6 @@ type EquipmentDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   listingId?: string;
-};
-
-
-const calculateDamageDeposit = (equipment?: Listing | null): number => {
-  if (!equipment) return 0;
-
-  if (equipment.damage_deposit_amount) {
-    return equipment.damage_deposit_amount;
-  }
-
-  if (equipment.damage_deposit_percentage) {
-    return (
-      equipment.daily_rate * (equipment.damage_deposit_percentage / 100)
-    );
-  }
-
-  return 0;
 };
 
 const EquipmentDetailDialog = ({
@@ -543,21 +526,21 @@ const EquipmentDetailDialog = ({
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger
                   value="overview"
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm"
                   aria-label={t("details_dialog.aria_overview")}
                 >
-                  <Info className="h-4 w-4" />
-                  <span>{t("details_dialog.tab_overview")}</span>
+                  <Info className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{t("details_dialog.tab_overview")}</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="reviews"
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm"
                   aria-label={t("details_dialog.aria_reviews")}
                 >
-                  <Star className="h-4 w-4" />
-                  <span>{t("details_dialog.tab_reviews")}</span>
+                  <Star className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{t("details_dialog.tab_reviews")}</span>
                   {data.reviews && data.reviews.length > 0 && (
-                    <Badge variant="secondary" className="ml-1 text-xs">
+                    <Badge variant="secondary" className="ml-1 text-xs flex-shrink-0">
                       {data.reviews.length}
                     </Badge>
                   )}
@@ -762,7 +745,7 @@ const EquipmentDetailDialog = ({
         <SheetContent
           ref={sheetContentRefCallback}
           side="bottom"
-          className="h-[90vh] max-h-[90vh] w-full overflow-y-auto scrollbar-hide px-0"
+          className="h-[90dvh] max-h-[90dvh] w-full overflow-y-auto scrollbar-hide px-0"
         >
           <div className="px-6 pt-6 pb-6">{renderContent()}</div>
         </SheetContent>
@@ -773,7 +756,7 @@ const EquipmentDetailDialog = ({
   // Desktop: Use Dialog component
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+      <DialogContent className="sm:max-w-7xl max-h-[90dvh] overflow-y-auto scrollbar-hide">
         <DialogTitle className="sr-only">
           {data?.title || t("details_dialog.equipment_details_fallback")}
         </DialogTitle>

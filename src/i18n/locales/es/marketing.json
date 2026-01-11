@@ -16,7 +16,7 @@
     "search_prompt": "Planifica tu próxima aventura"
   },
   "how_it_works": {
-    "section_title": "Cómo funciona RentAloo",
+    "section_title": "Cómo funciona Vaymo",
     "section_subtitle": "Alquilar equipo de aventura es simple y seguro. Comienza en minutos.",
     "step_1_title": "Buscar y explorar",
     "step_1_description": "Encuentra equipo cerca de ti de miles de anuncios locales",
@@ -29,7 +29,7 @@
   },
   "social_proof": {
     "section_title": "Amado por aventureros de todas partes",
-    "section_subtitle": "Únete a miles de arrendatarios y propietarios felices en la comunidad RentAloo",
+    "section_subtitle": "Únete a miles de arrendatarios y propietarios felices en la comunidad Vaymo",
     "stat_rating_value": "4.9/5",
     "stat_rating_label": "Calificación promedio",
     "stat_reviews_value": "2,000+",
@@ -41,7 +41,7 @@
     "testimonial_1_text": "Ahorré más de $800 alquilando equipo de esquí para nuestro viaje familiar a Tahoe. El equipo estaba en excelente condición y el propietario fue increíblemente útil.",
     "testimonial_2_name": "James Chen",
     "testimonial_2_role": "Guerrero de fin de semana",
-    "testimonial_2_text": "Para alguien como yo que ama probar nuevos deportes, RentAloo es perfecto. He alquilado de todo, desde kayaks hasta equipo de campamento sin arruinarme.",
+    "testimonial_2_text": "Para alguien como yo que ama probar nuevos deportes, Vaymo es perfecto. He alquilado de todo, desde kayaks hasta equipo de campamento sin arruinarme.",
     "testimonial_3_name": "Emily Rodriguez",
     "testimonial_3_role": "Propietario de equipo",
     "testimonial_3_text": "He ganado más de $1,200 en 3 meses alquilando mi bicicleta de montaña y equipo de campamento. ¡Es increíble tener ingresos pasivos de cosas que no usaba!",
@@ -64,7 +64,7 @@
     "cta_secondary": "Saber más",
     "social_proof_prefix": "Únete a",
     "social_proof_count": "4,000+ propietarios",
-    "social_proof_suffix": "ganando en RentAloo",
+    "social_proof_suffix": "ganando en Vaymo",
     "placeholder_title": "Tu equipo podría estar ganando dinero ahora mismo",
     "stat_earnings_value": "$847",
     "stat_earnings_label": "Ganancias mensuales promedio",

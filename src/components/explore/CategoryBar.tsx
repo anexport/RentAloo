@@ -140,7 +140,7 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
       aria-label={`Filter by ${name}${typeof count === "number" ? `, ${t("category_bar.items_aria", { count })}` : ""}`}
       aria-pressed={isActive}
       className={cn(
-        "group relative inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full transition-all duration-200 whitespace-nowrap text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "group relative inline-flex items-center gap-1.5 md:gap-2.5 px-3 md:px-4 py-2 md:py-2.5 rounded-full transition-all duration-200 whitespace-nowrap text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         isActive
           ? "bg-foreground text-background shadow-sm"
           : "bg-background hover:bg-muted border border-border hover:border-foreground/20 text-foreground hover:shadow-sm"
@@ -179,34 +179,43 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
   );
 
   return (
-    <div className="w-full overflow-x-auto scrollbar-hide">
-      <div className="flex items-center gap-2 py-1">
-        {/* All Categories */}
-        <CategoryPill
-          id="all"
-          name={t("category_bar.all")}
-          icon={Package}
-          isActive={activeCategoryId === "all"}
-          onClick={() => onCategoryChange("all")}
-        />
+    <div className="relative w-full">
+      {/* Left fade indicator */}
+      <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none md:hidden" />
+      
+      {/* Scrollable category list */}
+      <div className="w-full overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 py-1 px-1">
+          {/* All Categories */}
+          <CategoryPill
+            id="all"
+            name={t("category_bar.all")}
+            icon={Package}
+            isActive={activeCategoryId === "all"}
+            onClick={() => onCategoryChange("all")}
+          />
 
-        {/* Individual Categories */}
-        {categories.map((cat) => {
-          const Icon = getCategoryIcon(cat.name);
-          return (
-            <CategoryPill
-              key={cat.id}
-              id={cat.id}
-              name={cat.name}
-              icon={Icon}
-              count={cat.item_count}
-              isActive={activeCategoryId === cat.id}
-              onClick={() => onCategoryChange(cat.id)}
-              loading={countsLoading}
-            />
-          );
-        })}
+          {/* Individual Categories */}
+          {categories.map((cat) => {
+            const Icon = getCategoryIcon(cat.name);
+            return (
+              <CategoryPill
+                key={cat.id}
+                id={cat.id}
+                name={cat.name}
+                icon={Icon}
+                count={cat.item_count}
+                isActive={activeCategoryId === cat.id}
+                onClick={() => onCategoryChange(cat.id)}
+                loading={countsLoading}
+              />
+            );
+          })}
+        </div>
       </div>
+      
+      {/* Right fade indicator */}
+      <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none md:hidden" />
     </div>
   );
 };

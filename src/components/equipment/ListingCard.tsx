@@ -15,6 +15,8 @@ import type { Listing } from "@/components/equipment/services/listings";
 import { cn } from "@/lib/utils";
 import { useFavorites } from "@/hooks/useFavorites";
 import { toast } from "sonner";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { createMaxWidthQuery } from "@/config/breakpoints";
 
 type Props = {
   listing: Listing;
@@ -24,8 +26,10 @@ type Props = {
 
 const ListingCard = ({ listing, onOpen, className }: Props) => {
   const { t } = useTranslation("equipment");
+  const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const { isFavorited, toggleFavorite } = useFavorites();
   
@@ -56,9 +60,10 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
     setImageError(false);
   }, [listing.photos, listing.id]);
 
-  // Reset image error when navigating between images
+  // Reset image states when navigating between images
   useEffect(() => {
     setImageError(false);
+    setImageLoaded(false);
   }, [currentImageIndex]);
 
   const handleOpen = () => {
@@ -105,6 +110,24 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
 
   const hasMultipleImages = listing.photos && listing.photos.length > 1;
 
+  // Preload adjacent carousel images for smoother navigation
+  useEffect(() => {
+    if (!listing.photos || listing.photos.length <= 1) return;
+
+    const photosLength = listing.photos.length;
+    const nextIndex = (currentImageIndex + 1) % photosLength;
+    const prevIndex = currentImageIndex === 0 ? photosLength - 1 : currentImageIndex - 1;
+
+    // Preload next and previous images
+    [nextIndex, prevIndex].forEach((idx) => {
+      const url = listing.photos?.[idx]?.photo_url;
+      if (url) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
+  }, [currentImageIndex, listing.photos]);
+
   return (
     <TooltipProvider>
       <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full", className)}>
@@ -123,12 +146,20 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
         >
           {listing.photos && listing.photos.length > 0 && !imageError ? (
             <>
+              {/* Blur placeholder while image loads */}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-muted animate-pulse" />
+              )}
               <img
                 src={listing.photos[currentImageIndex]?.photo_url || ""}
                 alt={listing.title}
-                className="w-full h-full object-cover transition-opacity duration-300"
+                className={cn(
+                  "w-full h-full object-cover transition-opacity duration-300",
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                )}
                 loading="lazy"
                 decoding="async"
+                onLoad={() => setImageLoaded(true)}
                 onError={() => setImageError(true)}
               />
 
@@ -139,9 +170,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                     <TooltipTrigger asChild>
                       <Button
                         onClick={handlePrevImage}
-                        size="icon-sm"
+                        size="icon"
                         variant="ghost"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11"
                         aria-label={t("listing_card.previous_image")}
                       >
                         <ChevronLeft className="h-5 w-5" />
@@ -153,9 +184,9 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                     <TooltipTrigger asChild>
                       <Button
                         onClick={handleNextImage}
-                        size="icon-sm"
+                        size="icon"
                         variant="ghost"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/90 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-800 shadow-md backdrop-blur-sm max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-foreground dark:text-foreground min-w-11 min-h-11"
                         aria-label={t("listing_card.next_image")}
                       >
                         <ChevronRight className="h-5 w-5" />
@@ -164,8 +195,8 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                     <TooltipContent>{t("listing_card.next_photo")}</TooltipContent>
                   </Tooltip>
 
-                  {/* Dot indicators */}
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {/* Dot indicators with touch-friendly hit areas */}
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-0">
                     {listing.photos.map((_, idx) => (
                       <button
                         key={idx}
@@ -173,13 +204,18 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
                           e.stopPropagation();
                           setCurrentImageIndex(idx);
                         }}
-                        className={`h-1.5 rounded-full transition-all ${
-                          idx === currentImageIndex
-                            ? "w-6 bg-white dark:bg-white/90"
-                            : "w-1.5 bg-white/60 dark:bg-white/40 hover:bg-white/80 dark:hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-white/80 dark:focus:ring-white/60"
-                        }`}
+                        className="min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-90 transition-transform"
                         aria-label={t("listing_card.go_to_image", { number: idx + 1 })}
-                      />
+                      >
+                        <span
+                          className={cn(
+                            "h-2.5 rounded-full transition-all",
+                            idx === currentImageIndex
+                              ? "w-6 bg-white dark:bg-white/90 shadow-sm"
+                              : "w-2.5 bg-white/60 dark:bg-white/40"
+                          )}
+                        />
+                      </button>
                     ))}
                   </div>
                 </>
@@ -200,18 +236,19 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
               <button
                 onClick={handleWishlist}
                 disabled={isTogglingFavorite}
-                className="absolute top-2 right-2 h-9 w-9 rounded-full bg-white dark:bg-gray-900 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-all flex items-center justify-center z-10 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute top-2 right-2 h-11 w-11 rounded-full bg-white dark:bg-gray-900 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg backdrop-blur-sm opacity-80 group-hover:opacity-100 transition-all flex items-center justify-center z-10 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label={
                   isWishlisted ? t("listing_card.wishlist_remove") : t("listing_card.wishlist_add")
                 }
               >
                 {isTogglingFavorite ? (
-                  <Loader2 className="h-4 w-4 text-gray-700 dark:text-gray-200 animate-spin" />
+                  <Loader2 className="h-5 w-5 text-gray-700 dark:text-gray-200 animate-spin" />
                 ) : (
                   <Heart
-                    className={`h-4 w-4 transition-colors ${
+                    className={cn(
+                      "h-5 w-5 transition-colors",
                       isWishlisted ? "fill-red-500 text-red-500" : "text-gray-700 dark:text-gray-200"
-                    }`}
+                    )}
                   />
                 )}
               </button>
@@ -251,17 +288,13 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
               {listing.description}
             </p>
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-4 w-4" />
-                    <span className="truncate max-w-[120px]">
-                      {listing.location}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>{listing.location}</TooltipContent>
-              </Tooltip>
+              {/* Mobile-friendly location display */}
+              <div className="flex items-center space-x-1 min-w-0 flex-1 mr-2">
+                <MapPin className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate" title={listing.location}>
+                  {listing.location}
+                </span>
+              </div>
               <div className="flex items-center space-x-2">
                 {avgRating > 0 ? (
                   <>
@@ -275,14 +308,16 @@ const ListingCard = ({ listing, onOpen, className }: Props) => {
             </div>
           </div>
           <div className="flex gap-2 mt-auto">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleOpen}
-              aria-label={t("listing_card.view_details")}
-            >
-              {t("listing_card.view")}
-            </Button>
+            {!isMobile && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleOpen}
+                aria-label={t("listing_card.view_details")}
+              >
+                {t("listing_card.view")}
+              </Button>
+            )}
             <Button
               className="flex-1"
               onClick={handleOpen}

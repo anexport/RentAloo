@@ -4,30 +4,51 @@ import { useUpcomingBookings } from "@/components/renter/hooks/useUpcomingBookin
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, parseISO, type Locale } from "date-fns";
+import { enUS, es, fr, de, it } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
+
+// Map i18n language codes to date-fns locales
+const getDateFnsLocale = (language: string) => {
+  const localeMap: Record<string, Locale> = {
+    en: enUS,
+    es: es,
+    fr: fr,
+    de: de,
+    it: it,
+  };
+  return localeMap[language] || enUS;
+};
 
 const WelcomeHero = () => {
   const { user } = useAuth();
   const { profile } = useVerification();
   const { data, isLoading } = useUpcomingBookings(user?.id);
+  const { t } = useTranslation("dashboard");
 
   const upcomingCount = data?.count || 0;
   const nextRentalDate = data?.nextDate;
 
+  // Get current language and corresponding date-fns locale
+  const currentLanguage = i18n.language.split("-")[0]; // Handle "en-US" -> "en"
+  const dateLocale = getDateFnsLocale(currentLanguage);
+
   // Get personalized greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t("renter.welcome.greeting_morning");
+    if (hour < 17) return t("renter.welcome.greeting_afternoon");
+    return t("renter.welcome.greeting_evening");
   };
 
-  // Extract first name from email (fallback to "there" if not available)
+  // Extract first name from email (fallback to translated "there" if not available)
   const getFirstName = () => {
-    if (!user?.email) return "there";
+    if (!user?.email) return t("renter.welcome.fallback_name");
     const emailName = user.email.split("@")[0];
-    // Capitalize first letter
-    return emailName.charAt(0).toUpperCase() + emailName.slice(1).split(".")[0];
+    if (!emailName) return t("renter.welcome.fallback_name");
+    const namePart = emailName.split(".")[0];
+    return namePart.charAt(0).toUpperCase() + namePart.slice(1);
   };
 
   const firstName = getFirstName();
@@ -58,7 +79,7 @@ const WelcomeHero = () => {
                       className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300 dark:border-green-700 shadow-sm"
                     >
                       <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Verified
+                      {t("renter.welcome.verified_badge")}
                     </Badge>
                   </div>
                 )}
@@ -72,24 +93,33 @@ const WelcomeHero = () => {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-sm md:text-base">
-                      You have{" "}
-                      <span className="font-semibold text-foreground">
-                        {upcomingCount} {upcomingCount === 1 ? "rental" : "rentals"}
-                      </span>{" "}
-                      coming up. Next rental starts{" "}
-                      <span className="font-semibold text-foreground">
-                        {formatDistanceToNow(new Date(nextRentalDate), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                      .
+                      {(() => {
+                        let formattedTime = "";
+                        try {
+                          const parsedDate = parseISO(nextRentalDate);
+                          if (isNaN(parsedDate.getTime())) {
+                            throw new Error("Invalid date");
+                          }
+                          formattedTime = formatDistanceToNow(parsedDate, {
+                            addSuffix: true,
+                            locale: dateLocale,
+                          });
+                        } catch (error) {
+                          // Fallback to empty string if date parsing/formatting fails
+                          formattedTime = "";
+                        }
+                        return t("renter.welcome.upcoming_rentals", {
+                          count: upcomingCount,
+                          time: formattedTime,
+                        });
+                      })()}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-sm md:text-base">
-                      Ready to rent? Browse equipment and start your next adventure.
+                      {t("renter.welcome.empty_state")}
                     </span>
                   </div>
                 )}
@@ -108,4 +138,3 @@ const WelcomeHero = () => {
 };
 
 export default WelcomeHero;
-

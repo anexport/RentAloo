@@ -7,8 +7,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
-        classpath 'com.google.gms:google-services:4.4.0'
+        classpath 'com.android.tools.build:gradle:8.7.2'
+        classpath 'com.google.gms:google-services:4.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -21,35 +21,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-    }
-    
-    // Force AndroidX versions compatible with Stripe SDK 21.4.2
-    // Stripe requires lifecycle 2.8.0+ for addCloseable() method
-    // Use Fragment 1.8.4 to avoid ReportFragment compatibility issues with lifecycle 2.8.x
-    configurations.configureEach {
-        resolutionStrategy {
-            force 'androidx.lifecycle:lifecycle-runtime:2.8.0'
-            force 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.0'
-            force 'androidx.lifecycle:lifecycle-process:2.8.0'
-            force 'androidx.lifecycle:lifecycle-common:2.8.0'
-            force 'androidx.lifecycle:lifecycle-common-java8:2.8.0'
-            force 'androidx.lifecycle:lifecycle-livedata:2.8.0'
-            force 'androidx.lifecycle:lifecycle-livedata-core:2.8.0'
-            force 'androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.0'
-            force 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.0'
-            force 'androidx.lifecycle:lifecycle-viewmodel:2.8.0'
-            force 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0'
-            force 'androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.0'
-            force 'androidx.fragment:fragment:1.8.4'
-            force 'androidx.fragment:fragment-ktx:1.8.4'
-            force 'androidx.appcompat:appcompat:1.6.1'
-            force 'androidx.appcompat:appcompat-resources:1.6.1'
-            force 'androidx.activity:activity:1.9.0'
-            force 'androidx.activity:activity-ktx:1.9.0'
-            force 'androidx.core:core:1.13.1'
-            force 'androidx.core:core-ktx:1.13.1'
-            force 'androidx.startup:startup-runtime:1.2.0'
-        }
     }
 }
 

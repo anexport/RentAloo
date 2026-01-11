@@ -1,18 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Command,
@@ -23,6 +16,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -32,6 +26,7 @@ import {
   X,
   Wrench,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
@@ -53,6 +48,9 @@ import type { EquipmentSuggestion } from "@/components/equipment/services/autoco
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { highlightMatchingText } from "@/lib/highlightText";
+import SearchPreviewMap from "./SearchPreviewMap";
+import MobileSearchBottomSheet from "./MobileSearchBottomSheet";
+import { fetchListings } from "@/components/equipment/services/listings";
 
 type Props = {
   value: SearchBarFilters;
@@ -69,13 +67,18 @@ const FALLBACK_EQUIPMENT_TYPES = [
   "Cycling",
 ];
 
-const POPULAR_LOCATIONS = [
-  "San Francisco, CA",
-  "Los Angeles, CA",
-  "Seattle, WA",
-  "Portland, OR",
-  "Denver, CO",
-  "Austin, TX",
+const POPULAR_LOCATIONS: Array<{
+  name: string;
+  type: 'city' | 'park' | 'beach' | 'mountain';
+  emoji: string;
+  coords: { lat: number; lng: number };
+}> = [
+  { name: "San Francisco, CA", type: "city", emoji: "🌉", coords: { lat: 37.7749, lng: -122.4194 } },
+  { name: "Yosemite National Park", type: "park", emoji: "🏔️", coords: { lat: 37.8651, lng: -119.5383 } },
+  { name: "Santa Cruz, CA", type: "beach", emoji: "🌊", coords: { lat: 36.9741, lng: -122.0308 } },
+  { name: "Lake Tahoe, CA", type: "mountain", emoji: "⛷️", coords: { lat: 39.0968, lng: -120.0324 } },
+  { name: "Big Sur, CA", type: "beach", emoji: "🌅", coords: { lat: 36.2704, lng: -121.8081 } },
+  { name: "Joshua Tree, CA", type: "park", emoji: "🌵", coords: { lat: 33.8734, lng: -115.9010 } },
 ];
 
 const POPULAR_CATEGORIES = [
@@ -86,8 +89,33 @@ const POPULAR_CATEGORIES = [
   "Winter Sports",
 ];
 
-const RECENT_SEARCHES_KEY = "rentaloo_recent_equipment_searches";
+const RECENT_SEARCHES_KEY = "vaymo_recent_equipment_searches";
+const RECENT_LOCATIONS_KEY = "vaymo_recent_locations";
 const MAX_RECENT_SEARCHES = 5;
+const MAX_RECENT_LOCATIONS = 3;
+
+// Helper functions for recent locations
+const getRecentLocations = (): string[] => {
+  try {
+    const stored = localStorage.getItem(RECENT_LOCATIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addRecentLocation = (location: string) => {
+  try {
+    const recent = getRecentLocations();
+    const filtered = recent.filter((s) => s !== location);
+    const updated = [location, ...filtered].slice(0, MAX_RECENT_LOCATIONS);
+    localStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.error("Failed to save recent location:", error);
+    return [];
+  }
+};
 
 // Helper function to detect macOS using modern API with fallback
 const isMacOS = (): boolean => {
@@ -99,6 +127,16 @@ const isMacOS = (): boolean => {
       .userAgentData?.platform ?? navigator.platform;
 
   return platform.toLowerCase().includes("mac");
+};
+
+// Helper to check if a key is a navigation key that should allow focus to move to Command
+const isNavigationKey = (key: string): boolean => {
+  return (
+    key === "ArrowDown" ||
+    key === "ArrowUp" ||
+    key === "Enter" ||
+    key === "Escape"
+  );
 };
 
 // Helper functions for recent searches
@@ -149,11 +187,23 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const [isLocating, setIsLocating] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [recentLocations, setRecentLocations] = useState<string[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const equipmentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const addressAutocomplete = useAddressAutocomplete({
     limit: 10,
     minLength: 2,
     debounceMs: 100,
+  });
+
+  // Fetch listings for the interactive map preview
+  const { data: mapListings = [] } = useQuery({
+    queryKey: ["search-preview-listings"],
+    queryFn: ({ signal }) => fetchListings({ limit: 100 }, signal),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: sheetOpen, // Only fetch when sheet is open
   });
 
   const equipmentAutocomplete = useEquipmentAutocomplete({
@@ -240,9 +290,10 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         }));
   }, [categories]);
 
-  // Load recent searches on mount
+  // Load recent searches and locations on mount
   useEffect(() => {
     setRecentSearches(getRecentSearches());
+    setRecentLocations(getRecentLocations());
   }, []);
 
   useEffect(() => {
@@ -287,8 +338,40 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
   const handleLocationSelect = (location: string) => {
     onChange({ ...value, location });
     setLocationOpen(false);
-    setActiveSection("when");
+    addressAutocomplete.setQuery("");
+    locationInputRef.current?.blur();
+    // Save to recent locations
+    const updated = addRecentLocation(location);
+    setRecentLocations(updated);
   };
+
+  // Focus Command input when location popover opens
+  useEffect(() => {
+    if (locationOpen && isDesktop) {
+      // Small delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        const commandInput = document.querySelector(
+          '[data-slot="command-input"]'
+        ) as HTMLInputElement;
+        commandInput?.focus();
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [locationOpen, isDesktop]);
+
+  // Focus Command input when equipment popover opens
+  useEffect(() => {
+    if (equipmentOpen && isDesktop) {
+      // Small delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        const commandInput = document.querySelector(
+          '[data-slot="command-input"]'
+        ) as HTMLInputElement;
+        commandInput?.focus();
+      }, 50);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [equipmentOpen, isDesktop]);
 
   useEffect(() => {
     if (!value.equipmentCategoryId || value.equipmentType) return;
@@ -322,7 +405,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     placeholder: string,
     options?: {
       className?: string;
-      popularHeading?: string;
     }
   ) => {
     const commandClassName =
@@ -331,65 +413,88 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
         : "rounded-2xl border";
     return (
       <Command className={commandClassName} shouldFilter={false}>
-        <CommandInput
-          placeholder={placeholder}
-          value={addressAutocomplete.query}
-          onValueChange={addressAutocomplete.setQuery}
-        />
-        <CommandList aria-busy={addressAutocomplete.loading}>
-          <CommandEmpty>
-            {addressAutocomplete.loading
-              ? "Searching..."
-              : addressAutocomplete.query.trim().length === 0
-              ? "Start typing to search locations."
-              : addressAutocomplete.error
-              ? `Error: ${addressAutocomplete.error}`
-              : "No locations found."}
-          </CommandEmpty>
-          {addressAutocomplete.query.trim().length >= 2 &&
-            addressAutocomplete.suggestions.length > 0 && (
+        <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+          <CommandInput
+            placeholder={placeholder}
+            value={addressAutocomplete.query}
+            onValueChange={addressAutocomplete.setQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => {
+              // Delay to allow click on suggestion to register
+              setTimeout(() => setIsSearchFocused(false), 150);
+            }}
+            className="h-12 text-base"
+          />
+        </div>
+        {/* Only show dropdown when focused/typing */}
+        {(isSearchFocused || addressAutocomplete.query.trim().length > 0) && (
+          <CommandList aria-busy={addressAutocomplete.loading}>
+            <CommandEmpty>
+              {addressAutocomplete.loading
+                ? "Searching..."
+                : addressAutocomplete.query.trim().length === 0
+                ? recentLocations.length > 0 
+                  ? null  // Don't show empty message if we have recent locations
+                  : "Start typing to search locations."
+                : addressAutocomplete.error
+                ? `Error: ${addressAutocomplete.error}`
+                : "No locations found."}
+            </CommandEmpty>
+
+            {/* Recent Locations - shown when focused and query is empty */}
+            {addressAutocomplete.query.trim().length === 0 && recentLocations.length > 0 && isSearchFocused && (
               <CommandGroup
-                heading="Suggestions"
+                heading="Recent"
                 className="animate-suggestions-in"
               >
-                {addressAutocomplete.suggestions.map((s, idx) => (
+                {recentLocations.map((loc, idx) => (
                   <CommandItem
-                    key={s.id}
+                    key={`recent-loc-${loc}`}
                     onSelect={() => {
-                      handleLocationSelect(s.label);
-                      addressAutocomplete.setQuery("");
+                      handleLocationSelect(loc);
+                      setIsSearchFocused(false);
                     }}
                     className="cursor-pointer animate-suggestion-item"
                     style={{ "--item-index": idx } as React.CSSProperties}
                   >
-                    <MapPin className="mr-2 h-4 w-4" />
-                    <span className="truncate">
-                      {highlightMatchingText(
-                        s.label,
-                        addressAutocomplete.query
-                      )}
-                    </span>
+                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <span className="truncate">{loc}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
             )}
-          <CommandGroup
-            heading={options?.popularHeading ?? "Popular"}
-            className="animate-suggestions-in"
-          >
-            {POPULAR_LOCATIONS.map((loc, idx) => (
-              <CommandItem
-                key={loc}
-                onSelect={() => handleLocationSelect(loc)}
-                className="cursor-pointer animate-suggestion-item"
-                style={{ "--item-index": idx } as React.CSSProperties}
-              >
-                <MapPin className="mr-2 h-4 w-4" />
-                {loc}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
+
+            {/* Google Places Suggestions - shown when typing */}
+            {addressAutocomplete.query.trim().length >= 2 &&
+              addressAutocomplete.suggestions.length > 0 && (
+                <CommandGroup
+                  heading="Suggestions"
+                  className="animate-suggestions-in"
+                >
+                  {addressAutocomplete.suggestions.map((s, idx) => (
+                    <CommandItem
+                      key={s.id}
+                      onSelect={() => {
+                        handleLocationSelect(s.label);
+                        addressAutocomplete.setQuery("");
+                        setIsSearchFocused(false);
+                      }}
+                      className="cursor-pointer animate-suggestion-item"
+                      style={{ "--item-index": idx } as React.CSSProperties}
+                    >
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span className="truncate">
+                        {highlightMatchingText(
+                          s.label,
+                          addressAutocomplete.query
+                        )}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+          </CommandList>
+        )}
       </Command>
     );
   };
@@ -453,6 +558,7 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     setEquipmentOpen(false);
     setSheetOpen(false);
     setActiveSection("where");
+    equipmentInputRef.current?.blur();
   };
 
   const handleSearch = () => {
@@ -610,53 +716,68 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     return parts.length > 0 ? parts.join(" · ") : "Search equipment";
   };
 
-  // Mobile version with Sheet
+  // Mobile version with custom bottom sheet
   if (!isDesktop) {
     return (
-      <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
-        <SheetTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
-            aria-label="Search equipment"
-          >
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Search
-                </span>
-                <span className="text-sm font-semibold text-foreground truncate">
-                  {value.location || "Where to?"}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {getSearchSummary()}
-                </span>
-              </div>
+      <>
+        {/* Trigger Button */}
+        <Button
+          variant="outline"
+          className="w-full h-16 rounded-full justify-between px-5 py-4 text-left font-normal shadow-sm border-muted"
+          aria-label="Search equipment"
+          onClick={() => setSheetOpen(true)}
+        >
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                Search
+              </span>
+              <span className="text-sm font-semibold text-foreground truncate">
+                {value.location || "Where to?"}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">
+                {getSearchSummary()}
+              </span>
             </div>
-            <Badge
-              variant="secondary"
-              className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
-            >
-              {activeFilterCount > 0 ? (
-                activeFilterCount
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Badge>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="h-[85vh] p-0">
-          <div className="flex h-full flex-col">
-            <SheetHeader className="px-6 pt-6 pb-4 text-left">
-              <SheetTitle className="text-lg font-semibold">
-                Plan your next outing
-              </SheetTitle>
-              <p className="text-sm text-muted-foreground">
-                Browse gear by destination, dates, and activity.
-              </p>
-            </SheetHeader>
-            <div className="px-6 pb-4">
+          </div>
+          <Badge
+            variant="secondary"
+            className="ml-3 h-9 w-9 rounded-full p-0 flex items-center justify-center text-xs shrink-0"
+          >
+            {activeFilterCount > 0 ? (
+              activeFilterCount
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+          </Badge>
+        </Button>
+
+        {/* Custom Bottom Sheet */}
+        <MobileSearchBottomSheet
+          isOpen={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          peekContent={
+            <span className="text-xs text-muted-foreground mt-1">
+              {value.location || "Where"} • {value.dateRange?.from ? "Dates set" : "When"} • {value.equipmentType || "What"}
+            </span>
+          }
+        >
+            {/* Compact header with integrated tabs */}
+            <div className="px-4 pb-3 sticky top-0 bg-background z-10">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-semibold">
+                  Search
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </Button>
+              </div>
               <div className="flex items-center rounded-full bg-muted p-1">
                 {MOBILE_SECTIONS.map((section) => {
                   // Use dynamic icon for "What" section based on selection type
@@ -669,128 +790,111 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                     Icon = Wrench;
                   }
                   const isActive = activeSection === section.key;
+                  
+                  // Dynamic label based on selection
+                  let label = section.label;
+                  if (section.key === "when" && value.dateRange?.from) {
+                    label = value.dateRange.to
+                      ? `${format(value.dateRange.from, "MMM d")}-${format(value.dateRange.to, "d")}`
+                      : format(value.dateRange.from, "MMM d");
+                  }
+                  
                   return (
                     <button
                       key={section.key}
                       type="button"
                       onClick={() => {
                         setActiveSection(section.key);
+                        // Auto-focus input when switching to sections with inputs
+                        setTimeout(() => {
+                          if (section.key === "where") {
+                            const input = document.querySelector(
+                              '[data-slot="command-input"]'
+                            ) as HTMLInputElement;
+                            input?.focus();
+                          } else if (section.key === "what") {
+                            const input = document.querySelector(
+                              '[data-slot="command-input"]'
+                            ) as HTMLInputElement;
+                            input?.focus();
+                          }
+                        }, 150);
                       }}
                       className={cn(
-                        "flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all",
+                        "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                       aria-pressed={isActive}
                     >
-                      <Icon className="h-4 w-4" />
-                      {section.label}
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
-              {activeSection === "where" && (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Where do you need gear?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Search cities or choose a popular destination.
-                    </p>
+            
+            {/* Map-centric Where section */}
+            {activeSection === "where" && (
+              <div className="flex-1 flex flex-col animate-in fade-in-0 duration-200">
+                {/* Interactive Map - Takes ~50% of sheet height */}
+                <div className="relative flex-1 min-h-[280px]">
+                  <SearchPreviewMap
+                    location={value.location || null}
+                    listings={mapListings}
+                    onSelectListing={() => {}}
+                    onOpenListing={() => {}}
+                    onUseCurrentLocation={handleLocationClick}
+                    isLocating={isLocating}
+                    className="h-full w-full"
+                  />
+                  
+                  {/* Overlaid Search Input - Google Maps style */}
+                  <div className="absolute top-3 left-3 right-3 z-20">
+                    <div className="relative">
+                      <div className="bg-background/95 backdrop-blur-sm rounded-xl shadow-lg border border-border/50 overflow-hidden">
+                        {renderAutocompleteCommand("Search location...")}
+                      </div>
+                      {addressAutocomplete.loading && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start animate-suggestion-item"
-                    style={{ "--item-index": 0 } as React.CSSProperties}
-                    onClick={handleLocationClick}
-                    disabled={isLocating}
-                    aria-label="Use current location"
-                    aria-busy={isLocating}
-                  >
-                    <Crosshair className="mr-2 h-4 w-4" />
-                    {isLocating
-                      ? "Detecting your location..."
-                      : "Use current location"}
-                  </Button>
-                  {renderAutocompleteCommand("Try Yosemite National Park")}
-                  <div className="flex flex-wrap gap-2 animate-suggestions-in">
-                    {POPULAR_LOCATIONS.map((loc, idx) => (
-                      <Button
-                        key={`${loc}-chip`}
-                        variant={
-                          value.location === loc ? "default" : "secondary"
-                        }
-                        size="sm"
-                        className="rounded-full animate-suggestion-item"
-                        style={{ animationDelay: `${idx * 40}ms` }}
-                        onClick={() => handleLocationSelect(loc)}
-                      >
-                        {loc}
-                      </Button>
-                    ))}
-                  </div>
+
+                  {/* Selected location badge - overlaid on map */}
                   {value.location && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
-                        {value.location}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onChange({ ...value, location: "" })}
-                        className="h-7 text-xs"
-                      >
-                        Clear
-                      </Button>
+                    <div className="absolute bottom-3 left-3 right-14 z-20">
+                      <div className="flex items-center gap-2 bg-background/95 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50">
+                        <MapPin className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-sm font-medium flex-1 truncate">
+                          {value.location}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onChange({ ...value, location: "" })}
+                          className="h-6 w-6 p-0 rounded-full hover:bg-muted"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeSection === "when" && (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      When will you pick it up?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Add a flexible range to see availability.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 animate-suggestions-in">
-                    {quickDateRanges.map((option, idx) => (
-                      <Button
-                        key={option.label}
-                        variant={
-                          value.dateRange?.from &&
-                          value.dateRange.to &&
-                          startOfDay(value.dateRange.from).getTime() ===
-                            option.range.from?.getTime() &&
-                          startOfDay(value.dateRange.to).getTime() ===
-                            option.range.to?.getTime()
-                            ? "default"
-                            : "secondary"
-                        }
-                        size="sm"
-                        className="rounded-full animate-suggestion-item"
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                        onClick={() => handlePresetDateSelect(option.range)}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                  <div
-                    className="rounded-2xl border p-4 animate-suggestions-in"
-                    style={{ animationDelay: "100ms" }}
-                  >
+            {/* When and What sections - with scrollable content */}
+            {activeSection !== "where" && (
+              <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+                {activeSection === "when" && (
+                <div className="space-y-3 animate-in fade-in-0 slide-in-from-right-2 duration-200">
+                  {/* Always visible calendar - mobile optimized */}
+                  <div className="rounded-2xl border bg-card overflow-hidden">
                     <Calendar
                       mode="range"
                       selected={value.dateRange}
@@ -799,52 +903,73 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       disabled={(date) =>
                         startOfDay(date) < startOfDay(new Date())
                       }
+                      className="w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-cell]:w-[14.28%] [&_.rdp-head_cell]:w-[14.28%] [&_.rdp-day]:h-10 [&_.rdp-day]:w-full"
                     />
                   </div>
-                  {value.dateRange?.from && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
-                        {value.dateRange.to
-                          ? `${format(
-                              value.dateRange.from,
-                              "MMM d"
-                            )} - ${format(value.dateRange.to, "MMM d")}`
-                          : format(value.dateRange.from, "MMM d")}
-                      </Badge>
+                  {/* Selection summary */}
+                  {value.dateRange?.from ? (
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 animate-in fade-in-0 zoom-in-95 duration-200">
+                      {/* Start date */}
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <CalendarIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Start</p>
+                          <p className="text-sm font-medium truncate">{format(value.dateRange.from, "EEE, MMM d")}</p>
+                        </div>
+                      </div>
+                      {/* Arrow */}
+                      <div className="text-muted-foreground">→</div>
+                      {/* End date */}
+                      <div className="flex-1 flex items-center gap-2">
+                        <div className={cn(
+                          "h-8 w-8 rounded-full flex items-center justify-center",
+                          value.dateRange.to ? "bg-primary/10" : "bg-muted border-2 border-dashed border-muted-foreground/30"
+                        )}>
+                          <CalendarIcon className={cn("h-4 w-4", value.dateRange.to ? "text-primary" : "text-muted-foreground/50")} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">End</p>
+                          <p className={cn("text-sm font-medium truncate", !value.dateRange.to && "text-muted-foreground")}>
+                            {value.dateRange.to ? format(value.dateRange.to, "EEE, MMM d") : "Select date"}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Clear button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          onChange({ ...value, dateRange: undefined })
-                        }
-                        className="h-7 text-xs"
+                        className="h-8 w-8 p-0 rounded-full shrink-0"
+                        onClick={() => onChange({ ...value, dateRange: undefined })}
                       >
-                        Clear
+                        <X className="h-4 w-4" />
                       </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-muted-foreground/30">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Tap a date to start
+                      </p>
                     </div>
                   )}
                 </div>
               )}
 
               {activeSection === "what" && (
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      What are you planning?
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Search for equipment or browse categories.
-                    </p>
-                  </div>
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-right-2 duration-200">
                   <Command shouldFilter={false} className="rounded-2xl border">
-                    <CommandInput
-                      placeholder="What are you looking for?"
-                      value={equipmentAutocomplete.query}
-                      onValueChange={equipmentAutocomplete.setQuery}
-                    />
+                    <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+                      <CommandInput
+                        placeholder="Search equipment or categories..."
+                        value={equipmentAutocomplete.query}
+                        onValueChange={equipmentAutocomplete.setQuery}
+                        className="h-12 text-base"
+                      />
+                    </div>
                     <CommandList
                       className="max-h-[400px]"
                       aria-busy={equipmentAutocomplete.loading}
@@ -1023,14 +1148,13 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                       )}
                     </CommandList>
                   </Command>
+                  {/* Selection badge */}
                   {value.equipmentType && (
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-1 text-xs"
-                      >
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-full px-3 py-2 animate-in fade-in-0 zoom-in-95 duration-200">
+                      <Package className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium flex-1 truncate">
                         {value.equipmentType}
-                      </Badge>
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1042,30 +1166,28 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                             search: "",
                           })
                         }
-                        className="h-7 text-xs"
+                        className="h-7 w-7 p-0 rounded-full"
                       >
-                        Clear
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )}
                 </div>
               )}
-            </div>
-            <SheetFooter className="mt-auto gap-3 px-6 pb-6 pt-4 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]">
-              <Button
-                variant="ghost"
-                onClick={handleClearAll}
-                className="flex-1"
+              </div>
+            )}
+            {/* Footer with Search button */}
+            <div className="mt-auto px-4 pb-6 pt-3 border-t border-border/50 bg-gradient-to-t from-background to-background/80">
+              <Button 
+                onClick={handleSearch} 
+                className="w-full h-12 text-base font-semibold rounded-full shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
               >
-                Clear all
+                <Search className="mr-2 h-5 w-5" />
+                Search{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
               </Button>
-              <Button onClick={handleSearch} className="flex-1">
-                Search
-              </Button>
-            </SheetFooter>
-          </div>
-        </SheetContent>
-      </Sheet>
+            </div>
+        </MobileSearchBottomSheet>
+      </>
     );
   }
 
@@ -1074,42 +1196,113 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
     <div className="w-full rounded-full border border-input bg-card shadow-md hover:shadow-lg transition-shadow overflow-hidden">
       <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-stretch divide-x divide-border">
         {/* Location Popover */}
-        <Popover
-          open={locationOpen}
-          onOpenChange={(open) => {
-            setLocationOpen(open);
-            if (open) addressAutocomplete.setQuery("");
-          }}
-        >
+          <Popover
+            open={locationOpen}
+            onOpenChange={(open) => {
+              setLocationOpen(open);
+              if (open) {
+                addressAutocomplete.setQuery(value.location || "");
+              }
+              if (!open) {
+                addressAutocomplete.setQuery("");
+              }
+            }}
+          >
           <PopoverTrigger asChild>
             <button
-              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors rounded-l-full focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
+              type="button"
+              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors rounded-l-full focus:outline-none focus:ring-2 focus:ring-ring focus:z-10 w-full"
               aria-label="Select location"
+              onClick={(e) => {
+                // Focus the input when button is clicked
+                e.preventDefault();
+                locationInputRef.current?.focus();
+              }}
             >
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-foreground">
+                  <div className="text-xs font-semibold text-foreground mb-1">
                     Where
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {value.location || "Search destinations"}
-                  </div>
-                </div>
-                {value.location && (
-                  <X
-                    className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onChange({ ...value, location: "" });
+                    <Input
+                      ref={locationInputRef}
+                      type="text"
+                      placeholder="Search destinations"
+                      value={
+                        locationOpen
+                          ? addressAutocomplete.query
+                          : value.location || ""
+                      }
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const nextValue = e.target.value;
+                        addressAutocomplete.setQuery(nextValue);
+                        if (!locationOpen) {
+                          setLocationOpen(true);
+                        }
+                      }}
+                      onFocus={(e) => {
+                        e.stopPropagation();
+                        if (!locationOpen) {
+                          setLocationOpen(true);
+                          addressAutocomplete.setQuery(value.location || "");
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    onKeyDown={(e) => {
+                      // Allow navigation keys to work when popover is open
+                      if (locationOpen && isNavigationKey(e.key)) {
+                        // Find and focus the Command input in the popover
+                        const commandInput = document.querySelector(
+                          '[data-slot="command-input"]'
+                        ) as HTMLInputElement;
+                        if (commandInput) {
+                          // Focus the Command input so it can handle navigation
+                          commandInput.focus();
+                          // Don't stop propagation - let navigation keys work normally
+                          return;
+                        }
+                      }
+                      // Stop propagation for typing keys to prevent unwanted behavior
+                      if (!isNavigationKey(e.key)) {
+                        e.stopPropagation();
+                      }
                     }}
-                    aria-label="Clear location"
+                    className="h-auto p-0 !border-0 !shadow-none focus-visible:ring-0 focus-visible:border-0 text-sm text-foreground placeholder:text-muted-foreground !bg-transparent dark:!bg-transparent pointer-events-auto cursor-text rounded-none"
+                    aria-label="Search destinations"
                   />
-                )}
+                </div>
+                {value.location && !locationOpen && (
+                      <X
+                        className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChange({ ...value, location: "" });
+                          addressAutocomplete.setQuery("");
+                        }}
+                        aria-label="Clear location"
+                      />
+                    )}
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
+          <PopoverContent
+            className="w-80 p-0"
+            align="start"
+            onOpenAutoFocus={(e) => {
+              // Allow focus to move to Command input, but delay slightly to ensure DOM is ready
+              e.preventDefault();
+              setTimeout(() => {
+                const commandInput = document.querySelector(
+                  '[data-slot="command-input"]'
+                ) as HTMLInputElement;
+                commandInput?.focus();
+              }, 0);
+            }}
+          >
             <div className="p-3 border-b">
               <Button
                 variant="ghost"
@@ -1127,7 +1320,6 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
             </div>
             {renderAutocompleteCommand("Search locations...", {
               className: undefined,
-              popularHeading: "Popular destinations",
             })}
           </PopoverContent>
         </Popover>
@@ -1204,13 +1396,23 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
           open={equipmentOpen}
           onOpenChange={(open) => {
             setEquipmentOpen(open);
-            if (!open) equipmentAutocomplete.setQuery("");
+            if (open) {
+              equipmentAutocomplete.setQuery(value.equipmentType || "");
+            }
+            if (!open) {
+              equipmentAutocomplete.setQuery("");
+            }
           }}
         >
           <PopoverTrigger asChild>
             <button
-              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:z-10"
+              type="button"
+              className="relative px-6 py-4 text-left hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:z-10 w-full"
               aria-label="Select equipment type"
+              onClick={(e) => {
+                e.preventDefault();
+                equipmentInputRef.current?.focus();
+              }}
             >
               <div className="flex items-center gap-3 w-full">
                 {value.equipmentType && value.search ? (
@@ -1219,20 +1421,66 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
                   <Package className="h-5 w-5 text-muted-foreground shrink-0" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-foreground">
+                  <div className="text-xs font-semibold text-foreground mb-1">
                     What
                   </div>
-                  <div className="text-sm text-muted-foreground truncate">
-                    {value.equipmentType || "What are you looking for?"}
-                  </div>
+                  <Input
+                    ref={equipmentInputRef}
+                    type="text"
+                    placeholder="What are you looking for?"
+                    value={
+                      equipmentOpen
+                        ? equipmentAutocomplete.query
+                        : value.equipmentType || ""
+                    }
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const nextValue = e.target.value;
+                      equipmentAutocomplete.setQuery(nextValue);
+                      if (!equipmentOpen) {
+                        setEquipmentOpen(true);
+                      }
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                      if (!equipmentOpen) {
+                        setEquipmentOpen(true);
+                        equipmentAutocomplete.setQuery(value.equipmentType || "");
+                      }
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow navigation keys to work when popover is open
+                      if (equipmentOpen && isNavigationKey(e.key)) {
+                        // Find and focus the Command input in the popover
+                        const commandInput = document.querySelector(
+                          '[data-slot="command-input"]'
+                        ) as HTMLInputElement;
+                        if (commandInput) {
+                          // Focus the Command input so it can handle navigation
+                          commandInput.focus();
+                          // Don't stop propagation - let navigation keys work normally
+                          return;
+                        }
+                      }
+                      // Stop propagation for typing keys to prevent unwanted behavior
+                      if (!isNavigationKey(e.key)) {
+                        e.stopPropagation();
+                      }
+                    }}
+                    className="h-auto p-0 !border-0 !shadow-none focus-visible:ring-0 focus-visible:border-0 text-sm text-foreground placeholder:text-muted-foreground !bg-transparent dark:!bg-transparent pointer-events-auto cursor-text rounded-none"
+                    aria-label="What are you looking for?"
+                  />
                 </div>
-                {!value.equipmentType && (
+                {!value.equipmentType && !equipmentOpen && (
                   <kbd className="hidden xl:inline-flex items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-60 shrink-0">
                     <span className="text-xs">{isMacOS() ? "⌘" : "Ctrl+"}</span>
                     K
                   </kbd>
                 )}
-                {value.equipmentType && (
+                {value.equipmentType && !equipmentOpen && (
                   <X
                     className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-colors"
                     onClick={(e) => {
@@ -1251,13 +1499,28 @@ const SearchBarPopover = ({ value, onChange, onSubmit }: Props) => {
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start">
+          <PopoverContent
+            className="w-80 p-0"
+            align="start"
+            onOpenAutoFocus={(e) => {
+              // Allow focus to move to Command input, but delay slightly to ensure DOM is ready
+              e.preventDefault();
+              setTimeout(() => {
+                const commandInput = document.querySelector(
+                  '[data-slot="command-input"]'
+                ) as HTMLInputElement;
+                commandInput?.focus();
+              }, 0);
+            }}
+          >
             <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="What are you looking for?"
-                value={equipmentAutocomplete.query}
-                onValueChange={equipmentAutocomplete.setQuery}
-              />
+              <div className="[&_[data-slot='command-input-wrapper']_svg]:hidden">
+                <CommandInput
+                  placeholder="What are you looking for?"
+                  value={equipmentAutocomplete.query}
+                  onValueChange={equipmentAutocomplete.setQuery}
+                />
+              </div>
               <CommandList aria-busy={equipmentAutocomplete.loading}>
                 <CommandEmpty>
                   {equipmentAutocomplete.loading ? (

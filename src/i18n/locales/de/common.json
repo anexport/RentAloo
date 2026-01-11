@@ -104,5 +104,103 @@
   },
   "navigation": {
     "menu": "Menü"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "filters": {
+      "all": "Alle",
+      "bookings": "Buchungen",
+      "messages": "Nachrichten",
+      "payments": "Zahlungen",
+      "reviews": "Bewertungen"
+    },
+    "actions": {
+      "mark_all_read": "Alle als gelesen markieren",
+      "delete": "Benachrichtigung löschen"
+    },
+    "empty": {
+      "title": "Noch keine Benachrichtigungen",
+      "description": "Wir benachrichtigen Sie, wenn etwas Wichtiges passiert"
+    },
+    "toast": {
+      "marked_as_read": "Als gelesen markiert",
+      "marked_as_read_description": "{{count}} Benachrichtigung als gelesen markiert.",
+      "marked_as_read_description_plural": "{{count}} Benachrichtigungen als gelesen markiert."
+    },
+    "settings": {
+      "title": "Benachrichtigungseinstellungen",
+      "description": "Verwalten Sie, wie Sie Benachrichtigungen erhalten",
+      "updated": "Einstellungen aktualisiert",
+      "updated_description": "Ihre Benachrichtigungseinstellungen wurden gespeichert.",
+      "error": "Fehler",
+      "error_description": "Einstellungen konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "quiet_hours_updated": "Ruhezeiten aktualisiert",
+      "quiet_hours_updated_description": "Ihre Ruhezeiten wurden gespeichert.",
+      "quiet_hours_error_description": "Ruhezeiten konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "in_app": {
+        "title": "In-App-Benachrichtigungen",
+        "description": "Wählen Sie, welche Arten von Benachrichtigungen Sie erhalten möchten"
+      },
+      "toast": {
+        "title": "Toast-Popups",
+        "description": "Popup-Benachrichtigungen für wichtige Ereignisse anzeigen"
+      },
+      "quiet_hours": {
+        "title": "Ruhezeiten",
+        "description": "Toast-Popups zu bestimmten Zeiten unterdrücken",
+        "enable": "Ruhezeiten aktivieren",
+        "enable_description": "Keine Toast-Benachrichtigungen während dieser Zeiten",
+        "start_time": "Startzeit",
+        "end_time": "Endzeit"
+      },
+      "categories": {
+        "booking": {
+          "label": "Buchungsaktualisierungen",
+          "description": "Bestätigungen, Stornierungen und Erinnerungen"
+        },
+        "message": {
+          "label": "Neue Nachrichten",
+          "description": "Wenn Ihnen jemand eine Nachricht sendet"
+        },
+        "payment": {
+          "label": "Zahlungsbenachrichtigungen",
+          "description": "Erhaltene Zahlungen, Auszahlungen und Erstattungen"
+        },
+        "review": {
+          "label": "Bewertungen",
+          "description": "Wenn Ihnen jemand eine Bewertung hinterlässt"
+        },
+        "verification": {
+          "label": "Verifizierungsaktualisierungen",
+          "description": "Statusänderungen Ihrer Verifizierung"
+        },
+        "equipment": {
+          "label": "Geräteaktivität",
+          "description": "Wenn jemand Ihre Ausrüstung favorisiert oder Anzeigemeilensteine"
+        },
+        "promotion": {
+          "label": "Aktionen & Ankündigungen",
+          "description": "Sonderangebote und Systemankündigungen"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Kritische Benachrichtigungen",
+          "description": "Zahlungen, Auszahlungen und Erstattungen"
+        },
+        "high": {
+          "label": "Hohe Priorität",
+          "description": "Buchungsbestätigungen und Bewertungen"
+        },
+        "medium": {
+          "label": "Mittlere Priorität",
+          "description": "Neue Nachrichten und Erinnerungen"
+        },
+        "low": {
+          "label": "Niedrige Priorität",
+          "description": "Favoriten und Anzeigemeilensteine"
+        }
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -11,16 +11,18 @@ import {
 } from "nuqs";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import SEOHead from "@/components/seo/SEOHead";
+import StructuredData from "@/components/seo/StructuredData";
+import { generateExplorePageMeta } from "@/lib/seo/meta";
+import { generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo/schema";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
 import CategoryBar from "@/components/explore/CategoryBar";
 import CategoryBarSkeleton from "@/components/explore/CategoryBarSkeleton";
-import VirtualListingGrid from "@/components/equipment/VirtualListingGrid";
 import ListingCard from "@/components/equipment/ListingCard";
 import EquipmentDetailDialog from "@/components/equipment/detail/EquipmentDetailDialog";
 import ListingCardSkeleton from "@/components/equipment/ListingCardSkeleton";
 import {
-  VIRTUAL_SCROLL_THRESHOLD,
   DEFAULT_PRICE_MIN,
   DEFAULT_PRICE_MAX,
 } from "@/config/pagination";
@@ -31,6 +33,8 @@ import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
 import ExploreHeader from "@/components/layout/ExploreHeader";
 import EmptyState from "@/components/explore/EmptyState";
+import MapView from "@/components/explore/MapView";
+import MobileListingsBottomSheet from "@/components/explore/MobileListingsBottomSheet";
 import {
   fetchListings,
   type ListingsFilters,
@@ -45,9 +49,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ArrowUpDown } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { createMaxWidthQuery } from "@/config/breakpoints";
+import { cn } from "@/lib/utils";
 
 const CONDITION_VALUES: Array<Listing["condition"]> = [
   "new",
@@ -61,6 +68,24 @@ const ExplorePage = () => {
   const { t: tNav } = useTranslation("navigation");
   const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
+  const [isScrolled, setIsScrolled] = useState(false);
+  const isMobile = useMediaQuery(createMaxWidthQuery("md"));
+  const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  // Track scroll position for collapsing header on mobile
+  useEffect(() => {
+    if (!isMobile) {
+      setIsScrolled(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isMobile]);
 
   // Filter params managed via nuqs
   const [searchQuery, setSearchQuery] = useQueryState("search", {
@@ -396,6 +421,18 @@ const ExplorePage = () => {
     setDetailsOpen(true);
   };
 
+  const handleSelectListing = useCallback((listing: Listing) => {
+    setSelectedListingId(listing.id);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedListingId || isMobile) return;
+    const el = listItemRefs.current.get(selectedListingId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [selectedListingId, isMobile]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (
@@ -450,8 +487,95 @@ const ExplorePage = () => {
     void setVerifiedParam(null);
   };
 
+  const hasResults = !!data && data.length > 0;
+
+  const renderListingsList = () => {
+    if (isError) {
+      return (
+        <div className="text-center py-10">
+          <div className="text-muted-foreground mb-4">
+            {t("errors.load_failed")}
+          </div>
+          <Button
+            onClick={() => {
+              void refetch();
+            }}
+            aria-label={t("errors.retry")}
+          >
+            {t("errors.retry")}
+          </Button>
+        </div>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ListingCardSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+
+    if (!hasResults) {
+      return (
+        <EmptyState
+          filters={effectiveFilters}
+          onClearFilters={handleClearFilters}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-4 pb-6">
+        {sortedListings.map((item) => (
+          <div
+            key={item.id}
+            ref={(el) => {
+              listItemRefs.current.set(item.id, el);
+            }}
+          >
+            <ListingCard
+              listing={item}
+              onOpen={(listing) => {
+                handleSelectListing(listing);
+                handleOpenListing(listing);
+              }}
+              className={cn(
+                item.id === selectedListingId ? "ring-2 ring-primary" : ""
+              )}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // SEO data
+  const exploreMeta = generateExplorePageMeta(categoryId !== "all" ? categoryId : undefined);
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Explore", url: "/explore" },
+    ...(categoryId !== "all" ? [{ name: categoryId, url: `/explore?category=${categoryId}` }] : []),
+  ]);
+  const itemListSchema = sortedListings.length > 0
+    ? generateItemListSchema(
+        sortedListings.slice(0, 10).map((listing) => ({
+          id: listing.id,
+          title: listing.title,
+          dailyRate: listing.daily_rate,
+          imageUrl: listing.photos?.[0]?.photo_url,
+        }))
+      )
+    : null;
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead {...exploreMeta} />
+      <StructuredData data={breadcrumbSchema} />
+      {itemListSchema && <StructuredData data={itemListSchema} />}
+
       {/* Header with navbar when logged in */}
       {user && (
         <ExploreHeader
@@ -460,8 +584,13 @@ const ExplorePage = () => {
         />
       )}
 
-      {/* Sticky Header with Search */}
-      <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
+      {/* Sticky Header with Search - collapses on mobile when scrolled */}
+      <div
+        className={cn(
+          "sticky top-0 z-50 bg-background border-b border-border shadow-sm transition-transform duration-300",
+          isScrolled && isMobile && "-translate-y-full"
+        )}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <SearchBarPopover
             value={searchFilters}
@@ -471,9 +600,9 @@ const ExplorePage = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumbs */}
-        <nav className="mb-4 flex items-center text-sm text-muted-foreground">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-6">
+        {/* Breadcrumbs - Hidden on mobile (redundant with bottom nav) */}
+        <nav className="mb-4 hidden md:flex items-center text-sm text-muted-foreground">
           <Link to="/" className="hover:text-foreground transition-colors">
             {tNav("pages.home")}
           </Link>
@@ -487,20 +616,65 @@ const ExplorePage = () => {
           )}
         </nav>
 
-        {/* Categories - Sticky */}
-        <div className="sticky top-[73px] z-40 bg-background py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border">
-          {isLoading && !data ? (
-            <CategoryBarSkeleton />
-          ) : (
-            <CategoryBar
-              activeCategoryId={categoryId}
-              onCategoryChange={setCategoryId}
-            />
+        {/* Categories + Mobile Controls - Sticky */}
+        <div
+          className={cn(
+            "sticky z-40 bg-background py-2 md:py-3 -mx-4 px-4 sm:px-6 lg:px-8 border-b border-border transition-all duration-300",
+            isScrolled && isMobile ? "top-0" : "top-[73px]"
           )}
+        >
+          <div className="flex items-center gap-2">
+            {/* Categories take up available space */}
+            <div className="flex-1 min-w-0">
+              {isLoading && !data ? (
+                <CategoryBarSkeleton />
+              ) : (
+                <CategoryBar
+                  activeCategoryId={categoryId}
+                  onCategoryChange={setCategoryId}
+                />
+              )}
+            </div>
+            
+            {/* Mobile-only: compact filter/sort controls */}
+            <div className="flex items-center gap-1.5 flex-shrink-0 md:hidden">
+              <FiltersSheet
+                value={filterValues}
+                onChange={handleFilterChange}
+                resultCount={data?.length ?? 0}
+                activeFilterCount={activeFilterCount}
+              />
+              <Select
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as SortOption)}
+              >
+                <SelectTrigger 
+                  className="h-auto gap-1.5 px-3 py-2 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted transition-colors [&>svg:last-child]:hidden" 
+                  aria-label={t("filters.sort_by")}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline max-w-[60px] truncate">
+                    {sortBy === "recommended" ? t("filters.sort_rec", { defaultValue: "Best" }) :
+                     sortBy === "price-low" ? t("filters.sort_price_asc", { defaultValue: "Price ↑" }) :
+                     sortBy === "price-high" ? t("filters.sort_price_desc", { defaultValue: "Price ↓" }) :
+                     sortBy === "newest" ? t("filters.sort_new", { defaultValue: "New" }) :
+                     t("filters.sort_rated", { defaultValue: "Top" })}
+                  </span>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="recommended">{t("filters.recommended")}</SelectItem>
+                  <SelectItem value="price-low">{t("filters.price_low_high")}</SelectItem>
+                  <SelectItem value="price-high">{t("filters.price_high_low")}</SelectItem>
+                  <SelectItem value="newest">{t("filters.newest_first")}</SelectItem>
+                  <SelectItem value="rating">{t("filters.highest_rated")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
-        {/* Filters row and Grid Header */}
-        <div className="flex items-center justify-between gap-4 mt-4 mb-4">
+        {/* Filters row and Grid Header - Desktop only */}
+        <div className="hidden md:flex items-center justify-between gap-4 mt-4 mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold">
               {t("browse.items_count", { count: data?.length ?? 0 })}
@@ -539,49 +713,46 @@ const ExplorePage = () => {
             </Select>
           </div>
         </div>
-        <Separator />
+        <Separator className="hidden md:block" />
 
-        {/* Listing grid */}
-        <div className="mt-6">
-          {isError ? (
-            <div className="text-center py-10">
-              <div className="text-muted-foreground mb-4">
-                {t("errors.load_failed")}
-              </div>
-              <Button
-                onClick={() => {
-                  void refetch();
-                }}
-                aria-label={t("errors.retry")}
-              >
-                {t("errors.retry")}
-              </Button>
-            </div>
-          ) : isLoading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ListingCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : !data || data.length === 0 ? (
-            <EmptyState
-              filters={effectiveFilters}
-              onClearFilters={handleClearFilters}
-            />
-          ) : sortedListings.length > VIRTUAL_SCROLL_THRESHOLD ? (
-            <VirtualListingGrid
-              listings={sortedListings}
-              onOpenListing={handleOpenListing}
-            />
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedListings.map((item) => (
-                <ListingCard
-                  key={item.id}
-                  listing={item}
-                  onOpen={handleOpenListing}
+        {/* Results: map-first */}
+        <div className="mt-0 md:mt-6">
+          {isMobile ? (
+            <div className="relative -mx-4 sm:-mx-6 lg:mx-0">
+              <div className="relative h-[calc(100dvh-200px)] min-h-[400px] border-y border-border lg:border rounded-none lg:rounded-lg overflow-hidden">
+                <MapView
+                  listings={sortedListings}
+                  selectedListingId={selectedListingId}
+                  onSelectListing={handleSelectListing}
+                  onOpenListing={handleOpenListing}
                 />
-              ))}
+              </div>
+
+              {(hasResults || isLoading || isError) ? (
+                <MobileListingsBottomSheet
+                  title={t("browse.items_count", { count: data?.length ?? 0 })}
+                >
+                  {renderListingsList()}
+                </MobileListingsBottomSheet>
+              ) : (
+                <div className="mt-4 px-4">
+                  {renderListingsList()}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[75vh]">
+              <div className="h-[60vh] lg:h-full rounded-lg overflow-hidden border border-border">
+                <MapView
+                  listings={sortedListings}
+                  selectedListingId={selectedListingId}
+                  onSelectListing={handleSelectListing}
+                  onOpenListing={handleOpenListing}
+                />
+              </div>
+              <div className="h-[60vh] lg:h-full overflow-y-auto pr-1">
+                {renderListingsList()}
+              </div>
             </div>
           )}
         </div>

@@ -263,45 +263,43 @@ export const usePayment = () => {
    */
   const releaseEscrow = useCallback(
     async ({ paymentId }: ReleaseEscrowParams): Promise<boolean> => {
+      if (!user) {
+        setError("User must be authenticated");
+        return false;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
-        // Get payment details first
-        const { data: payment, error: fetchError } = await supabase
-          .from("payments")
-          .select("*, booking_request:booking_requests(*)")
-          .eq("id", paymentId)
-          .single();
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
 
-        if (fetchError) throw fetchError;
-
-        // Verify escrow is currently held
-        if (payment.escrow_status !== "held") {
-          throw new Error("Escrow funds are not available for release");
+        if (!token) {
+          throw new Error("Authentication required");
         }
 
-        // In production, this would call your backend API to:
-        // 1. Create a Stripe Transfer to the owner's connected account
-        // 2. Update the escrow status
-        // 3. Notify the owner
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          throw new Error("VITE_SUPABASE_URL is not configured");
+        }
 
-        const { error: updateError } = await supabase
-          .from("payments")
-          .update({
-            escrow_status: ESCROW_STATUS.RELEASED,
-            escrow_released_at: new Date().toISOString(),
-          })
-          .eq("id", paymentId);
+        const response = await fetch(`${supabaseUrl}/functions/v1/release-escrow`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ paymentId }),
+        });
 
-        if (updateError) throw updateError;
-
-        // Update booking request status to completed
-        if (payment.booking_request_id) {
-          await supabase
-            .from("booking_requests")
-            .update({ status: "completed" })
-            .eq("id", payment.booking_request_id);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({
+            error: "Unknown error",
+          }));
+          throw new Error(
+            errorData.error || `Failed to release escrow: ${response.status}`
+          );
         }
 
         return true;
@@ -315,7 +313,7 @@ export const usePayment = () => {
         setLoading(false);
       }
     },
-    []
+    [user]
   );
 
   /**

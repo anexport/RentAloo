@@ -119,7 +119,7 @@ const MessageInput = ({
   } = register("content");
 
   return (
-    <Card className="border border-border bg-card/95 p-0 shadow-sm">
+    <Card className="border border-border bg-card/95 p-0 shadow-sm" style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}>
       <form
         onSubmit={(e) => {
           void handleSubmit(onSubmit)(e);
@@ -147,8 +147,9 @@ const MessageInput = ({
         )}
 
         <TooltipProvider delayDuration={150}>
-          <InputGroup className="items-end gap-3">
-            <InputGroupAdornment className="pb-1">
+          <InputGroup className="items-end gap-2 sm:gap-3">
+            {/* Hide extra toolbar buttons on mobile */}
+            <InputGroupAdornment className="hidden pb-1 sm:flex">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -305,7 +306,7 @@ const MessageInput = ({
                   <Button
                     type="button"
                     size="sm"
-                    className="gap-2 px-4"
+                    className="gap-2 px-3 sm:px-4"
                     disabled={disabled || isSubmitting}
                     aria-label={t("input.send")}
                     onClick={(e) => {
@@ -314,19 +315,17 @@ const MessageInput = ({
                     }}
                   >
                     {isSubmitting ? (
-                      <>
-                        <Spinner className="h-4 w-4 text-primary-foreground" />
-                        {t("input.send")}
-                      </>
+                      <Spinner className="h-4 w-4 text-primary-foreground" />
                     ) : (
                       <>
                         <Send className="h-4 w-4" />
-                        {t("input.send")}
+                        {/* Hide text on mobile, show on sm+ */}
+                        <span className="hidden sm:inline">{t("input.send")}</span>
                       </>
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="hidden sm:block">
                   Press Enter to send • Shift+Enter for newline
                 </TooltipContent>
               </Tooltip>
