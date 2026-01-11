@@ -273,6 +273,9 @@ importers:
       '@capacitor/keyboard':
         specifier: ^7.0.0
         version: 7.0.4(@capacitor/core@7.4.4)
+      '@capacitor/preferences':
+        specifier: ^7.0.0
+        version: 7.0.3(@capacitor/core@7.4.4)
       '@capacitor/push-notifications':
         specifier: ^7.0.0
         version: 7.0.4(@capacitor/core@7.4.4)
@@ -582,6 +585,11 @@ packages:
 
   '@capacitor/keyboard@7.0.4':
     resolution: {integrity: sha512-kKHsuDOC0q9iC1XANhQBK35S+hFKx4EfY9I+SEMPR6RuUAIuXQXYaA3+D0LkdRdHIf3OrlTDznPvXQ5Dg2WrCA==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
+
+  '@capacitor/preferences@7.0.3':
+    resolution: {integrity: sha512-s8u2PCnxCj6auvZZaFb//KJSyvgwwtKu6aFA7PQ1FQULhZw+3zCb78biyWcl71KF0iBuC2jYlj4PjTeaF5OIGQ==}
     peerDependencies:
       '@capacitor/core': '>=7.0.0'
 
@@ -4653,6 +4661,10 @@ snapshots:
       '@capacitor/core': 7.4.4
 
   '@capacitor/keyboard@7.0.4(@capacitor/core@7.4.4)':
+    dependencies:
+      '@capacitor/core': 7.4.4
+
+  '@capacitor/preferences@7.0.3(@capacitor/core@7.4.4)':
     dependencies:
       '@capacitor/core': 7.4.4
 
