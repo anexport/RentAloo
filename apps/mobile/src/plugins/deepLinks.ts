@@ -30,10 +30,13 @@ export function useDeepLinks() {
 
         // OAuth callback - parse access token from hash
         if (path.includes('/auth/callback') || hash.includes('access_token')) {
-          // Close the browser that was opened for OAuth
-          await Browser.close();
+          // Order is important:
+          // 1. Set session first (so the app knows user is logged in)
+          // 2. Navigate to home (or previous route)
+          // 3. Close the browser last (so it doesn't interrupt navigation)
           await handleOAuthCallback(hash || url);
-          navigate('/');
+          navigate('/explore');
+          await Browser.close();
           return;
         }
 

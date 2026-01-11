@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.rentaloo.mobile',
-  appName: 'Rentaloo',
+  appName: 'Vaymo',
   webDir: 'dist',
   server: {
     // Uncomment for development with live reload
