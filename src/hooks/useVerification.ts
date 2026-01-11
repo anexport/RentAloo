@@ -220,6 +220,39 @@ const uploadDocumentApi = async (params: {
 
     if (insertError) throw insertError;
   }
+
+  // Send email notification to admins
+  try {
+    // Fetch user profile data for the email
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", userId)
+      .single();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error: emailError } = await supabase.functions.invoke(
+      "send-verification-notification",
+      {
+        body: {
+          userId,
+          userName: profileData?.full_name || user?.email || "Unknown User",
+          userEmail: profileData?.email || user?.email || "",
+          documentType: type,
+          documentUrl: publicUrl,
+        },
+      }
+    );
+
+    if (emailError) {
+      // Log the error but don't fail the upload
+      console.error("Failed to send admin notification email:", emailError);
+    }
+  } catch (emailErr) {
+    // Log email errors but don't fail the document upload
+    console.error("Error sending notification email:", emailErr);
+  }
 };
 
 const requestPhoneVerificationApi = async (params: {
