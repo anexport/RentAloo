@@ -1,41 +1,15 @@
 import { createSupabaseClient, type StorageAdapter } from '@rentaloo/shared/api';
-import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
-import { Capacitor } from '@capacitor/core';
 
 /**
- * Secure storage adapter for mobile (Keychain/Keystore)
- * Falls back to localStorage on web (for development)
+ * Storage adapter for mobile
+ * TODO: Re-add SecureStorage (Keychain/Keystore) when capacitor-secure-storage-plugin is updated for Cap 7
+ * Currently uses localStorage which works in Capacitor WebView
  */
-const createSecureStorageAdapter = (): StorageAdapter => {
-  if (!Capacitor.isNativePlatform()) {
-    // Fallback for web development
-    return {
-      getItem: (key: string) => localStorage.getItem(key),
-      setItem: (key: string, value: string) => localStorage.setItem(key, value),
-      removeItem: (key: string) => localStorage.removeItem(key),
-    };
-  }
-
+const createStorageAdapter = (): StorageAdapter => {
   return {
-    getItem: async (key: string) => {
-      try {
-        const { value } = await SecureStoragePlugin.get({ key });
-        return value;
-      } catch {
-        // Key doesn't exist
-        return null;
-      }
-    },
-    setItem: async (key: string, value: string) => {
-      await SecureStoragePlugin.set({ key, value });
-    },
-    removeItem: async (key: string) => {
-      try {
-        await SecureStoragePlugin.remove({ key });
-      } catch {
-        // Key doesn't exist, ignore
-      }
-    },
+    getItem: (key: string) => localStorage.getItem(key),
+    setItem: (key: string, value: string) => localStorage.setItem(key, value),
+    removeItem: (key: string) => localStorage.removeItem(key),
   };
 };
 
@@ -48,10 +22,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 /**
  * Supabase client for mobile app
- * Uses SecureStorage for token persistence on native platforms
+ * Uses localStorage for token persistence (WebView storage)
  */
 export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
-  storage: createSecureStorageAdapter(),
+  storage: createStorageAdapter(),
   detectSessionInUrl: false, // Mobile handles deep links manually
   autoRefreshToken: true,
   persistSession: true,
