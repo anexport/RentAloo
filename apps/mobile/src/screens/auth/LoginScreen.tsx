@@ -14,7 +14,7 @@ export function LoginScreen() {
     e.preventDefault();
     const success = await signInWithPassword(email, password);
     if (success) {
-      navigate('/');
+      navigate('/explore');
     }
   };
 
@@ -131,7 +131,12 @@ export function LoginScreen() {
       {/* Sign up link */}
       <p className="text-center text-sm text-muted-foreground mt-8">
         Don't have an account?{' '}
-        <button className="text-primary font-medium">Sign Up</button>
+        <button 
+          onClick={() => navigate('/signup')}
+          className="text-primary font-medium"
+        >
+          Sign Up
+        </button>
       </p>
     </div>
   );

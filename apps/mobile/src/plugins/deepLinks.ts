@@ -90,26 +90,42 @@ export function useDeepLinks() {
  * Parse OAuth callback and set session
  */
 async function handleOAuthCallback(urlOrHash: string): Promise<void> {
-  // Extract hash fragment
+  console.log('handleOAuthCallback called with:', urlOrHash);
+  
+  // Extract hash fragment - could be full URL or just hash
   let hash = urlOrHash;
   if (urlOrHash.includes('#')) {
     hash = urlOrHash.split('#')[1];
   }
+  
+  console.log('Parsing hash:', hash);
 
   // Parse hash parameters
   const params = new URLSearchParams(hash);
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
+  
+  console.log('Tokens found:', { 
+    hasAccessToken: !!accessToken, 
+    hasRefreshToken: !!refreshToken,
+    accessTokenLength: accessToken?.length,
+    refreshTokenLength: refreshToken?.length
+  });
 
   if (accessToken && refreshToken) {
     // Set session in Supabase
-    const { error } = await supabase.auth.setSession({
+    console.log('Setting Supabase session...');
+    const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
 
     if (error) {
       console.error('Error setting session from OAuth:', error);
+    } else {
+      console.log('Session set successfully:', { userId: data.user?.id, email: data.user?.email });
     }
+  } else {
+    console.warn('Missing tokens in OAuth callback - accessToken:', !!accessToken, 'refreshToken:', !!refreshToken);
   }
 }
