@@ -16,13 +16,13 @@ const HeroSection = ({ children }: Props) => {
         <div className="text-center space-y-6 mb-8">
           {/* Main headline */}
           <div className="space-y-3">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+            <h1 className="text-display-lg font-bold">
               {t("hero.main_headline")}{" "}
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 {t("hero.highlight")}
               </span>
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-headline-sm text-muted-foreground max-w-3xl mx-auto">
               {t("hero.subheading")}{" "}
               <span className="font-semibold text-foreground">
                 {t("hero.insurance")}
@@ -63,26 +63,26 @@ const HeroSection = ({ children }: Props) => {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto">
           <div className="text-center">
-            <div className="text-2xl sm:text-3xl font-bold text-foreground">
+            <div className="text-headline-sm font-bold text-foreground">
               <CountUp end={15000} duration={2000} suffix="+" />
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+            <div className="text-label-md text-muted-foreground mt-1">
               {t("hero.stat_items")}
             </div>
           </div>
           <div className="text-center border-x border-border">
-            <div className="text-2xl sm:text-3xl font-bold text-foreground">
+            <div className="text-headline-sm font-bold text-foreground">
               <CountUp end={5000} duration={2000} suffix="+" />
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+            <div className="text-label-md text-muted-foreground mt-1">
               {t("hero.stat_renters")}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl sm:text-3xl font-bold text-foreground">
+            <div className="text-headline-sm font-bold text-foreground">
               <CountUp end={50} duration={1500} suffix="+" />
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+            <div className="text-label-md text-muted-foreground mt-1">
               {t("hero.stat_cities")}
             </div>
           </div>

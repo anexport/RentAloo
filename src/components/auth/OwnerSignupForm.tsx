@@ -207,7 +207,7 @@ const OwnerSignupForm = ({
 
   const handlePrevStep = () => {
     if (isLoading) return;
-    
+
     if (currentStep === 1) {
       onBack();
     } else {
@@ -250,7 +250,7 @@ const OwnerSignupForm = ({
 
   const handleSkipPayment = () => {
     if (isLoading) return;
-    
+
     setValue("bankAccount", "");
     void handleSubmit(onSubmit)();
   };
@@ -261,7 +261,7 @@ const OwnerSignupForm = ({
         <div className="flex justify-center mb-2">
           <Mountain className="h-10 w-10 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold">Join as an Owner</h2>
+        <h2 className="text-display-sm font-bold">Join as an Owner</h2>
         <p className="text-base text-muted-foreground">
           Create your account to start listing your equipment
         </p>
@@ -381,7 +381,9 @@ const OwnerSignupForm = ({
                   autoComplete="new-password"
                   {...register("password")}
                   placeholder="Create a strong password"
-                  className={errors.password ? "border-destructive pr-11" : "pr-11"}
+                  className={
+                    errors.password ? "border-destructive pr-11" : "pr-11"
+                  }
                   aria-invalid={!!errors.password}
                   aria-describedby={
                     errors.password ? "password-error" : undefined
@@ -423,7 +425,11 @@ const OwnerSignupForm = ({
                   autoComplete="new-password"
                   {...register("confirmPassword")}
                   placeholder="Confirm your password"
-                  className={errors.confirmPassword ? "border-destructive pr-11" : "pr-11"}
+                  className={
+                    errors.confirmPassword
+                      ? "border-destructive pr-11"
+                      : "pr-11"
+                  }
                   aria-invalid={!!errors.confirmPassword}
                   aria-describedby={
                     errors.confirmPassword ? "confirmPassword-error" : undefined
@@ -562,7 +568,7 @@ const OwnerSignupForm = ({
         {currentStep === 3 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold mb-1">
+              <h3 className="text-title-lg font-semibold mb-1">
                 What equipment do you offer?
               </h3>
               <p className="text-sm text-muted-foreground">
@@ -591,7 +597,7 @@ const OwnerSignupForm = ({
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold mb-1">
+              <h3 className="text-title-lg font-semibold mb-1">
                 Payment Information
               </h3>
               <p className="text-sm text-muted-foreground">

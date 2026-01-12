@@ -490,7 +490,7 @@ const ProfileSettings = () => {
                         </p>
                       </div>
                     </div>
-                    <span className="text-2xl font-bold text-primary tabular-nums">
+                    <span className="text-headline-lg font-bold text-primary tabular-nums">
                       {verificationProfile.trustScore.overall}
                     </span>
                   </div>

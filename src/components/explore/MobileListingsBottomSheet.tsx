@@ -114,11 +114,22 @@ const MobileListingsBottomSheet = ({
 
       visibleHeightRef.current = nextVisible;
 
-      sheet.style.height = `${full + 60}px`; // Extra height for overscroll
+      // Sheet starts at bottom-0, so we need to account for bottom nav offset
+      // When at full height, no offset needed (covers entire screen)
+      // When at other heights, add BOTTOM_NAV_HEIGHT to float above bottom nav
+      const bottomOffset = BOTTOM_NAV_HEIGHT;
+      const totalHeight = full + bottomOffset + 60; // bottom nav space + overscroll
+
+      sheet.style.height = `${totalHeight}px`;
       sheet.style.willChange = "transform";
       sheet.style.transition =
         opts?.animate === false ? "none" : SPRING_TRANSITION;
-      sheet.style.transform = `translate3d(0, ${full - nextVisible}px, 0)`;
+
+      // Transform: when visible height is small, push sheet down more (add bottom offset)
+      // When at full height, minimal offset to cover entire screen
+      sheet.style.transform = `translate3d(0, ${
+        totalHeight - nextVisible - bottomOffset
+      }px, 0)`;
     },
     []
   );
@@ -143,15 +154,19 @@ const MobileListingsBottomSheet = ({
   );
 
   const recomputeMetrics = useCallback(() => {
-    // Account for bottom nav bar height in available space
-    const viewportHeight = getViewportHeightPx() - BOTTOM_NAV_HEIGHT;
+    // Use full viewport height since we want to cover everything at full height
+    const viewportHeight = getViewportHeightPx();
     const closed = CLOSED_HEIGHT_PX;
     const peek = MIN_PEEK_PX;
 
+    // Full height should cover the entire viewport
     const rawFull = Math.round(viewportHeight * FULL_HEIGHT_RATIO);
     const full = Math.max(rawFull, peek + MIN_SHEET_GROWTH_PX);
 
-    const rawMid = Math.round(viewportHeight * MID_HEIGHT_RATIO);
+    // Mid height positioned above bottom nav
+    const rawMid = Math.round(
+      (viewportHeight - BOTTOM_NAV_HEIGHT) * MID_HEIGHT_RATIO
+    );
     const mid = clamp(rawMid, peek + 64, full - 64);
 
     metricsRef.current = { closed, peek, mid, full };
@@ -328,8 +343,8 @@ const MobileListingsBottomSheet = ({
       ref={sheetRef}
       className={cn(
         // Google Maps iOS style: larger radius, floating shadow, stronger blur
-        // Position above bottom nav bar (64px)
-        "fixed inset-x-0 bottom-16 z-40",
+        // Position at bottom-0 to allow full screen coverage when expanded
+        "fixed inset-x-0 bottom-0 z-40",
         "bg-background/98 backdrop-blur-xl",
         "rounded-t-[24px]",
         // Multi-layer shadow for floating effect like Google Maps

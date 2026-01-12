@@ -40,11 +40,11 @@ const OwnerCTASection = () => {
               <Badge variant="secondary" className="w-fit">
                 {t("owner_cta.badge_text")}
               </Badge>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+              <h2 className="text-display-sm font-bold">
                 {t("owner_cta.headline_part_1")}{" "}
                 <span className="text-primary">{t("owner_cta.headline_part_2")}</span>
               </h2>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-body-lg text-muted-foreground">
                 {t("owner_cta.subheading")}
               </p>
             </div>
@@ -61,7 +61,7 @@ const OwnerCTASection = () => {
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="text-sm font-medium">{benefit.text}</span>
+                    <span className="text-label-md">{benefit.text}</span>
                   </div>
                 );
               })}
@@ -111,14 +111,14 @@ const OwnerCTASection = () => {
 
             {/* Floating stat cards */}
             <div className="absolute -bottom-4 -left-4 bg-background border border-border rounded-lg p-4 shadow-lg">
-              <div className="text-2xl font-bold text-primary">{t("owner_cta.stat_earnings_value")}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-headline-sm font-bold text-primary">{t("owner_cta.stat_earnings_value")}</div>
+              <div className="text-label-sm text-muted-foreground">
                 {t("owner_cta.stat_earnings_label")}
               </div>
             </div>
             <div className="absolute -top-4 -right-4 bg-background border border-border rounded-lg p-4 shadow-lg">
-              <div className="text-2xl font-bold text-primary">{t("owner_cta.stat_booking_value")}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-headline-sm font-bold text-primary">{t("owner_cta.stat_booking_value")}</div>
+              <div className="text-label-sm text-muted-foreground">
                 {t("owner_cta.stat_booking_label")}
               </div>
             </div>

@@ -99,7 +99,9 @@ const PaymentCheckoutFormInner = ({
       // The booking is created by the webhook, not here
       // Navigate to confirmation page
       onSuccess?.();
-      void navigate(`/payment/confirmation?payment_intent_id=${paymentIntentId}`);
+      void navigate(
+        `/payment/confirmation?payment_intent_id=${paymentIntentId}`
+      );
     } catch (err) {
       console.error("Payment error:", err);
       setError(
@@ -126,7 +128,9 @@ const PaymentCheckoutFormInner = ({
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Complete Payment</h2>
+          <h2 className="text-headline-lg font-bold tracking-tight">
+            Complete Payment
+          </h2>
           <p className="text-muted-foreground">
             Secure checkout powered by Stripe
           </p>
@@ -182,8 +186,8 @@ const PaymentCheckoutFormInner = ({
                   Your payment is secure
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  All transactions are encrypted and processed securely through Stripe. 
-                  We never store your full card details.
+                  All transactions are encrypted and processed securely through
+                  Stripe. We never store your full card details.
                 </p>
               </div>
             </div>
@@ -334,7 +338,9 @@ const PaymentCheckoutForm = ({
         </div>
         <div className="text-center">
           <p className="font-medium">Initializing secure payment...</p>
-          <p className="text-sm text-muted-foreground">This may take a moment</p>
+          <p className="text-sm text-muted-foreground">
+            This may take a moment
+          </p>
         </div>
       </div>
     );

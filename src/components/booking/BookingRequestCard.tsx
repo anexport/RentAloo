@@ -6,10 +6,7 @@ import { usePayment } from "@/hooks/usePayment";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { BookingRequestWithDetails } from "../../types/booking";
 import type { Database } from "@/lib/database.types";
-import {
-  formatBookingDuration,
-  getBookingStatusText,
-} from "../../lib/booking";
+import { formatBookingDuration, getBookingStatusText } from "../../lib/booking";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -25,15 +22,16 @@ import {
 import { useNavigate } from "react-router-dom";
 import MessagingInterface from "../messaging/MessagingInterface";
 import RenterScreening from "../verification/RenterScreening";
-import { 
-  InspectionFlowBanner, 
+import {
+  InspectionFlowBanner,
   BookingLifecycleStepper,
   MobileInspectionCard,
 } from "./inspection-flow";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, isFuture } from "date-fns";
 
-type InspectionRow = Database["public"]["Tables"]["equipment_inspections"]["Row"];
+type InspectionRow =
+  Database["public"]["Tables"]["equipment_inspections"]["Row"];
 
 type BookingStatus = BookingRequestWithDetails["status"];
 
@@ -45,22 +43,28 @@ interface StatusBadgeConfig {
 /**
  * Returns the status badge configuration based on booking status and payment state
  */
-function getStatusBadgeConfig(status: BookingStatus | undefined, hasPayment: boolean): StatusBadgeConfig {
+function getStatusBadgeConfig(
+  status: BookingStatus | undefined,
+  hasPayment: boolean
+): StatusBadgeConfig {
   if (status === "active") {
     return {
-      className: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
+      className:
+        "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
       text: "In Progress",
     };
   }
   if (status === "approved" && hasPayment) {
     return {
-      className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
       text: "Confirmed",
     };
   }
   if (status === "pending") {
     return {
-      className: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+      className:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
       text: getBookingStatusText(status),
     };
   }
@@ -93,20 +97,24 @@ const BookingRequestCard = ({
   const { processRefund } = usePayment();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [hasPayment, setHasPayment] = useState(false);
   const [showRenterScreening, setShowRenterScreening] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
-  const [pickupInspectionId, setPickupInspectionId] = useState<string | null>(null);
-  const [returnInspection, setReturnInspection] = useState<
-    Pick<
-      InspectionRow,
-      "id" | "verified_by_owner" | "verified_by_renter" | "timestamp" | "created_at"
-    > | null
-  >(null);
+  const [pickupInspectionId, setPickupInspectionId] = useState<string | null>(
+    null
+  );
+  const [returnInspection, setReturnInspection] = useState<Pick<
+    InspectionRow,
+    | "id"
+    | "verified_by_owner"
+    | "verified_by_renter"
+    | "timestamp"
+    | "created_at"
+  > | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const detailsId = useId();
 
@@ -132,7 +140,9 @@ const BookingRequestCard = ({
         // Check for return inspection
         const { data: returnData, error: returnError } = await supabase
           .from("equipment_inspections")
-          .select("id, verified_by_owner, verified_by_renter, timestamp, created_at")
+          .select(
+            "id, verified_by_owner, verified_by_renter, timestamp, created_at"
+          )
           .eq("booking_id", bookingRequest.id)
           .eq("inspection_type", "return")
           .maybeSingle();
@@ -300,7 +310,8 @@ const BookingRequestCard = ({
 
   // Get equipment image
   const equipmentImage =
-    bookingRequest.equipment.photos && bookingRequest.equipment.photos.length > 0
+    bookingRequest.equipment.photos &&
+    bookingRequest.equipment.photos.length > 0
       ? bookingRequest.equipment.photos.find((p) => p.is_primary)?.photo_url ||
         bookingRequest.equipment.photos[0]?.photo_url
       : null;
@@ -315,7 +326,8 @@ const BookingRequestCard = ({
   const returnInspectionSubmittedAt =
     returnInspection?.timestamp || returnInspection?.created_at;
   const claimDeadlineMs = returnInspectionSubmittedAt
-    ? new Date(returnInspectionSubmittedAt).getTime() + claimWindowHours * 60 * 60 * 1000
+    ? new Date(returnInspectionSubmittedAt).getTime() +
+      claimWindowHours * 60 * 60 * 1000
     : null;
   const isClaimWindowExpired =
     typeof claimDeadlineMs === "number" && Date.now() > claimDeadlineMs;
@@ -364,12 +376,17 @@ const BookingRequestCard = ({
               {bookingRequest.equipment.location && (
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{bookingRequest.equipment.location}</span>
+                  <span className="truncate">
+                    {bookingRequest.equipment.location}
+                  </span>
                 </p>
               )}
             </div>
             {(() => {
-              const statusConfig = getStatusBadgeConfig(bookingRequest.status, hasPayment);
+              const statusConfig = getStatusBadgeConfig(
+                bookingRequest.status,
+                hasPayment
+              );
               return (
                 <span
                   className={cn(
@@ -394,10 +411,17 @@ const BookingRequestCard = ({
                   {format(startDate, "MMM d")} – {format(endDate, "MMM d")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatBookingDuration(bookingRequest.start_date, bookingRequest.end_date)}
+                  {formatBookingDuration(
+                    bookingRequest.start_date,
+                    bookingRequest.end_date
+                  )}
                   {isFuture(startDate) && daysUntilStart <= 7 && (
                     <span className="ml-2 text-primary font-medium">
-                      {daysUntilStart === 0 ? "Today" : daysUntilStart === 1 ? "Tomorrow" : `in ${daysUntilStart}d`}
+                      {daysUntilStart === 0
+                        ? "Today"
+                        : daysUntilStart === 1
+                        ? "Tomorrow"
+                        : `in ${daysUntilStart}d`}
                     </span>
                   )}
                 </p>
@@ -465,23 +489,25 @@ const BookingRequestCard = ({
             !!returnInspection?.id &&
             !isClaimWindowExpired &&
             !returnInspection.verified_by_owner && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
-              className="mb-4"
-            >
-              <AlertTriangle className="h-4 w-4 mr-1.5" />
-              File Damage Claim
-            </Button>
-          )}
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
+                className="mb-4"
+              >
+                <AlertTriangle className="h-4 w-4 mr-1.5" />
+                File Damage Claim
+              </Button>
+            )}
 
           {/* Cancelled Status Alert */}
           {bookingRequest.status === "cancelled" && (
             <Alert variant="destructive" className="mb-4">
               <XCircle className="h-4 w-4" />
               <AlertDescription>
-                {isRenter ? "You cancelled this booking." : "This booking was cancelled."}
+                {isRenter
+                  ? "You cancelled this booking."
+                  : "This booking was cancelled."}
               </AlertDescription>
             </Alert>
           )}
@@ -493,18 +519,27 @@ const BookingRequestCard = ({
             aria-expanded={isExpanded}
             aria-controls={detailsId}
           >
-            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+            {isExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
             <span>{isExpanded ? "Hide details" : "Show details"}</span>
           </button>
 
           {isExpanded && (
-            <div id={detailsId} className="space-y-3 pt-3 border-t border-border/50 mb-4">
+            <div
+              id={detailsId}
+              className="space-y-3 pt-3 border-t border-border/50 mb-4"
+            >
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4 shrink-0" />
                 <span>
                   {isOwner ? "Renter:" : "Owner:"}{" "}
                   <span className="text-foreground">
-                    {isOwner ? bookingRequest.renter.email : bookingRequest.owner.email}
+                    {isOwner
+                      ? bookingRequest.renter.email
+                      : bookingRequest.owner.email}
                   </span>
                 </span>
               </div>
@@ -512,12 +547,16 @@ const BookingRequestCard = ({
               {bookingRequest.message && (
                 <div className="flex gap-2 text-sm">
                   <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <p className="text-muted-foreground">{bookingRequest.message}</p>
+                  <p className="text-muted-foreground">
+                    {bookingRequest.message}
+                  </p>
                 </div>
               )}
 
               <p className="text-xs text-muted-foreground">
-                Requested {bookingRequest.created_at && format(new Date(bookingRequest.created_at), "MMM d, yyyy")}
+                Requested{" "}
+                {bookingRequest.created_at &&
+                  format(new Date(bookingRequest.created_at), "MMM d, yyyy")}
               </p>
             </div>
           )}
@@ -565,7 +604,10 @@ const BookingRequestCard = ({
             }
           }}
         >
-          <div className="max-w-4xl w-full flex flex-col" style={{ height: 'min(90vh, 800px)' }}>
+          <div
+            className="max-w-4xl w-full flex flex-col"
+            style={{ height: "min(90vh, 800px)" }}
+          >
             <MessagingInterface
               initialConversationId={conversationId}
               onClose={() => {
@@ -582,7 +624,7 @@ const BookingRequestCard = ({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-background rounded-lg max-w-3xl w-full max-h-[90dvh] overflow-y-auto p-6 border shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-headline-lg font-bold">
                 Renter Verification Profile
               </h2>
               <Button

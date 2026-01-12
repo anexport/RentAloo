@@ -33,7 +33,7 @@ const EmptyState = ({ filters, onClearFilters }: Props) => {
 
         {/* Message */}
         <div className="space-y-3">
-          <h3 className="text-2xl font-bold">No equipment found</h3>
+          <h3 className="text-headline-lg font-bold">No equipment found</h3>
           <p className="text-muted-foreground">
             {hasActiveFilters
               ? "We couldn't find any equipment matching your search criteria. Try adjusting your filters or explore popular categories below."
@@ -70,7 +70,8 @@ const EmptyState = ({ filters, onClearFilters }: Props) => {
                   filters.priceMax < DEFAULT_PRICE_MAX)) && (
                 <Badge variant="secondary" className="px-3 py-1">
                   <Filter className="h-3 w-3 mr-1" />
-                  Price: ${filters.priceMin ?? DEFAULT_PRICE_MIN} - ${filters.priceMax ?? DEFAULT_PRICE_MAX}
+                  Price: ${filters.priceMin ?? DEFAULT_PRICE_MIN} - $
+                  {filters.priceMax ?? DEFAULT_PRICE_MAX}
                 </Badge>
               )}
               {filters.conditions?.map((condition) => (

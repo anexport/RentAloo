@@ -42,6 +42,60 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* === MD3 TYPOGRAPHY SCALE === */
+
+  /* Font Family */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Display Scale */
+  --text-display-lg: 3.5625rem;     /* 57px */
+  --text-display-md: 2.8125rem;     /* 45px */
+  --text-display-sm: 2.25rem;       /* 36px */
+
+  /* Headline Scale */
+  --text-headline-lg: 2rem;         /* 32px */
+  --text-headline-md: 1.75rem;      /* 28px */
+  --text-headline-sm: 1.5rem;       /* 24px */
+
+  /* Title Scale */
+  --text-title-lg: 1.375rem;        /* 22px */
+  --text-title-md: 1rem;            /* 16px */
+  --text-title-sm: 0.875rem;        /* 14px */
+
+  /* Body Scale */
+  --text-body-lg: 1rem;             /* 16px */
+  --text-body-md: 0.875rem;         /* 14px */
+  --text-body-sm: 0.75rem;          /* 12px */
+
+  /* Label Scale */
+  --text-label-lg: 0.875rem;        /* 14px */
+  --text-label-md: 0.75rem;         /* 12px */
+  --text-label-sm: 0.6875rem;       /* 11px */
+
+  /* Line Heights */
+  --leading-display-lg: 4rem;       /* 64px */
+  --leading-display-md: 3.25rem;    /* 52px */
+  --leading-display-sm: 2.75rem;    /* 44px */
+  --leading-headline-lg: 2.5rem;    /* 40px */
+  --leading-headline-md: 2.25rem;   /* 36px */
+  --leading-headline-sm: 2rem;      /* 32px */
+  --leading-title-lg: 1.75rem;      /* 28px */
+  --leading-title-md: 1.5rem;       /* 24px */
+  --leading-title-sm: 1.25rem;      /* 20px */
+  --leading-body-lg: 1.5rem;        /* 24px */
+  --leading-body-md: 1.25rem;       /* 20px */
+  --leading-body-sm: 1rem;          /* 16px */
+  --leading-label-lg: 1.25rem;      /* 20px */
+  --leading-label-md: 1rem;         /* 16px */
+  --leading-label-sm: 1rem;         /* 16px */
+
+  /* Letter Spacing (MD3 tracking) */
+  --tracking-display: -0.25px;
+  --tracking-headline: 0;
+  --tracking-title: 0;
+  --tracking-body: 0.25px;
+  --tracking-label: 0.5px;
 }
 
 :root {
@@ -127,6 +181,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: 'ss01' on, 'ss02' on, 'cv01' on;  /* Inter stylistic sets */
   }
 
   /* Layered Shadow Elevation System */
@@ -167,6 +223,138 @@
       ),
       linear-gradient(to bottom, currentColor 1px, transparent 1px);
     background-size: 24px 24px;
+  }
+
+  /* === MD3 TYPOGRAPHY UTILITIES === */
+
+  /* Display Scale */
+  .text-display-lg {
+    font-size: var(--text-display-lg);
+    line-height: var(--leading-display-lg);
+    font-weight: 400;
+    letter-spacing: var(--tracking-display);
+  }
+
+  .text-display-md {
+    font-size: var(--text-display-md);
+    line-height: var(--leading-display-md);
+    font-weight: 400;
+    letter-spacing: var(--tracking-display);
+  }
+
+  .text-display-sm {
+    font-size: var(--text-display-sm);
+    line-height: var(--leading-display-sm);
+    font-weight: 400;
+    letter-spacing: var(--tracking-display);
+  }
+
+  /* Headline Scale */
+  .text-headline-lg {
+    font-size: var(--text-headline-lg);
+    line-height: var(--leading-headline-lg);
+    font-weight: 400;
+    letter-spacing: var(--tracking-headline);
+  }
+
+  .text-headline-md {
+    font-size: var(--text-headline-md);
+    line-height: var(--leading-headline-md);
+    font-weight: 400;
+    letter-spacing: var(--tracking-headline);
+  }
+
+  .text-headline-sm {
+    font-size: var(--text-headline-sm);
+    line-height: var(--leading-headline-sm);
+    font-weight: 400;
+    letter-spacing: var(--tracking-headline);
+  }
+
+  /* Title Scale */
+  .text-title-lg {
+    font-size: var(--text-title-lg);
+    line-height: var(--leading-title-lg);
+    font-weight: 400;
+    letter-spacing: var(--tracking-title);
+  }
+
+  .text-title-md {
+    font-size: var(--text-title-md);
+    line-height: var(--leading-title-md);
+    font-weight: 600;  /* MD3: semi-bold */
+    letter-spacing: var(--tracking-title);
+  }
+
+  .text-title-sm {
+    font-size: var(--text-title-sm);
+    line-height: var(--leading-title-sm);
+    font-weight: 500;  /* MD3: medium */
+    letter-spacing: var(--tracking-title);
+  }
+
+  /* Body Scale */
+  .text-body-lg {
+    font-size: var(--text-body-lg);
+    line-height: var(--leading-body-lg);
+    font-weight: 400;
+    letter-spacing: var(--tracking-body);
+  }
+
+  .text-body-md {
+    font-size: var(--text-body-md);
+    line-height: var(--leading-body-md);
+    font-weight: 400;
+    letter-spacing: var(--tracking-body);
+  }
+
+  .text-body-sm {
+    font-size: var(--text-body-sm);
+    line-height: var(--leading-body-sm);
+    font-weight: 400;
+    letter-spacing: var(--tracking-body);
+  }
+
+  /* Label Scale */
+  .text-label-lg {
+    font-size: var(--text-label-lg);
+    line-height: var(--leading-label-lg);
+    font-weight: 500;  /* MD3: medium */
+    letter-spacing: var(--tracking-label);
+  }
+
+  .text-label-md {
+    font-size: var(--text-label-md);
+    line-height: var(--leading-label-md);
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+  }
+
+  .text-label-sm {
+    font-size: var(--text-label-sm);
+    line-height: var(--leading-label-sm);
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* Responsive Display scaling (auto-scales on mobile) */
+  @media (max-width: 640px) {
+    .text-display-lg {
+      font-size: var(--text-display-sm);
+      line-height: var(--leading-display-sm);
+    }
+    .text-display-md {
+      font-size: var(--text-headline-lg);
+      line-height: var(--leading-headline-lg);
+    }
+    .text-display-sm {
+      font-size: var(--text-headline-md);
+      line-height: var(--leading-headline-md);
+    }
+    .text-headline-lg {
+      font-size: var(--text-headline-sm);
+      line-height: var(--leading-headline-sm);
+    }
   }
 }
 

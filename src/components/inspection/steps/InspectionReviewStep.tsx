@@ -71,13 +71,10 @@ export default function InspectionReviewStep({
   const isPickup = inspectionType === "pickup";
 
   // Count statuses
-  const statusCounts = safeChecklistItems.reduce(
-    (acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const statusCounts = safeChecklistItems.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const hasIssues =
     (statusCounts.fair || 0) > 0 || (statusCounts.damaged || 0) > 0;
@@ -91,7 +88,7 @@ export default function InspectionReviewStep({
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-headline-lg font-bold tracking-tight">
               Review & Confirm
             </h2>
             <p className="text-muted-foreground">
@@ -109,7 +106,8 @@ export default function InspectionReviewStep({
                 <div>
                   <p className="font-medium">Photos</p>
                   <p className="text-sm text-muted-foreground">
-                    {safePhotos.length} photo{safePhotos.length !== 1 ? "s" : ""} captured
+                    {safePhotos.length} photo
+                    {safePhotos.length !== 1 ? "s" : ""} captured
                   </p>
                 </div>
               </div>
@@ -198,10 +196,18 @@ export default function InspectionReviewStep({
                           )}
                         >
                           <Icon
-                            className={cn("h-4 w-4 mt-0.5 shrink-0", config.color)}
+                            className={cn(
+                              "h-4 w-4 mt-0.5 shrink-0",
+                              config.color
+                            )}
                           />
                           <div>
-                            <p className={cn("text-sm font-medium", config.color)}>
+                            <p
+                              className={cn(
+                                "text-sm font-medium",
+                                config.color
+                              )}
+                            >
                               {item.item}
                             </p>
                             {item.notes && (
@@ -250,9 +256,10 @@ export default function InspectionReviewStep({
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     As the {role}, I certify that the photos and condition
-                    assessment accurately represent the equipment&apos;s state at the
-                    time of this {isPickup ? "pickup" : "return"} inspection. I
-                    understand this record may be used to resolve any disputes.
+                    assessment accurately represent the equipment&apos;s state
+                    at the time of this {isPickup ? "pickup" : "return"}{" "}
+                    inspection. I understand this record may be used to resolve
+                    any disputes.
                   </p>
                 </div>
               </div>
@@ -267,8 +274,8 @@ export default function InspectionReviewStep({
                 Secure & Protected
               </p>
               <p className="text-sm text-green-700 dark:text-green-300">
-                Your inspection is timestamped and securely stored to protect both
-                parties.
+                Your inspection is timestamped and securely stored to protect
+                both parties.
               </p>
             </div>
           </div>

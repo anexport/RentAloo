@@ -113,7 +113,10 @@ const PhoneVerification = ({
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pastedData = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (!pastedData) return;
 
     const newOtp = [...otp];
@@ -231,7 +234,9 @@ const PhoneVerification = ({
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   We sent a 6-digit code to{" "}
-                  <span className="font-medium text-foreground">{phoneNumber}</span>
+                  <span className="font-medium text-foreground">
+                    {phoneNumber}
+                  </span>
                 </p>
               </div>
 
@@ -253,7 +258,7 @@ const PhoneVerification = ({
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       className={cn(
-                        "w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold",
+                        "w-11 h-14 sm:w-12 sm:h-14 text-center text-title-lg font-bold",
                         "focus:ring-2 focus:ring-primary focus:border-primary",
                         "transition-all duration-150",
                         digit && "border-primary bg-primary/5"
@@ -270,7 +275,9 @@ const PhoneVerification = ({
               {/* Error */}
               {error && (
                 <Alert variant="destructive" className="py-2">
-                  <AlertDescription className="text-sm">{error}</AlertDescription>
+                  <AlertDescription className="text-sm">
+                    {error}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -311,9 +318,7 @@ const PhoneVerification = ({
                   size="sm"
                   onClick={handleResendCode}
                   disabled={countdown > 0}
-                  className={cn(
-                    countdown > 0 && "text-muted-foreground"
-                  )}
+                  className={cn(countdown > 0 && "text-muted-foreground")}
                 >
                   {countdown > 0 ? (
                     <span className="tabular-nums">Resend in {countdown}s</span>
@@ -332,7 +337,11 @@ const PhoneVerification = ({
           <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
             <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
-              <strong>Demo Mode:</strong> Use code <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">123456</code> to verify.
+              <strong>Demo Mode:</strong> Use code{" "}
+              <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">
+                123456
+              </code>{" "}
+              to verify.
             </AlertDescription>
           </Alert>
         </div>

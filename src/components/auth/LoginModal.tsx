@@ -154,7 +154,9 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
           <div className="flex justify-center mb-4">
             <Mountain className="h-12 w-12 text-primary" />
           </div>
-          <DialogTitle className="text-2xl">{t("login.title")}</DialogTitle>
+          <DialogTitle className="text-headline-lg">
+            {t("login.title")}
+          </DialogTitle>
           <DialogDescription>{t("login.subtitle")}</DialogDescription>
         </DialogHeader>
 

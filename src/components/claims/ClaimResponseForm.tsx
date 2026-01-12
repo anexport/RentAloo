@@ -52,9 +52,15 @@ export default function ClaimResponseForm({
       return;
     }
 
-    const immutableStatuses: Array<ClaimStatus | "closed"> = ["accepted", "resolved", "closed"];
+    const immutableStatuses: Array<ClaimStatus | "closed"> = [
+      "accepted",
+      "resolved",
+      "closed",
+    ];
     if (immutableStatuses.includes(claim.status)) {
-      setError("This claim has already been resolved and can no longer be updated.");
+      setError(
+        "This claim has already been resolved and can no longer be updated."
+      );
       return;
     }
 
@@ -78,7 +84,9 @@ export default function ClaimResponseForm({
 
       if (parsedCounter > claim.estimated_cost) {
         setError(
-          `Counter offer cannot exceed claimed amount of $${claim.estimated_cost.toFixed(2)}`
+          `Counter offer cannot exceed claimed amount of $${claim.estimated_cost.toFixed(
+            2
+          )}`
         );
         return;
       }
@@ -129,7 +137,9 @@ export default function ClaimResponseForm({
       }, 1500);
     } catch (err) {
       console.error(err);
-      setError("We couldn't submit your response. Please try again or contact support.");
+      setError(
+        "We couldn't submit your response. Please try again or contact support."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -139,7 +149,7 @@ export default function ClaimResponseForm({
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <CheckCircle2 className="h-16 w-16 text-green-500" />
-        <h2 className="text-xl font-semibold">Response Submitted</h2>
+        <h2 className="text-title-lg font-semibold">Response Submitted</h2>
         <p className="text-muted-foreground text-center">
           {action === "accept"
             ? "You have accepted the damage claim."
@@ -172,7 +182,7 @@ export default function ClaimResponseForm({
 
           <div>
             <h3 className="font-semibold mb-2">Claimed Amount</h3>
-            <p className="text-2xl font-bold text-destructive">
+            <p className="text-headline-lg font-bold text-destructive">
               ${claim.estimated_cost.toFixed(2)}
             </p>
           </div>
@@ -214,7 +224,10 @@ export default function ClaimResponseForm({
             <div className="flex items-start gap-3">
               <RadioGroupItem value="accept" id="accept" />
               <div>
-                <Label htmlFor="accept" className="font-semibold cursor-pointer">
+                <Label
+                  htmlFor="accept"
+                  className="font-semibold cursor-pointer"
+                >
                   Accept Claim
                 </Label>
                 <p className="text-sm text-muted-foreground">
@@ -241,7 +254,8 @@ export default function ClaimResponseForm({
                   Negotiate Amount
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  I acknowledge the damage but want to propose a different amount
+                  I acknowledge the damage but want to propose a different
+                  amount
                 </p>
                 {action === "negotiate" && (
                   <div className="mt-3">
@@ -272,7 +286,10 @@ export default function ClaimResponseForm({
             <div className="flex items-start gap-3">
               <RadioGroupItem value="dispute" id="dispute" />
               <div>
-                <Label htmlFor="dispute" className="font-semibold cursor-pointer">
+                <Label
+                  htmlFor="dispute"
+                  className="font-semibold cursor-pointer"
+                >
                   Dispute Claim
                 </Label>
                 <p className="text-sm text-muted-foreground">

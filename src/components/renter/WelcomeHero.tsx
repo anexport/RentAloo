@@ -64,12 +64,12 @@ const WelcomeHero = () => {
           <div className="flex-1 space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/20 border-2 border-primary/30 shadow-md transition-transform hover:scale-105">
-                <span className="text-2xl md:text-3xl font-bold text-primary">
+                <span className="text-headline-lg md:text-display-sm font-bold text-primary">
                   {firstName.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                <h1 className="text-display-sm md:text-display-md lg:text-display-lg font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                   {greeting}, {firstName}!
                 </h1>
                 {isVerified && (

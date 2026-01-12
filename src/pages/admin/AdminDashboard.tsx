@@ -1117,7 +1117,9 @@ const AdminDashboard = () => {
                 <Users className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{summary.totalUsers}</p>
+                <p className="text-display-sm font-bold">
+                  {summary.totalUsers}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Profiles in the system
                 </p>
@@ -1130,7 +1132,9 @@ const AdminDashboard = () => {
                 <Package className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{summary.totalListings}</p>
+                <p className="text-display-sm font-bold">
+                  {summary.totalListings}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Equipment records
                 </p>
@@ -1145,7 +1149,9 @@ const AdminDashboard = () => {
                 <Banknote className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">{summary.pendingPayouts}</p>
+                <p className="text-display-sm font-bold">
+                  {summary.pendingPayouts}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   Awaiting processing
                 </p>
@@ -1160,7 +1166,7 @@ const AdminDashboard = () => {
                 <ShieldCheck className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">
+                <p className="text-display-sm font-bold">
                   {summary.pendingVerifications}
                 </p>
                 <p className="text-sm text-muted-foreground">Awaiting review</p>

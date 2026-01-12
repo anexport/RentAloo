@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
-  Mountain, 
-  ArrowLeft, 
-  Eye, 
-  EyeOff, 
+import {
+  Mountain,
+  ArrowLeft,
+  Eye,
+  EyeOff,
   User,
   Mail,
   MapPin,
@@ -16,7 +16,7 @@ import {
   Shield,
   CreditCard,
   Award,
-  Navigation
+  Navigation,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,10 +70,7 @@ const step4Schema = z.object({
 
 // Combined Schema
 const ownerSchema = z.intersection(
-  z.intersection(
-    z.intersection(step1Schema, step2Schema),
-    step3Schema
-  ),
+  z.intersection(z.intersection(step1Schema, step2Schema), step3Schema),
   step4Schema
 );
 
@@ -87,16 +84,44 @@ const STEPS = [
 ];
 
 const EQUIPMENT_CATEGORY_OPTIONS = [
-  { value: "Hiking & Backpacking", label: "Hiking & Backpacking", description: "Trails and gear" },
-  { value: "Climbing", label: "Climbing", description: "Rock and ice climbing" },
-  { value: "Skiing & Snowboarding", label: "Skiing & Snowboarding", description: "Winter sports" },
-  { value: "Cycling", label: "Cycling", description: "Road and mountain bikes" },
+  {
+    value: "Hiking & Backpacking",
+    label: "Hiking & Backpacking",
+    description: "Trails and gear",
+  },
+  {
+    value: "Climbing",
+    label: "Climbing",
+    description: "Rock and ice climbing",
+  },
+  {
+    value: "Skiing & Snowboarding",
+    label: "Skiing & Snowboarding",
+    description: "Winter sports",
+  },
+  {
+    value: "Cycling",
+    label: "Cycling",
+    description: "Road and mountain bikes",
+  },
   { value: "Camping", label: "Camping", description: "Tents and gear" },
-  { value: "Water Sports", label: "Water Sports", description: "Kayaks, SUPs, and more" },
-  { value: "Mountain Biking", label: "Mountain Biking", description: "Trail and downhill" },
+  {
+    value: "Water Sports",
+    label: "Water Sports",
+    description: "Kayaks, SUPs, and more",
+  },
+  {
+    value: "Mountain Biking",
+    label: "Mountain Biking",
+    description: "Trail and downhill",
+  },
   { value: "Running", label: "Running", description: "Trail running gear" },
   { value: "Fitness", label: "Fitness", description: "Exercise equipment" },
-  { value: "Photography", label: "Photography", description: "Cameras and lenses" },
+  {
+    value: "Photography",
+    label: "Photography",
+    description: "Cameras and lenses",
+  },
   { value: "Other", label: "Other", description: "Additional equipment" },
 ];
 
@@ -132,7 +157,12 @@ const OwnerRegistration = () => {
     let isValid = false;
 
     if (currentStep === 1) {
-      isValid = await trigger(["fullName", "email", "password", "confirmPassword"]);
+      isValid = await trigger([
+        "fullName",
+        "email",
+        "password",
+        "confirmPassword",
+      ]);
     } else if (currentStep === 2) {
       isValid = await trigger(["location", "serviceArea", "yearsExperience"]);
     } else if (currentStep === 3) {
@@ -209,7 +239,9 @@ const OwnerRegistration = () => {
             <div className="flex justify-center mb-2">
               <Mountain className="h-10 w-10 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-bold">Join as an Owner</CardTitle>
+            <CardTitle className="text-display-sm font-bold">
+              Join as an Owner
+            </CardTitle>
             <CardDescription className="text-base">
               Create your account to start listing your equipment
             </CardDescription>
@@ -242,7 +274,10 @@ const OwnerRegistration = () => {
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Full Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="fullName"
+                      className="flex items-center gap-2"
+                    >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Full Name
                       <span className="text-destructive">*</span>
@@ -253,10 +288,15 @@ const OwnerRegistration = () => {
                       placeholder="John Doe"
                       className={errors.fullName ? "border-destructive" : ""}
                       aria-invalid={!!errors.fullName}
-                      aria-describedby={errors.fullName ? "fullName-error" : undefined}
+                      aria-describedby={
+                        errors.fullName ? "fullName-error" : undefined
+                      }
                     />
                     {errors.fullName && (
-                      <p id="fullName-error" className="text-sm text-destructive">
+                      <p
+                        id="fullName-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.fullName.message}
                       </p>
                     )}
@@ -264,7 +304,10 @@ const OwnerRegistration = () => {
 
                   {/* Business Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="businessName" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="businessName"
+                      className="flex items-center gap-2"
+                    >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Business Name (Optional)
                     </Label>
@@ -272,12 +315,19 @@ const OwnerRegistration = () => {
                       id="businessName"
                       {...register("businessName")}
                       placeholder="Your business name"
-                      className={errors.businessName ? "border-destructive" : ""}
+                      className={
+                        errors.businessName ? "border-destructive" : ""
+                      }
                       aria-invalid={!!errors.businessName}
-                      aria-describedby={errors.businessName ? "businessName-error" : undefined}
+                      aria-describedby={
+                        errors.businessName ? "businessName-error" : undefined
+                      }
                     />
                     {errors.businessName && (
-                      <p id="businessName-error" className="text-sm text-destructive">
+                      <p
+                        id="businessName-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.businessName.message}
                       </p>
                     )}
@@ -297,7 +347,9 @@ const OwnerRegistration = () => {
                       placeholder="john@example.com"
                       className={errors.email ? "border-destructive" : ""}
                       aria-invalid={!!errors.email}
-                      aria-describedby={errors.email ? "email-error" : undefined}
+                      aria-describedby={
+                        errors.email ? "email-error" : undefined
+                      }
                     />
                     {errors.email && (
                       <p id="email-error" className="text-sm text-destructive">
@@ -320,7 +372,9 @@ const OwnerRegistration = () => {
                         placeholder="Create a strong password"
                         className={errors.password ? "border-destructive" : ""}
                         aria-invalid={!!errors.password}
-                        aria-describedby={errors.password ? "password-error" : undefined}
+                        aria-describedby={
+                          errors.password ? "password-error" : undefined
+                        }
                       />
                       <Button
                         type="button"
@@ -328,7 +382,9 @@ const OwnerRegistration = () => {
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -339,7 +395,10 @@ const OwnerRegistration = () => {
                     </div>
                     <PasswordStrength password={password || ""} />
                     {errors.password && (
-                      <p id="password-error" className="text-sm text-destructive">
+                      <p
+                        id="password-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.password.message}
                       </p>
                     )}
@@ -357,18 +416,28 @@ const OwnerRegistration = () => {
                         type={showConfirmPassword ? "text" : "password"}
                         {...register("confirmPassword")}
                         placeholder="Confirm your password"
-                        className={errors.confirmPassword ? "border-destructive" : ""}
+                        className={
+                          errors.confirmPassword ? "border-destructive" : ""
+                        }
                         aria-invalid={!!errors.confirmPassword}
-                        aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                        aria-describedby={
+                          errors.confirmPassword
+                            ? "confirmPassword-error"
+                            : undefined
+                        }
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         aria-label={
-                          showConfirmPassword ? "Hide password" : "Show password"
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
                         }
                       >
                         {showConfirmPassword ? (
@@ -379,7 +448,10 @@ const OwnerRegistration = () => {
                       </Button>
                     </div>
                     {errors.confirmPassword && (
-                      <p id="confirmPassword-error" className="text-sm text-destructive">
+                      <p
+                        id="confirmPassword-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.confirmPassword.message}
                       </p>
                     )}
@@ -392,7 +464,10 @@ const OwnerRegistration = () => {
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Location */}
                   <div className="space-y-2">
-                    <Label htmlFor="location" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="location"
+                      className="flex items-center gap-2"
+                    >
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       Location
                       <span className="text-destructive">*</span>
@@ -403,10 +478,15 @@ const OwnerRegistration = () => {
                       placeholder="San Francisco, CA"
                       className={errors.location ? "border-destructive" : ""}
                       aria-invalid={!!errors.location}
-                      aria-describedby={errors.location ? "location-error" : undefined}
+                      aria-describedby={
+                        errors.location ? "location-error" : undefined
+                      }
                     />
                     {errors.location && (
-                      <p id="location-error" className="text-sm text-destructive">
+                      <p
+                        id="location-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.location.message}
                       </p>
                     )}
@@ -414,7 +494,10 @@ const OwnerRegistration = () => {
 
                   {/* Service Area */}
                   <div className="space-y-2">
-                    <Label htmlFor="serviceArea" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="serviceArea"
+                      className="flex items-center gap-2"
+                    >
                       <Navigation className="h-4 w-4 text-muted-foreground" />
                       Service Area
                       <span className="text-destructive">*</span>
@@ -425,13 +508,23 @@ const OwnerRegistration = () => {
                       placeholder="50 miles radius"
                       className={errors.serviceArea ? "border-destructive" : ""}
                       aria-invalid={!!errors.serviceArea}
-                      aria-describedby={errors.serviceArea ? "serviceArea-error" : "serviceArea-description"}
+                      aria-describedby={
+                        errors.serviceArea
+                          ? "serviceArea-error"
+                          : "serviceArea-description"
+                      }
                     />
-                    <p id="serviceArea-description" className="text-xs text-muted-foreground">
+                    <p
+                      id="serviceArea-description"
+                      className="text-xs text-muted-foreground"
+                    >
                       The area you're willing to serve for equipment rentals
                     </p>
                     {errors.serviceArea && (
-                      <p id="serviceArea-error" className="text-sm text-destructive">
+                      <p
+                        id="serviceArea-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.serviceArea.message}
                       </p>
                     )}
@@ -439,7 +532,10 @@ const OwnerRegistration = () => {
 
                   {/* Years of Experience */}
                   <div className="space-y-2">
-                    <Label htmlFor="yearsExperience" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="yearsExperience"
+                      className="flex items-center gap-2"
+                    >
                       <Award className="h-4 w-4 text-muted-foreground" />
                       Years of Experience
                       <span className="text-destructive">*</span>
@@ -450,12 +546,21 @@ const OwnerRegistration = () => {
                       min="0"
                       {...register("yearsExperience")}
                       placeholder="5"
-                      className={errors.yearsExperience ? "border-destructive" : ""}
+                      className={
+                        errors.yearsExperience ? "border-destructive" : ""
+                      }
                       aria-invalid={!!errors.yearsExperience}
-                      aria-describedby={errors.yearsExperience ? "yearsExperience-error" : undefined}
+                      aria-describedby={
+                        errors.yearsExperience
+                          ? "yearsExperience-error"
+                          : undefined
+                      }
                     />
                     {errors.yearsExperience && (
-                      <p id="yearsExperience-error" className="text-sm text-destructive">
+                      <p
+                        id="yearsExperience-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.yearsExperience.message}
                       </p>
                     )}
@@ -467,7 +572,7 @@ const OwnerRegistration = () => {
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       What equipment do you offer?
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -494,7 +599,7 @@ const OwnerRegistration = () => {
                         <Shield className="h-6 w-6 text-primary" />
                       </div>
                     </div>
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       Payment Information
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -505,14 +610,18 @@ const OwnerRegistration = () => {
                   <Alert>
                     <Shield className="h-4 w-4" />
                     <AlertDescription>
-                      Your bank information is encrypted and secure. We use bank-level
-                      encryption to protect your data. You can update this anytime.
+                      Your bank information is encrypted and secure. We use
+                      bank-level encryption to protect your data. You can update
+                      this anytime.
                     </AlertDescription>
                   </Alert>
 
                   {/* Bank Account */}
                   <div className="space-y-2">
-                    <Label htmlFor="bankAccount" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="bankAccount"
+                      className="flex items-center gap-2"
+                    >
                       <CreditCard className="h-4 w-4 text-muted-foreground" />
                       Bank Account Number
                     </Label>
@@ -522,13 +631,24 @@ const OwnerRegistration = () => {
                       placeholder="Enter your bank account number"
                       className={errors.bankAccount ? "border-destructive" : ""}
                       aria-invalid={!!errors.bankAccount}
-                      aria-describedby={errors.bankAccount ? "bankAccount-error" : "bankAccount-description"}
+                      aria-describedby={
+                        errors.bankAccount
+                          ? "bankAccount-error"
+                          : "bankAccount-description"
+                      }
                     />
-                    <p id="bankAccount-description" className="text-xs text-muted-foreground">
-                      This is optional. You can add it later in your account settings.
+                    <p
+                      id="bankAccount-description"
+                      className="text-xs text-muted-foreground"
+                    >
+                      This is optional. You can add it later in your account
+                      settings.
                     </p>
                     {errors.bankAccount && (
-                      <p id="bankAccount-error" className="text-sm text-destructive">
+                      <p
+                        id="bankAccount-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.bankAccount.message}
                       </p>
                     )}
@@ -571,11 +691,7 @@ const OwnerRegistration = () => {
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="flex-1" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <span className="mr-2">Creating Account...</span>
@@ -594,7 +710,10 @@ const OwnerRegistration = () => {
               <div className="text-center pt-4">
                 <p className="text-sm text-muted-foreground">
                   Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline font-medium">
+                  <Link
+                    to="/login"
+                    className="text-primary hover:underline font-medium"
+                  >
                     Sign in
                   </Link>
                 </p>

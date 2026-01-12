@@ -24,8 +24,18 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { differenceInDays, differenceInHours, isPast, isFuture, isToday, format } from "date-fns";
-import type { InspectionPhase, ReturnInspectionSummary } from "./InspectionFlowBanner";
+import {
+  differenceInDays,
+  differenceInHours,
+  isPast,
+  isFuture,
+  isToday,
+  format,
+} from "date-fns";
+import type {
+  InspectionPhase,
+  ReturnInspectionSummary,
+} from "./InspectionFlowBanner";
 
 interface MobileInspectionSheetProps {
   bookingId: string;
@@ -68,9 +78,11 @@ export default function MobileInspectionSheet({
   const today = new Date();
 
   const windowHours = claimWindowHours ?? 48;
-  const submittedAt = returnInspection?.timestamp || returnInspection?.created_at;
+  const submittedAt =
+    returnInspection?.timestamp || returnInspection?.created_at;
   const isClaimWindowExpired = submittedAt
-    ? Date.now() > new Date(submittedAt).getTime() + windowHours * 60 * 60 * 1000
+    ? Date.now() >
+      new Date(submittedAt).getTime() + windowHours * 60 * 60 * 1000
     : false;
   const ownerNeedsReturnReview =
     isOwner &&
@@ -172,11 +184,15 @@ export default function MobileInspectionSheet({
     {
       id: "pickup",
       label: "Pickup Inspection",
-      description: hasPickupInspection 
-        ? "Completed" 
+      description: hasPickupInspection
+        ? "Completed"
         : "Document condition before pickup",
-      status: hasPickupInspection ? "complete" : (phase === "awaiting_pickup_inspection" ? "current" : "upcoming"),
-      action: hasPickupInspection 
+      status: hasPickupInspection
+        ? "complete"
+        : phase === "awaiting_pickup_inspection"
+        ? "current"
+        : "upcoming",
+      action: hasPickupInspection
         ? () => handleViewInspection("pickup")
         : () => handleInspectionAction("pickup"),
       actionLabel: hasPickupInspection ? "View" : "Start",
@@ -186,10 +202,16 @@ export default function MobileInspectionSheet({
     {
       id: "active",
       label: "Rental Period",
-      description: isActive 
-        ? `Ends ${format(endDate, "MMM d")}` 
-        : (hasPickupInspection ? "Completed" : `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`),
-      status: isActive ? "current" : (hasPickupInspection && !isFuture(startDate) ? "complete" : "upcoming"),
+      description: isActive
+        ? `Ends ${format(endDate, "MMM d")}`
+        : hasPickupInspection
+        ? "Completed"
+        : `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`,
+      status: isActive
+        ? "current"
+        : hasPickupInspection && !isFuture(startDate)
+        ? "complete"
+        : "upcoming",
       icon: Package,
     },
     {
@@ -197,20 +219,31 @@ export default function MobileInspectionSheet({
       label: "Return Inspection",
       description: hasReturnInspection
         ? ownerNeedsReturnReview
-          ? `Submitted — confirm${claimWindowHours ? ` within ${claimWindowHours}h` : ""}`
+          ? `Submitted — confirm${
+              claimWindowHours ? ` within ${claimWindowHours}h` : ""
+            }`
           : "Completed"
         : isOwner
-          ? "Awaiting renter submission"
-          : "Document condition upon return",
-      status: hasReturnInspection ? "complete" : (phase === "awaiting_return_inspection" ? "current" : "upcoming"),
+        ? "Awaiting renter submission"
+        : "Document condition upon return",
+      status: hasReturnInspection
+        ? "complete"
+        : phase === "awaiting_return_inspection"
+        ? "current"
+        : "upcoming",
       action: hasReturnInspection
         ? () => handleViewInspection("return")
         : isOwner
-          ? undefined
-          : (hasPickupInspection ? () => handleInspectionAction("return") : undefined),
-      actionLabel: hasReturnInspection ? "View" : (isOwner ? undefined : "Start"),
+        ? undefined
+        : hasPickupInspection
+        ? () => handleInspectionAction("return")
+        : undefined,
+      actionLabel: hasReturnInspection ? "View" : isOwner ? undefined : "Start",
       icon: hasReturnInspection ? CheckCircle2 : Camera,
-      timing: hasPickupInspection && !hasReturnInspection ? getTimingText() : undefined,
+      timing:
+        hasPickupInspection && !hasReturnInspection
+          ? getTimingText()
+          : undefined,
     },
   ];
 
@@ -220,7 +253,8 @@ export default function MobileInspectionSheet({
       button: "bg-red-600 hover:bg-red-700",
     },
     warning: {
-      badge: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+      badge:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
       button: "bg-amber-600 hover:bg-amber-700",
     },
     normal: {
@@ -231,7 +265,10 @@ export default function MobileInspectionSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-auto max-h-[85dvh] rounded-t-2xl px-0">
+      <SheetContent
+        side="bottom"
+        className="h-auto max-h-[85dvh] rounded-t-2xl px-0"
+      >
         {/* Drag handle indicator */}
         <div className="flex justify-center pt-2 pb-4">
           <div className="w-12 h-1.5 rounded-full bg-muted-foreground/20" />
@@ -240,14 +277,18 @@ export default function MobileInspectionSheet({
         <SheetHeader className="px-6 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <SheetTitle className="text-xl">Inspection Progress</SheetTitle>
+              <SheetTitle className="text-title-lg">
+                Inspection Progress
+              </SheetTitle>
               <SheetDescription className="line-clamp-1">
                 {equipmentTitle}
               </SheetDescription>
             </div>
             {phase !== "all_complete" && (
               <Badge className={cn("shrink-0", urgencyStyles[urgency].badge)}>
-                {urgency === "critical" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                {urgency === "critical" && (
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                )}
                 {urgency === "warning" && <Clock className="h-3 w-3 mr-1" />}
                 {getTimingText()}
               </Badge>
@@ -270,7 +311,7 @@ export default function MobileInspectionSheet({
             const Icon = step.icon;
             const isComplete = step.status === "complete";
             const isCurrent = step.status === "current";
-            
+
             return (
               <div
                 key={step.id}
@@ -304,10 +345,7 @@ export default function MobileInspectionSheet({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className={cn(
-                        "font-medium",
-                        isCurrent && "text-primary"
-                      )}
+                      className={cn("font-medium", isCurrent && "text-primary")}
                     >
                       {step.label}
                     </span>
@@ -316,8 +354,10 @@ export default function MobileInspectionSheet({
                         variant="secondary"
                         className={cn(
                           "text-xs",
-                          urgency === "critical" && "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-                          urgency === "warning" && "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                          urgency === "critical" &&
+                            "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+                          urgency === "warning" &&
+                            "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                         )}
                       >
                         {step.timing}
@@ -337,7 +377,9 @@ export default function MobileInspectionSheet({
                     onClick={step.action}
                     className={cn(
                       "shrink-0",
-                      isCurrent && urgency !== "normal" && urgencyStyles[urgency].button
+                      isCurrent &&
+                        urgency !== "normal" &&
+                        urgencyStyles[urgency].button
                     )}
                   >
                     {step.actionLabel}
@@ -374,15 +416,15 @@ export default function MobileInspectionSheet({
             hasReturnInspection &&
             !isClaimWindowExpired &&
             !returnInspection?.verified_by_owner && (
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={handleFileClaim}
-            >
-              <FileWarning className="h-4 w-4 mr-2" />
-              File Claim
-            </Button>
-          )}
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleFileClaim}
+              >
+                <FileWarning className="h-4 w-4 mr-2" />
+                File Claim
+              </Button>
+            )}
 
           {/* Primary action based on current phase */}
           {phase === "awaiting_pickup_inspection" && (

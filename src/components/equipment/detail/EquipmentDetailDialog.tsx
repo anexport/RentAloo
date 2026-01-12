@@ -558,7 +558,7 @@ const EquipmentDetailDialog = ({
                 <TabsContent value="overview" className="space-y-8 mt-6">
                   {/* 1. Key Details Grid */}
                   <div>
-                    <h2 className="text-xl font-semibold mb-4">
+                    <h2 className="text-title-lg font-semibold mb-4">
                       {t("details.key_details")}
                     </h2>
                     <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -628,7 +628,7 @@ const EquipmentDetailDialog = ({
 
                   {/* 3. Location Section */}
                   <section>
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <h2 className="text-title-lg font-semibold mb-4 flex items-center gap-2">
                       <MapPin className="h-5 w-5 text-primary" />
                       {t("details.location")}
                     </h2>
@@ -647,7 +647,7 @@ const EquipmentDetailDialog = ({
 
                   {/* 4. Availability Section */}
                   <section>
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <h2 className="text-title-lg font-semibold mb-4 flex items-center gap-2">
                       {t("details.availability")}
                     </h2>
                     <AvailabilityCalendar
@@ -663,7 +663,7 @@ const EquipmentDetailDialog = ({
 
                   {/* 5. Description Section */}
                   <div>
-                    <h2 className="text-xl font-semibold mb-3">
+                    <h2 className="text-title-lg font-semibold mb-3">
                       {t("details.description")}
                     </h2>
                     <p className="text-foreground leading-relaxed whitespace-pre-wrap">

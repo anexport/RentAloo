@@ -109,8 +109,10 @@ const EscrowDashboard = () => {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total in Escrow</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-sm text-muted-foreground mb-1">
+                  Total in Escrow
+                </p>
+                <p className="text-headline-lg font-bold text-primary">
                   {formatCurrency(totalEscrow)}
                 </p>
               </div>
@@ -125,7 +127,7 @@ const EscrowDashboard = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Held Funds</p>
-                <p className="text-2xl font-bold">
+                <p className="text-headline-lg font-bold">
                   {payments.filter((p) => p.escrow_status === "held").length}
                 </p>
               </div>
@@ -139,8 +141,10 @@ const EscrowDashboard = () => {
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Released Funds</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm text-muted-foreground mb-1">
+                  Released Funds
+                </p>
+                <p className="text-headline-lg font-bold">
                   {
                     payments.filter((p) => p.escrow_status === "released")
                       .length

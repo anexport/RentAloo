@@ -130,12 +130,12 @@ export default function InspectionChecklistStep({
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-headline-lg font-bold tracking-tight">
               Condition Checklist
             </h2>
             <p className="text-muted-foreground">
-              Rate each item&apos;s condition. Add notes for anything not in good
-              condition.
+              Rate each item&apos;s condition. Add notes for anything not in
+              good condition.
             </p>
           </div>
 
@@ -190,7 +190,9 @@ export default function InspectionChecklistStep({
                         >
                           <Icon className={cn("h-5 w-5", config.color)} />
                         </div>
-                        <span className="font-medium truncate">{item.item}</span>
+                        <span className="font-medium truncate">
+                          {item.item}
+                        </span>
                       </div>
 
                       <Button
@@ -211,41 +213,41 @@ export default function InspectionChecklistStep({
 
                     {/* Status buttons */}
                     <div className="flex gap-2">
-                      {(Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]).map(
-                        (status) => {
-                          const statusConfig = STATUS_CONFIG[status];
-                          const StatusIcon = statusConfig.icon;
-                          const isSelected = item.status === status;
+                      {(
+                        Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]
+                      ).map((status) => {
+                        const statusConfig = STATUS_CONFIG[status];
+                        const StatusIcon = statusConfig.icon;
+                        const isSelected = item.status === status;
 
-                          return (
-                            <Button
-                              key={status}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleStatusChange(index, status)}
+                        return (
+                          <Button
+                            key={status}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStatusChange(index, status)}
+                            className={cn(
+                              "flex-1 h-12 transition-all",
+                              isSelected && [
+                                statusConfig.bgColor,
+                                statusConfig.borderColor,
+                                statusConfig.color,
+                              ]
+                            )}
+                            aria-pressed={isSelected}
+                          >
+                            <StatusIcon
                               className={cn(
-                                "flex-1 h-12 transition-all",
-                                isSelected && [
-                                  statusConfig.bgColor,
-                                  statusConfig.borderColor,
-                                  statusConfig.color,
-                                ]
+                                "h-4 w-4 mr-1.5",
+                                isSelected
+                                  ? statusConfig.color
+                                  : "text-muted-foreground"
                               )}
-                              aria-pressed={isSelected}
-                            >
-                              <StatusIcon
-                                className={cn(
-                                  "h-4 w-4 mr-1.5",
-                                  isSelected
-                                    ? statusConfig.color
-                                    : "text-muted-foreground"
-                                )}
-                              />
-                              {statusConfig.label}
-                            </Button>
-                          );
-                        }
-                      )}
+                            />
+                            {statusConfig.label}
+                          </Button>
+                        );
+                      })}
                     </div>
 
                     {/* Notes section */}
@@ -308,4 +310,3 @@ export default function InspectionChecklistStep({
     </div>
   );
 }
-

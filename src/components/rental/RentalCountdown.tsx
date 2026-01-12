@@ -74,20 +74,23 @@ export default function RentalCountdown({
     }
     if (countdown.progressPercentage >= 90) {
       return {
-        container: "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-400",
+        container:
+          "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-400",
         progress: "bg-orange-500",
         icon: <AlertTriangle className="h-5 w-5 text-orange-500" />,
       };
     }
     if (countdown.progressPercentage >= 75) {
       return {
-        container: "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400",
+        container:
+          "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400",
         progress: "bg-amber-500",
         icon: <Clock className="h-5 w-5 text-amber-500" />,
       };
     }
     return {
-      container: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400",
+      container:
+        "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400",
       progress: "bg-emerald-500",
       icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" />,
     };
@@ -120,7 +123,7 @@ export default function RentalCountdown({
       </div>
 
       <div className="text-center mb-4">
-        <div className="text-3xl font-bold tracking-tight">
+        <div className="text-display-sm font-bold tracking-tight">
           {countdown.isOverdue ? (
             "Overdue"
           ) : countdown.daysRemaining > 0 ? (
@@ -187,4 +190,3 @@ export default function RentalCountdown({
     </div>
   );
 }
-

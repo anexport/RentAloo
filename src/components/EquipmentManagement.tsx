@@ -203,7 +203,7 @@ const EquipmentManagement = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-foreground">
+            <h2 className="text-headline-lg font-bold text-foreground">
               {showingCalendar.title}
             </h2>
             <p className="text-muted-foreground">
@@ -248,7 +248,7 @@ const EquipmentManagement = () => {
                 <Plus className="w-8 h-8 text-primary" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3 className="text-title-lg font-semibold text-foreground">
                   List your first equipment
                 </h3>
                 <p className="text-muted-foreground">
@@ -306,7 +306,10 @@ const EquipmentManagement = () => {
                       aria-label={`No photo available for ${item.title}`}
                     >
                       <div className="text-center text-muted-foreground">
-                        <div className="text-4xl mb-2" aria-hidden="true">
+                        <div
+                          className="text-display-md mb-2"
+                          aria-hidden="true"
+                        >
                           📷
                         </div>
                         <p className="text-xs">No photo</p>

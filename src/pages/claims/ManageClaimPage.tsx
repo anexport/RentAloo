@@ -2,7 +2,13 @@ import { useMemo, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ExternalLink, MessageSquare, LifeBuoy, FileWarning } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  MessageSquare,
+  LifeBuoy,
+  FileWarning,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getClaimStatusColor, getClaimStatusText } from "@/lib/claim";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageShell from "@/components/layout/PageShell";
-import { ContentCard, ContentCardHeader, ContentCardContent } from "@/components/ui/ContentCard";
+import {
+  ContentCard,
+  ContentCardHeader,
+  ContentCardContent,
+} from "@/components/ui/ContentCard";
 import { CardSkeleton } from "@/components/ui/PageSkeleton";
 import type { ClaimStatus, RenterResponse } from "@/types/claim";
 
@@ -40,7 +50,10 @@ interface ClaimDetails {
   } | null;
 }
 
-async function fetchClaimDetails(claimId: string, userId: string): Promise<ClaimDetails> {
+async function fetchClaimDetails(
+  claimId: string,
+  userId: string
+): Promise<ClaimDetails> {
   const { data, error } = await supabase
     .from("damage_claims")
     .select(
@@ -73,15 +86,21 @@ async function fetchClaimDetails(claimId: string, userId: string): Promise<Claim
   }
 
   return {
-    ...(data as unknown as Omit<ClaimDetails, "evidence_photos" | "repair_quotes" | "booking" | "renter_response"> & {
+    ...(data as unknown as Omit<
+      ClaimDetails,
+      "evidence_photos" | "repair_quotes" | "booking" | "renter_response"
+    > & {
       evidence_photos: string[] | null;
       repair_quotes: string[] | null;
       booking: unknown;
       renter_response: unknown;
     }),
-    evidence_photos: (data as { evidence_photos: string[] | null }).evidence_photos ?? [],
-    repair_quotes: (data as { repair_quotes: string[] | null }).repair_quotes ?? [],
-    renter_response: (data as { renter_response: unknown }).renter_response as RenterResponse | null,
+    evidence_photos:
+      (data as { evidence_photos: string[] | null }).evidence_photos ?? [],
+    repair_quotes:
+      (data as { repair_quotes: string[] | null }).repair_quotes ?? [],
+    renter_response: (data as { renter_response: unknown })
+      .renter_response as RenterResponse | null,
     booking,
   };
 }
@@ -107,20 +126,28 @@ export default function ManageClaimPage() {
   const renterDisplayName = useMemo(() => {
     const renter = claim?.booking?.renter;
     if (!renter) return "Renter";
-    return renter.full_name || renter.username || renter.email?.split("@")[0] || "Renter";
+    return (
+      renter.full_name ||
+      renter.username ||
+      renter.email?.split("@")[0] ||
+      "Renter"
+    );
   }, [claim?.booking?.renter]);
 
   /** Safely format a date string as distance to now, with fallback */
-  const safeFormatDistanceToNow = useCallback((dateString: string | null | undefined): string => {
-    if (!dateString) return "unknown date";
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "unknown date";
-      return formatDistanceToNow(date);
-    } catch {
-      return "unknown date";
-    }
-  }, []);
+  const safeFormatDistanceToNow = useCallback(
+    (dateString: string | null | undefined): string => {
+      if (!dateString) return "unknown date";
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "unknown date";
+        return formatDistanceToNow(date);
+      } catch {
+        return "unknown date";
+      }
+    },
+    []
+  );
 
   if (!claimId || !user) {
     return (
@@ -133,7 +160,9 @@ export default function ManageClaimPage() {
         >
           <div className="max-w-2xl mx-auto space-y-4">
             <Alert variant="destructive">
-              <AlertDescription>Invalid claim or not authenticated</AlertDescription>
+              <AlertDescription>
+                Invalid claim or not authenticated
+              </AlertDescription>
             </Alert>
             <Button variant="outline" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -163,7 +192,8 @@ export default function ManageClaimPage() {
   }
 
   if (isError || !claim) {
-    const errorMessage = error instanceof Error ? error.message : "Something went wrong";
+    const errorMessage =
+      error instanceof Error ? error.message : "Something went wrong";
     return (
       <DashboardLayout>
         <PageShell
@@ -213,118 +243,131 @@ export default function ManageClaimPage() {
             />
 
             <ContentCardContent className="space-y-6">
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Claimed amount</p>
-                  <p className="text-2xl font-bold text-destructive">
-                    ${claim.estimated_cost.toFixed(2)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/messages">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Messages
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link to="/support">
-                      <LifeBuoy className="h-4 w-4 mr-2" />
-                      Support
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-semibold">Damage description</h3>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {claim.damage_description}
-              </p>
-            </div>
-
-            {claim.evidence_photos.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-semibold">Evidence photos</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {claim.evidence_photos.map((url, index) => (
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative overflow-hidden rounded-lg border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                      aria-label={`Open evidence photo ${index + 1} in new tab`}
-                    >
-                      <img
-                        src={url}
-                        alt={`Evidence ${index + 1}`}
-                        className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-                        loading="lazy"
-                      />
-                      <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
-                        <ExternalLink className="h-3 w-3" />
-                        Open
-                      </span>
-                    </a>
-                  ))}
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Claimed amount
+                    </p>
+                    <p className="text-headline-lg font-bold text-destructive">
+                      ${claim.estimated_cost.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/messages">
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Messages
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/support">
+                        <LifeBuoy className="h-4 w-4 mr-2" />
+                        Support
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {claim.repair_quotes.length > 0 && (
               <div className="space-y-2">
-                <h3 className="font-semibold">Repair quotes</h3>
+                <h2 className="text-title-lg font-semibold">
+                  Claim Filed Successfully
+                </h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {claim.damage_description}
+                </p>
+              </div>
+
+              {claim.evidence_photos.length > 0 && (
                 <div className="space-y-2">
-                  {claim.repair_quotes.map((url) => (
-                    <a
-                      key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm hover:bg-muted/50"
-                    >
-                      <span className="truncate">Open quote</span>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    </a>
-                  ))}
+                  <h3 className="font-semibold">Evidence photos</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {claim.evidence_photos.map((url, index) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative overflow-hidden rounded-lg border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        aria-label={`Open evidence photo ${
+                          index + 1
+                        } in new tab`}
+                      >
+                        <img
+                          src={url}
+                          alt={`Evidence ${index + 1}`}
+                          className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                          loading="lazy"
+                        />
+                        <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+                          <ExternalLink className="h-3 w-3" />
+                          Open
+                        </span>
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <h3 className="font-semibold">Renter response</h3>
-              {claim.renter_response ? (
-                <div className="rounded-lg border p-4 space-y-2">
-                  <p className="text-sm">
-                    <span className="font-medium">Action:</span>{" "}
-                    {claim.renter_response.action}
-                  </p>
-                  {typeof claim.renter_response.counter_offer === "number" && (
-                    <p className="text-sm">
-                      <span className="font-medium">Counter offer:</span> $
-                      {claim.renter_response.counter_offer.toFixed(2)}
-                    </p>
-                  )}
-                  {claim.renter_response.notes && (
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                      {claim.renter_response.notes}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Responded {safeFormatDistanceToNow(claim.renter_response.responded_at)} ago
-                  </p>
-                </div>
-              ) : (
-                <Alert>
-                  <AlertDescription>
-                    Waiting for the renter to respond.
-                  </AlertDescription>
-                </Alert>
               )}
-            </div>
+
+              {claim.repair_quotes.length > 0 && (
+                <div className="space-y-2">
+                  <h2 className="text-title-lg font-semibold">
+                    Response Submitted
+                  </h2>
+                  <div className="space-y-2">
+                    {claim.repair_quotes.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm hover:bg-muted/50"
+                      >
+                        <span className="truncate">Open quote</span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <h3 className="font-semibold">Renter response</h3>
+                {claim.renter_response ? (
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <p className="text-sm">
+                      <span className="font-medium">Action:</span>{" "}
+                      {claim.renter_response.action}
+                    </p>
+                    {typeof claim.renter_response.counter_offer ===
+                      "number" && (
+                      <p className="text-sm">
+                        <span className="font-medium">Counter offer:</span> $
+                        {claim.renter_response.counter_offer.toFixed(2)}
+                      </p>
+                    )}
+                    {claim.renter_response.notes && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {claim.renter_response.notes}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Responded{" "}
+                      {safeFormatDistanceToNow(
+                        claim.renter_response.responded_at
+                      )}{" "}
+                      ago
+                    </p>
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertDescription>
+                      Waiting for the renter to respond.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
             </ContentCardContent>
           </ContentCard>
         </div>
@@ -332,4 +375,3 @@ export default function ManageClaimPage() {
     </DashboardLayout>
   );
 }
-

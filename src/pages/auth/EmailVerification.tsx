@@ -20,14 +20,16 @@ const EmailVerification = () => {
   const { toast } = useToast();
   const location = useLocation();
   const user = session?.user;
-  
+
   // Get email from location state (passed from registration) or session
   const email = (location.state as { email?: string })?.email || user?.email;
 
   const [isSending, setIsSending] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const [nextAllowedResend, setNextAllowedResend] = useState<number | null>(null);
+  const [nextAllowedResend, setNextAllowedResend] = useState<number | null>(
+    null
+  );
 
   // Clear the throttle when it expires
   useEffect(() => {
@@ -96,7 +98,8 @@ const EmailVerification = () => {
         description: "We just resent your verification link.",
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unexpected error";
+      const errorMessage =
+        err instanceof Error ? err.message : "Unexpected error";
       setStatus("error");
       setMessage(errorMessage);
       toast({
@@ -114,9 +117,12 @@ const EmailVerification = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <MailCheck className="mx-auto h-10 w-10 text-primary" />
-          <CardTitle className="text-2xl font-semibold">Verify your e-mail</CardTitle>
+          <CardTitle className="text-headline-lg font-semibold">
+            Verify your e-mail
+          </CardTitle>
           <CardDescription>
-            Please check your inbox for a verification link to continue creating your account.
+            Please check your inbox for a verification link to continue creating
+            your account.
           </CardDescription>
         </CardHeader>
 
@@ -125,20 +131,23 @@ const EmailVerification = () => {
             <Alert>
               <AlertTitle>Sent to {email}</AlertTitle>
               <AlertDescription>
-                Didn't get it? Double-check spam or use the button below to resend the link.
+                Didn't get it? Double-check spam or use the button below to
+                resend the link.
               </AlertDescription>
             </Alert>
           )}
 
           <p className="text-sm text-muted-foreground">
-            After verifying your email, you'll be able to access all features of your account.
-            Click the verification link in the email we sent you.
+            After verifying your email, you'll be able to access all features of
+            your account. Click the verification link in the email we sent you.
           </p>
 
           {message && (
             <p
               className={`text-sm ${
-                status === "error" ? "text-destructive" : "text-muted-foreground"
+                status === "error"
+                  ? "text-destructive"
+                  : "text-muted-foreground"
               }`}
             >
               {message}
@@ -149,7 +158,10 @@ const EmailVerification = () => {
         <CardFooter className="flex flex-col space-y-2">
           <Button
             className="w-full"
-            disabled={isSending || (nextAllowedResend !== null && Date.now() < nextAllowedResend)}
+            disabled={
+              isSending ||
+              (nextAllowedResend !== null && Date.now() < nextAllowedResend)
+            }
             onClick={handleResend}
           >
             {isSending ? (
@@ -174,4 +186,3 @@ const EmailVerification = () => {
 };
 
 export default EmailVerification;
-

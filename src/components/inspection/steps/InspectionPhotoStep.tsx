@@ -31,11 +31,12 @@ export default function InspectionPhotoStep({
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-headline-lg font-bold tracking-tight">
               Photo Documentation
             </h2>
             <p className="text-muted-foreground">
-              Take clear photos of the equipment to document its current condition.
+              Take clear photos of the equipment to document its current
+              condition.
             </p>
           </div>
 
@@ -75,4 +76,3 @@ export default function InspectionPhotoStep({
     </div>
   );
 }
-
