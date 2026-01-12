@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import markerSDK from "@marker.io/browser";
 import {
   BrowserRouter as Router,
   Routes,
@@ -100,6 +101,13 @@ const AdminRoute = () => {
 
 function App() {
   const { user, loading } = useAuth();
+
+  // Initialize Marker.io feedback widget
+  useEffect(() => {
+    markerSDK.loadWidget({
+      project: "69643cd3175800e4c150231c",
+    });
+  }, []);
 
   if (loading) {
     return <PageLoader />;
