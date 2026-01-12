@@ -27,6 +27,10 @@ const ExplorePage = lazy(() => import("@/pages/ExplorePage"));
 const EquipmentDetailPage = lazy(
   () => import("@/pages/equipment/EquipmentDetailPage")
 );
+const HelpPage = lazy(() => import("@/pages/HelpPage"));
+const TermsPage = lazy(() => import("@/pages/TermsPage"));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const PaymentConfirmation = lazy(
   () => import("@/pages/payment/PaymentConfirmation")
@@ -126,6 +130,9 @@ function App() {
                       {/* Public routes */}
                       <Route path="/" element={<HomePage />} />
                       <Route path="/explore" element={<ExplorePage />} />
+                      <Route path="/help" element={<HelpPage />} />
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/privacy" element={<PrivacyPage />} />
                       <Route
                         path="/register/renter"
                         element={
@@ -245,6 +252,9 @@ function App() {
 
                       {/* Admin route - always registered, AdminRoute handles auth */}
                       <Route path="/admin" element={<AdminRoute />} />
+
+                      {/* Fallback */}
+                      <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </OnboardingGuard>
                 </Suspense>

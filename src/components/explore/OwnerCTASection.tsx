@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, Calendar, Shield, TrendingUp } from "lucide-react";
+import { DollarSign, Calendar, Shield, TrendingUp, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const OwnerCTASection = () => {
   const { t } = useTranslation("marketing");
+  const { user } = useAuth();
 
   const benefits = [
     {
@@ -73,7 +75,9 @@ const OwnerCTASection = () => {
                 <Link to="/register/owner">{t("owner_cta.cta_primary")}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/owner/dashboard">{t("owner_cta.cta_secondary")}</Link>
+                <Link to={user ? "/owner/dashboard" : "/register/owner"}>
+                  {t("owner_cta.cta_secondary")}
+                </Link>
               </Button>
             </div>
 
@@ -85,7 +89,7 @@ const OwnerCTASection = () => {
                     key={i}
                     className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center"
                   >
-                    <span className="text-xs">👤</span>
+                    <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   </div>
                 ))}
               </div>

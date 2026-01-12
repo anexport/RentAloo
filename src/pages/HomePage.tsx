@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { usePrefetchData } from "@/hooks/usePrefetchData";
 import ExploreHeader from "@/components/layout/ExploreHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
 import HeroSection from "@/components/explore/HeroSection";
@@ -486,6 +487,8 @@ export default function HomePage() {
           </Button>
         </div>
       </div>
+
+      <SiteFooter />
 
       {/* Equipment Detail Dialog */}
       <EquipmentDetailDialog
