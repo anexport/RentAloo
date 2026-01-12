@@ -3,6 +3,7 @@
     "per_day": "pro Tag",
     "view_details": "Details anzeigen",
     "no_reviews": "Noch keine Bewertungen",
+    "new": "Neu",
     "reviews_count": "{{count}} Bewertung",
     "reviews_count_plural": "{{count}} Bewertungen",
     "wishlist_add": "Zur Wunschliste hinzufügen",
@@ -16,6 +17,8 @@
     "previous_photo": "Vorheriges Foto",
     "next_photo": "Nächstes Foto",
     "go_to_image": "Gehe zu Bild {{number}}",
+    "photo_counter": "Foto {{current}} von {{total}}",
+    "photo_carousel": "Fotos für {{title}}",
     "image_unavailable": "Bild nicht verfügbar",
     "no_image": "Kein Bild"
   },

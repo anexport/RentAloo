@@ -3,32 +3,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const ListingCardSkeleton = () => {
   return (
-    <Card className="overflow-hidden h-full flex flex-col">
-      <Skeleton className="aspect-video w-full flex-shrink-0" />
-      <CardContent className="p-4 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-2">
-          <Skeleton className="h-6 w-3/4" />
-          <div className="text-right">
-            <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-4 w-12 mt-1" />
+    <Card className="h-full overflow-hidden p-0 gap-0 border-border/60">
+      <Skeleton className="aspect-[4/3] w-full flex-shrink-0" />
+      <CardContent className="px-3 py-3 md:px-4 md:py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
           </div>
+          <Skeleton className="h-4 w-10 mt-1" />
         </div>
-        <div className="flex-1">
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-2/3 mb-3" />
-          <div className="flex items-center justify-between mb-4">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-        </div>
-        <div className="flex gap-2 mt-auto">
-          <Skeleton className="h-10 flex-1" />
-          <Skeleton className="h-10 flex-1" />
-        </div>
+        <Skeleton className="h-4 w-24 mt-3" />
       </CardContent>
     </Card>
   );
 };
 
 export default ListingCardSkeleton;
-

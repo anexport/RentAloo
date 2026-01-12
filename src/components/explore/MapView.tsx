@@ -145,49 +145,204 @@ const MapView = ({
     const safeTitle = escapeHtml(listing.title);
     const safeLocation = escapeHtml(listing.location);
     const photoUrl = listing.photos?.[0]?.photo_url;
+    const conditionText = listing.condition;
 
     // Calculate average rating from reviews
     const reviews = listing.reviews ?? [];
     const avgRating =
       reviews.length > 0
-        ? (
-            reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-          ).toFixed(1)
-        : null;
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
 
-    // Google Maps iOS-style info window: larger radius, cleaner design
-    return `
-      <div style="min-width: 280px; max-width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
-        ${
-          photoUrl
-            ? `<img src="${escapeHtml(
-                photoUrl
-              )}" alt="${safeTitle}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 16px 16px 0 0; display: block;" />`
-            : ""
+    // Detect dark mode - check if html element has 'dark' class
+    const isDarkMode = document.documentElement.classList.contains("dark");
+
+    // Theme-aware colors matching our Tailwind system
+    const colors = isDarkMode
+      ? {
+          bg: "#09090b", // zinc-950
+          card: "#18181b", // zinc-900
+          border: "rgba(63, 63, 70, 0.5)", // zinc-700/50
+          text: "#fafafa", // zinc-50
+          textMuted: "#a1a1aa", // zinc-400
+          shadow: "0 1px 3px 0 rgba(0, 0, 0, 0.5)",
+          imageBg: "linear-gradient(135deg, #27272a 0%, #3f3f46 100%)", // zinc-800 to zinc-700
         }
-        <div style="padding: 14px 16px 16px;">
-          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px;">
-            <div style="font-weight: 600; font-size: 16px; color: #1f2937; line-height: 1.35; flex: 1; min-width: 0;">${safeTitle}</div>
+      : {
+          bg: "#ffffff",
+          card: "#ffffff",
+          border: "rgba(228, 228, 231, 0.6)", // zinc-200/60
+          text: "#09090b", // zinc-950
+          textMuted: "#71717a", // zinc-500
+          shadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+          imageBg: "linear-gradient(135deg, #f4f4f5 0%, #e4e4e7 100%)", // zinc-100 to zinc-200
+        };
+
+    // Generate star rating HTML
+    const renderStars = (rating: number) => {
+      const stars = [];
+      for (let i = 1; i <= 5; i++) {
+        const fillPercentage = Math.min(
+          100,
+          Math.max(0, (rating - (i - 1)) * 100)
+        );
+        stars.push(`
+          <div style="position: relative; width: 14px; height: 14px; display: inline-block;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${colors.textMuted}" stroke-width="2" style="position: absolute;">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <div style="position: absolute; top: 0; left: 0; width: ${fillPercentage}%; height: 100%; overflow: hidden;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+          </div>
+        `);
+      }
+      return stars.join(" ");
+    };
+
+    // Card matching ListingCard component
+    return `
+      <div style="
+        width: 280px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; 
+        background: ${colors.card};
+        border: 1px solid ${colors.border};
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: ${colors.shadow};
+      ">
+        <!-- Image with 4:3 aspect ratio -->
+        <div style="
+          position: relative;
+          width: 100%;
+          height: 210px;
+          background: ${colors.imageBg};
+          overflow: hidden;
+        ">
+          ${
+            photoUrl
+              ? `
+            <img 
+              src="${escapeHtml(photoUrl)}" 
+              alt="${safeTitle}" 
+              style="width: 100%; height: 100%; object-fit: cover; display: block;" 
+            />
+          `
+              : `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: ${colors.textMuted};">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${colors.textMuted}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5; margin-bottom: 8px;">
+                <rect x="3" y="8" width="18" height="12" rx="2"/>
+                <path d="M10 8V5a2 2 0 0 1 4 0v3"/>
+              </svg>
+              <span style="font-size: 13px;">No Image</span>
+            </div>
+          `
+          }
+          
+          <!-- Close button (matching wishlist button style) -->
+          <button
+            data-close-infowindow="true"
+            style="
+              position: absolute;
+              top: 8px;
+              right: 8px;
+              width: 28px;
+              height: 28px;
+              border-radius: 50%;
+              background: ${
+                isDarkMode
+                  ? "rgba(39, 39, 42, 0.9)"
+                  : "rgba(255, 255, 255, 0.95)"
+              };
+              border: 1px solid ${
+                isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+              };
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+              backdrop-filter: blur(10px);
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s ease;
+              z-index: 10;
+            "
+            onmouseover="this.style.transform='scale(1.1)';"
+            onmouseout="this.style.transform='scale(1)';"
+            aria-label="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
+              isDarkMode ? "#fafafa" : "#18181b"
+            }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 12px 16px 16px;">
+          <!-- Title and Rating Row -->
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px;">
+            <h3 style="font-weight: 600; font-size: 15px; color: ${
+              colors.text
+            }; line-height: 1.4; margin: 0; flex: 1; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${safeTitle}</h3>
+            
             ${
-              avgRating
-                ? `<div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; background: #fef9c3; padding: 4px 8px; border-radius: 8px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#eab308" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span style="font-size: 13px; font-weight: 600; color: #854d0e;">${avgRating}</span>
-            </div>`
-                : ""
+              avgRating > 0
+                ? `
+              <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                ${renderStars(avgRating)}
+              </div>
+            `
+                : `
+              <span style="font-size: 13px; color: ${colors.textMuted}; flex-shrink: 0;">New</span>
+            `
             }
           </div>
-          <div style="font-size: 13px; color: #6b7280; margin-bottom: 12px; display: flex; align-items: center; gap: 5px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeLocation}</span>
-          </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-            <div style="font-size: 20px; font-weight: 700; color: #111827;">$${
-              listing.daily_rate
-            }<span style="font-size: 13px; font-weight: 400; color: #6b7280;">/day</span></div>
-            <button data-listing-id="${
-              listing.id
-            }" style="flex-shrink: 0; min-height: 44px; padding: 10px 20px; background: #111827; color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background 0.15s;">
+
+          <!-- Location -->
+          <p style="font-size: 14px; color: ${
+            colors.textMuted
+          }; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeLocation}</p>
+
+          <!-- Category and Condition -->
+          ${
+            listing.category?.name || conditionText
+              ? `
+            <p style="font-size: 14px; color: ${
+              colors.textMuted
+            }; margin: 0 0 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${[listing.category?.name || "", conditionText || ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          `
+              : ""
+          }
+
+          <!-- Price and Button -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+            <div style="font-size: 14px; color: ${colors.text};">
+              <span style="font-weight: 600; tabular-nums;">$${
+                listing.daily_rate
+              }</span>
+              <span style="color: ${
+                colors.textMuted
+              }; margin-left: 2px;">/day</span>
+            </div>
+            
+            <button 
+              data-listing-id="${listing.id}" 
+              style="padding: 8px 16px; background: ${
+                isDarkMode ? "#fafafa" : "#18181b"
+              }; color: ${
+      isDarkMode ? "#18181b" : "#fafafa"
+    }; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
+              onmouseover="this.style.opacity='0.9';"
+              onmouseout="this.style.opacity='1';"
+            >
               View
             </button>
           </div>
@@ -213,6 +368,42 @@ const MapView = ({
         infoWindowRef.current,
         "domready",
         () => {
+          // Remove default InfoWindow styling (white background, padding, border)
+          const infoWindowContainer = document.querySelector(".gm-style-iw-c");
+          const infoWindowContent = document.querySelector(".gm-style-iw-d");
+          const closeButton = document.querySelector(".gm-ui-hover-effect");
+
+          if (infoWindowContainer) {
+            (infoWindowContainer as HTMLElement).style.background =
+              "transparent";
+            (infoWindowContainer as HTMLElement).style.boxShadow = "none";
+            (infoWindowContainer as HTMLElement).style.padding = "0";
+            (infoWindowContainer as HTMLElement).style.borderRadius = "12px";
+            (infoWindowContainer as HTMLElement).style.overflow = "visible";
+          }
+
+          if (infoWindowContent) {
+            (infoWindowContent as HTMLElement).style.overflow = "visible";
+            (infoWindowContent as HTMLElement).style.padding = "0";
+            (infoWindowContent as HTMLElement).style.maxHeight = "none";
+          }
+
+          // Hide the default close button completely
+          if (closeButton) {
+            (closeButton as HTMLElement).style.display = "none";
+          }
+
+          // Attach custom close button handler
+          const customCloseButton = document.querySelector<HTMLButtonElement>(
+            '[data-close-infowindow="true"]'
+          );
+          if (customCloseButton) {
+            customCloseButton.onclick = () => {
+              infoWindowRef.current?.close();
+            };
+          }
+
+          // Attach View button click handler
           const button = document.querySelector<HTMLButtonElement>(
             `button[data-listing-id="${entry.listing.id}"]`
           );

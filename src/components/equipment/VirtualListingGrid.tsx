@@ -93,7 +93,7 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
     // Responsive skeleton count matching grid layout
     const isDesktop = useMediaQuery("(min-width: 1024px)"); // lg breakpoint
     const isTablet = useMediaQuery("(min-width: 768px)"); // md breakpoint
-    const skeletonCount = isDesktop ? 3 : isTablet ? 2 : 1;
+    const skeletonCount = isDesktop ? 3 : isTablet ? 2 : 4; // Mobile: 2 cols × 2 rows
 
     useEffect(() => {
       // Reset visible count when listings change
@@ -185,7 +185,7 @@ const VirtualListingGridInner = forwardRef<VirtualListingGridHandle, Props>(
 
     const containerClassName =
       layout === "grid"
-        ? "grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+        ? "grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6"
         : "space-y-4";
 
     // Cached ref callbacks to ensure stable references per ID

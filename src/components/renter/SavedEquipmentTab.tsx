@@ -33,7 +33,7 @@ const SavedEquipmentTab = () => {
             })}
           </p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <ListingCardSkeleton key={i} />
           ))}
@@ -142,7 +142,7 @@ const SavedEquipmentTab = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 auto-rows-fr">
         {listings.map((listing, index) => (
           <div
             key={listing.id}

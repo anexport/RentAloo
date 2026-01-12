@@ -5,6 +5,7 @@
     "view": "View",
     "see_availability": "See availability",
     "no_reviews": "No reviews yet",
+    "new": "New",
     "reviews_count": "{{count}} review",
     "reviews_count_plural": "{{count}} reviews",
     "wishlist_add": "Add to wishlist",
@@ -16,6 +17,8 @@
     "previous_photo": "Previous photo",
     "next_photo": "Next photo",
     "go_to_image": "Go to image {{number}}",
+    "photo_counter": "Photo {{current}} of {{total}}",
+    "photo_carousel": "Photos for {{title}}",
     "image_unavailable": "Image unavailable",
     "no_image": "No image"
   },

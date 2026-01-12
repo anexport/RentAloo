@@ -42,10 +42,9 @@ const fetchNotifications = async (
   return (data as NotificationWithActor[]) || [];
 };
 
-const fetchUnreadCount = async (userId: string): Promise<number> => {
-  const { data, error } = await supabase.rpc("get_notification_count", {
-    p_user_id: userId,
-  });
+const fetchUnreadCount = async (_userId: string): Promise<number> => {
+  // Function uses auth.uid() internally, no parameters needed
+  const { data, error } = await supabase.rpc("get_notification_count");
 
   if (error) throw error;
   return data as number;

@@ -280,7 +280,7 @@ const EquipmentManagement = () => {
             return (
               <Card
                 key={item.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group hover:translate-y-0 md:hover:-translate-y-1"
+                className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
               >
                 {/* Image Section - Airbnb Style */}
                 <div className="relative aspect-video bg-muted overflow-hidden">

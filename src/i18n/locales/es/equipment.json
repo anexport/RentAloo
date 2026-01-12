@@ -3,6 +3,7 @@
     "per_day": "por día",
     "view_details": "Ver Detalles",
     "no_reviews": "Sin reseñas aún",
+    "new": "Nuevo",
     "reviews_count": "{{count}} reseña",
     "reviews_count_plural": "{{count}} reseñas",
     "wishlist_add": "Agregar a deseos",
@@ -16,6 +17,8 @@
     "previous_photo": "Foto anterior",
     "next_photo": "Foto siguiente",
     "go_to_image": "Ir a la imagen {{number}}",
+    "photo_counter": "Foto {{current}} de {{total}}",
+    "photo_carousel": "Fotos de {{title}}",
     "image_unavailable": "Imagen no disponible",
     "no_image": "Sin imagen"
   },

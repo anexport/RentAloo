@@ -14,10 +14,10 @@ const contentCardVariants = cva(
   {
     variants: {
       variant: {
-        /** Default card with subtle shadow and hover lift */
+        /** Default card with subtle shadow */
         default: [
           "border-border/50 shadow-sm",
-          "hover:border-border hover:shadow-md hover:-translate-y-0.5",
+          "hover:border-border hover:shadow-md",
         ],
         /** Flat card without shadow or hover effects */
         flat: "border-border/40",
@@ -26,12 +26,12 @@ const contentCardVariants = cva(
         /** Elevated card with stronger shadow */
         elevated: [
           "border-border/30 shadow-md",
-          "hover:shadow-lg hover:-translate-y-1",
+          "hover:shadow-lg",
         ],
         /** Interactive card for clickable items */
         interactive: [
           "border-border/50 shadow-sm cursor-pointer",
-          "hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5",
+          "hover:border-primary/30 hover:shadow-md",
           "active:translate-y-0 active:shadow-sm",
         ],
         /** Dashed border for empty states */
@@ -70,7 +70,7 @@ type ContentCardProps<T extends React.ElementType = "div"> = ContentCardOwnProps
  *
  * Replaces inconsistent card styles with a standardized design system:
  * - Consistent border-radius (rounded-2xl)
- * - Unified shadow and hover behavior
+ * - Unified shadow and hover behavior (no hover movement)
  * - Predictable padding options
  */
 const ContentCard = React.forwardRef(

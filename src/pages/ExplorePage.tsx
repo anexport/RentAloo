@@ -674,7 +674,7 @@ const ExplorePage = () => {
         {/* Bottom sheet for listings */}
         {hasResults || isLoading || isError ? (
           <MobileListingsBottomSheet
-            title={t("browse.items_count", { count: data?.length ?? 0 })}
+            title={t("browse.listings", { defaultValue: "Listings" })}
             peekContent={
               // Horizontal peek carousel - compact cards for first 5 listings
               sortedListings.slice(0, 5).map((listing) => (

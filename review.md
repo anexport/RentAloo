@@ -1,18 +1,26 @@
-Starting CodeRabbit review in plain text mode...
 
-Connecting to review service
-Setting up
-Analyzing
-Reviewing
 
 ============================================================================
-File: src/components/explore/EmptyState.tsx
-Line: 73 to 74
+File: src/components/equipment/ListingCard.tsx
+Line: 319 to 327
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/components/explore/EmptyState.tsx around lines 73 - 74, In EmptyState, the JSX rendering of the price range inserts a stray space because the $ and the {filters.priceMax ?? DEFAULT_PRICE_MAX} are split across lines; fix by combining them into a single JSX expression so the dollar sign and the value are adjacent (e.g., replace the broken fragment around "Price: ${filters.priceMin ?? DEFAULT_PRICE_MIN} - $ {filters.priceMax ?? DEFAULT_PRICE_MAX}" with a single contiguous string or one JSX expression that renders "$" immediately before filters.priceMax).
+In @src/components/equipment/ListingCard.tsx around lines 319 - 327, The single-image branch in ListingCard is using loading="lazy", which delays the above-the-fold primary image; update the  used when listing.photos has only one item (the block rendering listing.photos[0]?.photo_url) to use loading="eager" (matching the carousel's first-image behavior) and keep decoding="async" and existing attributes unchanged so the primary image loads immediately.
 
 
 
-Review completed ✔
+============================================================================
+File: src/components/equipment/ListingCard.tsx
+Line: 461 to 468
+Type: potential_issue
+
+Prompt for AI Agent:
+In @src/components/equipment/ListingCard.tsx around lines 461 - 468, The price rendering in ListingCard.tsx currently hardcodes the "$" symbol; replace that with a locale-aware formatted string by computing a formattedRate (e.g., in the ListingCard component scope) using Intl.NumberFormat with style: "currency" and currency: listing.currency ?? "USD", then render formattedRate instead of "${listing.daily_rate}"; ensure you still use the existing translation key t("listing_card.per_day") for the per-day text so the UI remains localized.
+
+
+
+
+
+
+

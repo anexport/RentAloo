@@ -74,7 +74,9 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-headline-lg font-bold mb-2">Popular Near You</h2>
+              <h2 className="text-headline-lg font-bold mb-2">
+                Popular Near You
+              </h2>
               <p className="text-body-md text-muted-foreground">
                 Trending equipment in your area
               </p>
@@ -138,13 +140,17 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
         </div>
 
         <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-6">
+          <div className="flex gap-4 md:gap-6">
             {featuredListings.map((listing) => (
               <div
                 key={listing.id}
-                className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(25%-18px)]"
+                className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(25%-18px)]"
               >
-                <ListingCard listing={listing} onOpen={onOpenListing} className="h-full" />
+                <ListingCard
+                  listing={listing}
+                  onOpen={onOpenListing}
+                  className="h-full"
+                />
               </div>
             ))}
           </div>
