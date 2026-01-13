@@ -134,8 +134,32 @@ const OnboardingPage = () => {
 
     if (currentStep === 1) {
       isValid = await trigger(["role"]);
+      if (isValid) {
+        toast({
+          title: t(
+            "onboarding.step_complete_toast.step1_title",
+            "Step 1 Complete!"
+          ),
+          description: t(
+            "onboarding.step_complete_toast.step1_description",
+            "Your role has been saved"
+          ),
+        });
+      }
     } else if (currentStep === 2) {
       isValid = await trigger(["location", "experienceLevel"]);
+      if (isValid) {
+        toast({
+          title: t(
+            "onboarding.step_complete_toast.step2_title",
+            "Step 2 Complete!"
+          ),
+          description: t(
+            "onboarding.step_complete_toast.step2_description",
+            "Your details have been saved"
+          ),
+        });
+      }
     }
 
     if (isValid) {

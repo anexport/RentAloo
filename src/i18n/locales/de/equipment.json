@@ -20,7 +20,15 @@
     "photo_counter": "Foto {{current}} von {{total}}",
     "photo_carousel": "Fotos für {{title}}",
     "image_unavailable": "Bild nicht verfügbar",
-    "no_image": "Kein Bild"
+    "no_image": "Kein Bild",
+    "top_rated": "Bestbewertet",
+    "top_rated_tooltip": "Dieser Artikel hat eine {{rating}}-Sterne-Bewertung",
+    "popular": "Beliebt",
+    "popular_tooltip": "{{count}} Bewertungen",
+    "added_to_favorites": "Zu Favoriten hinzugefügt",
+    "removed_from_favorites": "Von Favoriten entfernt",
+    "favorite_error": "Fehler beim Aktualisieren der Favoriten",
+    "loading": "Wird geladen..."
   },
   "details": {
     "title": "Equipment-Details",

@@ -19,7 +19,9 @@
     "aria_location_contact": "Location and Contact",
     "aria_dates": "Dates",
     "aria_pricing_breakdown": "Pricing Breakdown",
-    "aria_insurance": "Insurance Options"
+    "aria_insurance": "Insurance Options",
+    "dates_confirmed": "Dates confirmed!",
+    "dates_confirmed_description": "{{start}} - {{end}} ({{days}} days)"
   },
   "status": {
     "pending": "Pending",

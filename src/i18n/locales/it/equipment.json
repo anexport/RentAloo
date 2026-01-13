@@ -20,7 +20,15 @@
     "photo_counter": "Foto {{current}} di {{total}}",
     "photo_carousel": "Foto di {{title}}",
     "image_unavailable": "Immagine non disponibile",
-    "no_image": "Nessuna immagine"
+    "no_image": "Nessuna immagine",
+    "top_rated": "Più Votato",
+    "top_rated_tooltip": "Questo articolo ha una valutazione di {{rating}} stelle",
+    "popular": "Popolare",
+    "popular_tooltip": "{{count}} recensioni",
+    "added_to_favorites": "Aggiunto ai preferiti",
+    "removed_from_favorites": "Rimosso dai preferiti",
+    "favorite_error": "Errore nell'aggiornamento dei preferiti",
+    "loading": "Caricamento..."
   },
   "details": {
     "title": "Dettagli attrezzatura",

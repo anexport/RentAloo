@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
-import { Calendar, Heart, DollarSign, Star, Package, Clock } from "lucide-react";
+import {
+  Calendar,
+  Heart,
+  DollarSign,
+  Star,
+  Package,
+  Clock,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 type StatItem = {
@@ -20,9 +33,13 @@ type CompactStatsProps = {
   className?: string;
 };
 
-export default function CompactStats({ variant, className }: CompactStatsProps) {
+export default function CompactStats({
+  variant,
+  className,
+}: CompactStatsProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation("dashboard");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     // Renter stats
@@ -61,7 +78,10 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
                 .select("total_amount")
                 .eq("renter_id", user.id)
                 .eq("payment_status", "succeeded"),
-              supabase.from("reviews").select("rating").eq("reviewee_id", user.id),
+              supabase
+                .from("reviews")
+                .select("rating")
+                .eq("reviewee_id", user.id),
             ]);
 
           // Check for errors and log them
@@ -112,7 +132,10 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
                 .eq("owner_id", user.id),
               supabase
                 .from("booking_requests")
-                .select("*, equipment!inner(owner_id)", { count: "exact", head: true })
+                .select("*, equipment!inner(owner_id)", {
+                  count: "exact",
+                  head: true,
+                })
                 .eq("equipment.owner_id", user.id)
                 .eq("status", "pending"),
               supabase
@@ -120,7 +143,10 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
                 .select("earnings_total")
                 .eq("profile_id", user.id)
                 .single(),
-              supabase.from("reviews").select("rating").eq("reviewee_id", user.id),
+              supabase
+                .from("reviews")
+                .select("rating")
+                .eq("reviewee_id", user.id),
             ]);
 
           // Check for errors and log them
@@ -128,9 +154,15 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
             console.error("Error fetching listings:", listingsResult.error);
           }
           if (pendingResult.error) {
-            console.error("Error fetching pending requests:", pendingResult.error);
+            console.error(
+              "Error fetching pending requests:",
+              pendingResult.error
+            );
           }
-          if (earningsResult.error && earningsResult.error.code !== "PGRST116") {
+          if (
+            earningsResult.error &&
+            earningsResult.error.code !== "PGRST116"
+          ) {
             // PGRST116 is "no rows returned" which is expected for new owners
             console.error("Error fetching earnings:", earningsResult.error);
           }
@@ -149,9 +181,15 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
 
           setStats((prev) => ({
             ...prev,
-            totalListings: !listingsResult.error ? listingsResult.count || 0 : 0,
-            pendingRequests: !pendingResult.error ? pendingResult.count || 0 : 0,
-            totalEarnings: !earningsResult.error ? earningsResult.data?.earnings_total || 0 : 0,
+            totalListings: !listingsResult.error
+              ? listingsResult.count || 0
+              : 0,
+            pendingRequests: !pendingResult.error
+              ? pendingResult.count || 0
+              : 0,
+            totalEarnings: !earningsResult.error
+              ? earningsResult.data?.earnings_total || 0
+              : 0,
             ownerRating: avgRating,
           }));
         }
@@ -237,6 +275,23 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
 
   const statItems = variant === "renter" ? renterStats : ownerStats;
 
+  // Get tooltip for stat based on variant and key
+  const getTooltip = (statKey: string) => {
+    if (variant === "owner") {
+      const tooltipMap: Record<string, string> = {
+        listings: "total_listings",
+        pending: "pending_requests",
+        earnings: "total_earnings",
+        rating: "average_rating",
+      };
+      const key = tooltipMap[statKey];
+      if (key) {
+        return t(`owner.stats.${key}.tooltip`, "");
+      }
+    }
+    return "";
+  };
+
   if (loading) {
     return (
       <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-2", className)}>
@@ -260,7 +315,9 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
     <div className={cn("grid grid-cols-2 md:grid-cols-4 gap-2", className)}>
       {statItems.map((stat) => {
         const Icon = stat.icon;
-        return (
+        const tooltip = getTooltip(stat.key);
+
+        const statCard = (
           <button
             type="button"
             key={stat.key}
@@ -290,6 +347,19 @@ export default function CompactStats({ variant, className }: CompactStatsProps) 
             </div>
           </button>
         );
+
+        if (tooltip) {
+          return (
+            <Tooltip key={stat.key}>
+              <TooltipTrigger asChild>{statCard}</TooltipTrigger>
+              <TooltipContent>
+                <p>{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return statCard;
       })}
     </div>
   );

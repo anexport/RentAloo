@@ -21,6 +21,7 @@ import {
   Package,
 } from "lucide-react";
 import type { Database } from "@/lib/database.types";
+import { fireSuccessConfetti } from "@/lib/celebrations";
 
 type PaymentWithRelations = Database["public"]["Tables"]["payments"]["Row"] & {
   booking_request?: Database["public"]["Tables"]["booking_requests"]["Row"] & {
@@ -153,6 +154,13 @@ const PaymentConfirmation = () => {
     void fetchPaymentDetails();
   }, [paymentId, paymentIntentId, navigate, user, authLoading]);
 
+  // Fire confetti on successful payment
+  useEffect(() => {
+    if (payment && !loading) {
+      fireSuccessConfetti();
+    }
+  }, [payment, loading]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -274,7 +282,7 @@ const PaymentConfirmation = () => {
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Success Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full mb-4 animate-bounce-in">
             <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
           </div>
           <h1 className="text-display-sm font-bold text-foreground mb-2">

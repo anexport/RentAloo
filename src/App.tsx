@@ -10,6 +10,7 @@ import { NuqsAdapter } from "nuqs/adapters/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
@@ -120,150 +121,161 @@ function App() {
   return (
     <>
       <Router>
-        <RoleModeProvider>
-          <NuqsAdapter>
-            <ErrorBoundary>
-              <div className="min-h-screen bg-background">
-                <Suspense fallback={<PageLoader />}>
-                  <OnboardingGuard>
-                    <Routes>
-                      {/* Public routes */}
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/explore" element={<ExplorePage />} />
-                      <Route path="/help" element={<HelpPage />} />
-                      <Route path="/terms" element={<TermsPage />} />
-                      <Route path="/privacy" element={<PrivacyPage />} />
-                      <Route
-                        path="/register/renter"
-                        element={
-                          <Navigate to="/?signup=true&role=renter" replace />
-                        }
-                      />
-                      <Route
-                        path="/register/owner"
-                        element={
-                          <Navigate to="/?signup=true&role=owner" replace />
-                        }
-                      />
-                      <Route
-                        path="/login"
-                        element={<Navigate to="/?login=true" replace />}
-                      />
-                      <Route path="/verify" element={<EmailVerification />} />
-                      <Route path="/onboarding" element={<OnboardingPage />} />
-                      <Route
-                        path="/equipment"
-                        element={<Navigate to="/explore" replace />}
-                      />
-                      <Route
-                        path="/equipment/:id"
-                        element={<EquipmentDetailPage />}
-                      />
+        <TooltipProvider delayDuration={300}>
+          <RoleModeProvider>
+            <NuqsAdapter>
+              <ErrorBoundary>
+                <div className="min-h-screen bg-background">
+                  <Suspense fallback={<PageLoader />}>
+                    <OnboardingGuard>
+                      <Routes>
+                        {/* Public routes */}
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/explore" element={<ExplorePage />} />
+                        <Route path="/help" element={<HelpPage />} />
+                        <Route path="/terms" element={<TermsPage />} />
+                        <Route path="/privacy" element={<PrivacyPage />} />
+                        <Route
+                          path="/register/renter"
+                          element={
+                            <Navigate to="/?signup=true&role=renter" replace />
+                          }
+                        />
+                        <Route
+                          path="/register/owner"
+                          element={
+                            <Navigate to="/?signup=true&role=owner" replace />
+                          }
+                        />
+                        <Route
+                          path="/login"
+                          element={<Navigate to="/?login=true" replace />}
+                        />
+                        <Route path="/verify" element={<EmailVerification />} />
+                        <Route
+                          path="/onboarding"
+                          element={<OnboardingPage />}
+                        />
+                        <Route
+                          path="/equipment"
+                          element={<Navigate to="/explore" replace />}
+                        />
+                        <Route
+                          path="/equipment/:id"
+                          element={<EquipmentDetailPage />}
+                        />
 
-                      {/* Protected routes */}
-                      {user && (
-                        <>
-                          <Route path="/renter" element={<RenterDashboard />} />
-                          <Route
-                            path="/renter/dashboard"
-                            element={<RenterDashboard />}
-                          />
-                          <Route
-                            path="/renter/payments"
-                            element={<PaymentsPage />}
-                          />
-                          <Route
-                            path="/renter/saved"
-                            element={<RenterSavedPage />}
-                          />
-                          <Route
-                            path="/renter/bookings"
-                            element={<RenterBookingsPage />}
-                          />
-                          <Route
-                            path="/rental/:bookingId"
-                            element={<ActiveRentalPage />}
-                          />
-                          <Route path="/owner" element={<OwnerDashboard />} />
-                          <Route
-                            path="/owner/dashboard"
-                            element={<OwnerDashboard />}
-                          />
-                          <Route
-                            path="/owner/become-owner"
-                            element={<OwnerUpgrade />}
-                          />
-                          <Route
-                            path="/owner/equipment"
-                            element={<OwnerEquipmentPage />}
-                          />
-                          <Route
-                            path="/owner/bookings"
-                            element={<OwnerBookingsPage />}
-                          />
-                          <Route
-                            path="/owner/reviews"
-                            element={<OwnerReviewsPage />}
-                          />
-                          <Route
-                            path="/owner/payments"
-                            element={<OwnerPaymentsPage />}
-                          />
-                          <Route path="/messages" element={<MessagingPage />} />
-                          <Route path="/support" element={<SupportPage />} />
-                          <Route
-                            path="/payment/confirmation"
-                            element={<PaymentConfirmation />}
-                          />
-                          <Route
-                            path="/verification"
-                            element={<VerifyIdentity />}
-                          />
-                          <Route
-                            path="/settings"
-                            element={<ProfileSettings />}
-                          />
-                          <Route
-                            path="/settings/notifications"
-                            element={<NotificationsSettings />}
-                          />
-                          <Route
-                            path="/inspection/:bookingId/:type"
-                            element={<EquipmentInspectionPage />}
-                          />
-                          <Route
-                            path="/inspection/:bookingId/view/:inspectionType"
-                            element={<InspectionView />}
-                          />
-                          <Route
-                            path="/claims/file/:bookingId"
-                            element={<FileClaimPage />}
-                          />
-                          <Route
-                            path="/claims/review/:claimId"
-                            element={<ReviewClaimPage />}
-                          />
-                          <Route
-                            path="/claims/manage/:claimId"
-                            element={<ManageClaimPage />}
-                          />
-                        </>
-                      )}
+                        {/* Protected routes */}
+                        {user && (
+                          <>
+                            <Route
+                              path="/renter"
+                              element={<RenterDashboard />}
+                            />
+                            <Route
+                              path="/renter/dashboard"
+                              element={<RenterDashboard />}
+                            />
+                            <Route
+                              path="/renter/payments"
+                              element={<PaymentsPage />}
+                            />
+                            <Route
+                              path="/renter/saved"
+                              element={<RenterSavedPage />}
+                            />
+                            <Route
+                              path="/renter/bookings"
+                              element={<RenterBookingsPage />}
+                            />
+                            <Route
+                              path="/rental/:bookingId"
+                              element={<ActiveRentalPage />}
+                            />
+                            <Route path="/owner" element={<OwnerDashboard />} />
+                            <Route
+                              path="/owner/dashboard"
+                              element={<OwnerDashboard />}
+                            />
+                            <Route
+                              path="/owner/become-owner"
+                              element={<OwnerUpgrade />}
+                            />
+                            <Route
+                              path="/owner/equipment"
+                              element={<OwnerEquipmentPage />}
+                            />
+                            <Route
+                              path="/owner/bookings"
+                              element={<OwnerBookingsPage />}
+                            />
+                            <Route
+                              path="/owner/reviews"
+                              element={<OwnerReviewsPage />}
+                            />
+                            <Route
+                              path="/owner/payments"
+                              element={<OwnerPaymentsPage />}
+                            />
+                            <Route
+                              path="/messages"
+                              element={<MessagingPage />}
+                            />
+                            <Route path="/support" element={<SupportPage />} />
+                            <Route
+                              path="/payment/confirmation"
+                              element={<PaymentConfirmation />}
+                            />
+                            <Route
+                              path="/verification"
+                              element={<VerifyIdentity />}
+                            />
+                            <Route
+                              path="/settings"
+                              element={<ProfileSettings />}
+                            />
+                            <Route
+                              path="/settings/notifications"
+                              element={<NotificationsSettings />}
+                            />
+                            <Route
+                              path="/inspection/:bookingId/:type"
+                              element={<EquipmentInspectionPage />}
+                            />
+                            <Route
+                              path="/inspection/:bookingId/view/:inspectionType"
+                              element={<InspectionView />}
+                            />
+                            <Route
+                              path="/claims/file/:bookingId"
+                              element={<FileClaimPage />}
+                            />
+                            <Route
+                              path="/claims/review/:claimId"
+                              element={<ReviewClaimPage />}
+                            />
+                            <Route
+                              path="/claims/manage/:claimId"
+                              element={<ManageClaimPage />}
+                            />
+                          </>
+                        )}
 
-                      {/* Admin route - always registered, AdminRoute handles auth */}
-                      <Route path="/admin" element={<AdminRoute />} />
+                        {/* Admin route - always registered, AdminRoute handles auth */}
+                        <Route path="/admin" element={<AdminRoute />} />
 
-                      {/* Fallback */}
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </OnboardingGuard>
-                </Suspense>
-                <MobileBottomNav />
-                <Toaster />
-              </div>
-            </ErrorBoundary>
-          </NuqsAdapter>
-        </RoleModeProvider>
+                        {/* Fallback */}
+                        <Route path="*" element={<NotFoundPage />} />
+                      </Routes>
+                    </OnboardingGuard>
+                  </Suspense>
+                  <MobileBottomNav />
+                  <Toaster />
+                </div>
+              </ErrorBoundary>
+            </NuqsAdapter>
+          </RoleModeProvider>
+        </TooltipProvider>
       </Router>
       <Analytics />
     </>

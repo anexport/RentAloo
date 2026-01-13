@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { X, AlertCircle, Cloud, CheckCircle2, PartyPopper } from "lucide-react";
+import { X, AlertCircle, Cloud, CheckCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import WizardProgress from "./WizardProgress";
 import WizardNavigation from "./WizardNavigation";
@@ -22,6 +22,7 @@ import PricingStep from "./steps/PricingStep";
 import LocationStep from "./steps/LocationStep";
 import ReviewStep from "./steps/ReviewStep";
 import { useListingWizard, type WizardPhoto } from "./hooks/useListingWizard";
+import { fireSuccessConfetti } from "@/lib/celebrations";
 
 class PhotoSyncError extends Error {
   name = "PhotoSyncError";
@@ -63,7 +64,7 @@ export default function ListingWizard({
       // Auto-close after animation
       setTimeout(() => {
         onSuccess?.();
-      }, 2000);
+      }, 2500);
     },
   });
 
@@ -429,16 +430,31 @@ export default function ListingWizard({
 
   // Success overlay
   if (showSuccess) {
+    // Fire confetti on success
+    useEffect(() => {
+      fireSuccessConfetti();
+    }, []);
+
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background">
         <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
           <div className="relative">
-            <div className="w-24 h-24 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+            <div className="w-24 h-24 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce-in">
               <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="absolute -top-2 -right-2 animate-bounce">
-              <PartyPopper className="w-8 h-8 text-amber-500" />
-            </div>
+            {/* Staggered sparkles around the icon */}
+            <Sparkles
+              className="absolute -top-2 -right-2 w-6 h-6 text-amber-500 animate-bounce"
+              style={{ animationDelay: "0ms" }}
+            />
+            <Sparkles
+              className="absolute -top-2 -left-2 w-5 h-5 text-emerald-500 animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <Sparkles
+              className="absolute -bottom-2 right-4 w-4 h-4 text-blue-500 animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">

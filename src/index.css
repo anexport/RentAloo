@@ -811,3 +811,130 @@
     transform: none;
   }
 }
+
+/* ===== CELEBRATION & MICROINTERACTION ANIMATIONS ===== */
+
+/* Celebrate pulse - for badge highlights when selected */
+@keyframes celebrate-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 oklch(0.7 0.2 264 / 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px oklch(0.7 0.2 264 / 0);
+  }
+}
+
+.animate-celebrate-pulse {
+  animation: celebrate-pulse 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Bounce in - for entry animations */
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Social proof badge enter - fade + slide from left */
+@keyframes social-proof-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+.animate-social-proof-enter {
+  animation: social-proof-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: 0.1s;
+}
+
+/* Urgent pulse - pulsing ring for urgent actions */
+@keyframes urgent-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.65 0.25 25 / 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 12px oklch(0.65 0.25 25 / 0);
+  }
+}
+
+.animate-urgent-pulse {
+  animation: urgent-pulse 2s ease-in-out infinite;
+}
+
+/* Celebration animations - reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-celebrate-pulse,
+  .animate-bounce-in,
+  .animate-social-proof-enter,
+  .animate-urgent-pulse {
+    animation: none;
+  }
+}
+
+/* ===== MOBILE DETAIL VIEW ENHANCEMENTS ===== */
+
+/* Sticky header fade + slide down animation */
+@keyframes sticky-header-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile booking bar expand animation */
+@keyframes booking-bar-expand {
+  from {
+    height: 72px;
+  }
+  to {
+    height: 85dvh;
+  }
+}
+
+/* Mobile detail view reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes sticky-header-enter {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes booking-bar-expand {
+    from {
+      height: 72px;
+    }
+    to {
+      height: 85dvh;
+    }
+  }
+}
+
