@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { X } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +10,7 @@ import DateSelector from "./sidebar/DateSelector";
 import PricingBreakdown from "./sidebar/PricingBreakdown";
 import InsuranceSelector from "./sidebar/InsuranceSelector";
 import PaymentCheckoutForm from "@/components/payment/PaymentCheckoutForm";
-import OrderSummaryCard from "@/components/payment/OrderSummaryCard";
+import PaymentSummaryCompact from "@/components/payment/PaymentSummaryCompact";
 import type { PaymentBookingData } from "@/lib/stripe";
 import type { Listing } from "@/components/equipment/services/listings";
 import type {
@@ -261,23 +261,62 @@ export const MobileBookingBar = ({
 
             {/* Scrollable content */}
             <div
-              className="flex-1 min-h-0 overflow-y-auto px-6 pb-4 overscroll-contain"
+              className="flex-1 min-h-0 overflow-y-auto px-4 pb-24 overscroll-contain"
               style={{ WebkitOverflowScrolling: "touch" }}
             >
               {isPaymentMode && bookingData && calculation ? (
-                <div className="space-y-6">
-                  <OrderSummaryCard
+                <div className="space-y-4">
+                  <PaymentSummaryCompact
                     listing={listing}
                     calculation={calculation}
                     startDate={watchedStartDate}
                     endDate={watchedEndDate}
                     insuranceType={selectedInsurance}
                   />
+
+                  {/* Insurance Selector - Mobile Payment View */}
+                  <section aria-labelledby="insurance-section-payment">
+                    <h3 id="insurance-section-payment" className="sr-only">
+                      {t("sidebar.aria_insurance")}
+                    </h3>
+                    <InsuranceSelector
+                      selectedInsurance={selectedInsurance}
+                      onInsuranceChange={onInsuranceChange}
+                      rentalSubtotal={calculation.subtotal}
+                    />
+                  </section>
+
+                  {/* Deposit Information - Mobile Payment View */}
+                  {calculation.deposit > 0 && (
+                    <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                            {t("deposit.title", {
+                              defaultValue: "Refundable Deposit",
+                            })}
+                            : ${calculation.deposit.toFixed(2)}
+                          </h4>
+                          <p className="text-xs text-green-700 dark:text-green-300">
+                            {t("deposit.description", {
+                              defaultValue:
+                                "This deposit will be refunded after you return the equipment in good condition.",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <PaymentCheckoutForm
                     bookingData={bookingData}
                     totalAmount={calculation.total}
                     onSuccess={onPaymentSuccess}
                     onCancel={onPaymentCancel}
+                    isMobile={true}
                   />
                 </div>
               ) : (

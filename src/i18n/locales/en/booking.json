@@ -164,5 +164,9 @@
       "conversation_failed": "Failed to start conversation. Please try again.",
       "cancel_failed": "Failed to cancel booking. Please try again."
     }
+  },
+  "deposit": {
+    "title": "Refundable Deposit",
+    "description": "This deposit will be refunded after you return the equipment in good condition."
   }
 }
