@@ -6,6 +6,11 @@ import {
 } from "@/components/ui/hover-card";
 import { Separator } from "@/components/ui/separator";
 import { Star, CheckCircle2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Owner {
   id: string;
@@ -33,9 +38,9 @@ export const OwnerInformationCard = ({ owner }: OwnerInformationCardProps) => {
         // If trimming yields no valid parts, fall back to email
         return email.slice(0, 2).toUpperCase();
       }
-      
+
       const parts = trimmed.split(/\s+/).filter(Boolean);
-      
+
       if (parts.length > 1) {
         // Use first two non-empty parts
         return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
@@ -110,39 +115,67 @@ export const OwnerInformationCard = ({ owner }: OwnerInformationCardProps) => {
             <Separator />
             <div className="grid grid-cols-2 gap-4 text-sm">
               {owner.totalRentals !== undefined && (
-                <div>
-                  <p className="text-muted-foreground">Total Rentals</p>
-                  <p className="font-semibold">{owner.totalRentals}</p>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <p className="text-muted-foreground">Total Rentals</p>
+                      <p className="font-semibold">{owner.totalRentals}</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Number of successfully completed rentals
+                  </TooltipContent>
+                </Tooltip>
               )}
               {owner.responseRate !== undefined && (
-                <div>
-                  <p className="text-muted-foreground">Response Rate</p>
-                  <p className="font-semibold">{owner.responseRate}%</p>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <p className="text-muted-foreground">Response Rate</p>
+                      <p className="font-semibold">{owner.responseRate}%</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Percentage of inquiries answered within 24 hours
+                  </TooltipContent>
+                </Tooltip>
               )}
               {owner.rating !== undefined && (
-                <div>
-                  <p className="text-muted-foreground">Avg. Rating</p>
-                  <p className="font-semibold flex items-center gap-1">
-                    {owner.rating.toFixed(1)}
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  </p>
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <p className="text-muted-foreground">Avg. Rating</p>
+                      <p className="font-semibold flex items-center gap-1">
+                        {owner.rating.toFixed(1)}
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Average satisfaction rating from renters
+                  </TooltipContent>
+                </Tooltip>
               )}
-              <div>
-                <p className="text-muted-foreground">Verified</p>
-                <p className="font-semibold flex items-center gap-1">
-                  {owner.isVerified ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span>Yes</span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">No</span>
-                  )}
-                </p>
-              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="cursor-help">
+                    <p className="text-muted-foreground">Verified</p>
+                    <p className="font-semibold flex items-center gap-1">
+                      {owner.isVerified ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <span>Yes</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">No</span>
+                      )}
+                    </p>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Owner's identity has been verified
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Separator />
             <p className="text-xs text-muted-foreground">
@@ -154,4 +187,3 @@ export const OwnerInformationCard = ({ owner }: OwnerInformationCardProps) => {
     </div>
   );
 };
-
