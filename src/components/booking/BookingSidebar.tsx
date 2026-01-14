@@ -68,7 +68,7 @@ const BookingSidebar = ({
 
   return (
     <aside
-      className="order-first lg:order-last lg:sticky lg:top-6 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto"
+      className="order-first lg:order-last lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto"
       aria-label={t("sidebar.aria_booking_info")}
     >
       {/* Card has built-in flex flex-col gap-6 py-6, so we use px-6 for horizontal padding */}

@@ -490,11 +490,6 @@ const EquipmentDetailDialog = ({
 
         <Separator />
 
-        {/* Photo Gallery - Airbnb style */}
-        <EquipmentPhotoGallery photos={photos} equipmentTitle={data.title} />
-
-        <Separator />
-
         {/* Payment Mode: Full-width payment form with order summary sidebar */}
         {showPaymentMode && bookingData && calculation && !isMobile ? (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
@@ -522,8 +517,11 @@ const EquipmentDetailDialog = ({
         ) : (
           /* Normal Mode: Equipment details with booking sidebar */
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
-            {/* Main content tabs */}
+            {/* Main content with photos and tabs */}
             <div className="space-y-6">
+              {/* Photo Gallery - inside left column to prevent sidebar overlap */}
+              <EquipmentPhotoGallery photos={photos} equipmentTitle={data.title} />
+
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}

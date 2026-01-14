@@ -78,7 +78,7 @@ export const EquipmentPhotoGallery = ({
   return (
     <>
       <div className="space-y-2">
-        <div className="grid grid-cols-1 md:grid-cols-[60%_40%] gap-2 h-[300px] sm:h-[400px] md:h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-[60%_40%] gap-2 h-[300px] sm:h-[400px] md:h-[450px] lg:h-[400px] overflow-hidden">
           {/* Primary large image */}
           <ProgressiveImage
             src={primaryPhoto.photo_url}
