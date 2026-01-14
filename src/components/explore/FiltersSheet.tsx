@@ -13,6 +13,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Filter, X, Check, ShieldCheck } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format, startOfDay, addDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -244,9 +249,14 @@ const FiltersSheet = ({
       {/* Condition Section - Chip/pill selection */}
       <section className="space-y-5">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Check className="h-4 w-4 text-primary" />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center cursor-help">
+                <Check className="h-4 w-4 text-primary" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Filter by equipment condition</TooltipContent>
+          </Tooltip>
           <h3 className="text-base font-semibold">
             {t("filters_sheet.condition")}
           </h3>
@@ -459,19 +469,34 @@ const FiltersSheet = ({
           {CONDITIONS.map((condition) => {
             const isSelected = localValue.conditions.includes(condition.value);
             return (
-              <button
-                key={condition.value}
-                type="button"
-                onClick={() => handleConditionToggle(condition.value)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-sm border transition-colors",
-                  isSelected
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background border-border hover:border-primary"
-                )}
-              >
-                {t(condition.label)}
-              </button>
+              <Tooltip key={condition.value}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => handleConditionToggle(condition.value)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-sm border transition-colors cursor-help",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:border-primary"
+                    )}
+                  >
+                    {t(condition.label)}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t(condition.descriptionKey, {
+                    defaultValue:
+                      condition.value === "new"
+                        ? "Brand new, never used"
+                        : condition.value === "excellent"
+                        ? "Like new with minimal signs of use"
+                        : condition.value === "good"
+                        ? "Minor wear, fully functional"
+                        : "Normal wear and tear, works perfectly",
+                  })}
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>

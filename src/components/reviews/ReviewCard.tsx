@@ -4,6 +4,11 @@ import { formatReviewDate } from "../../lib/reviews";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, CheckCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import StarRating from "./StarRating";
 
 interface ReviewCardProps {
@@ -28,13 +33,20 @@ const ReviewCard = ({ review, showEquipment = false }: ReviewCardProps) => {
                 <span className="font-semibold text-gray-900">
                   {review.reviewer.full_name || review.reviewer.email}
                 </span>
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800"
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  {t("display.verified_badge")}
-                </Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 cursor-help"
+                    >
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      {t("display.verified_badge")}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t("display.verified_badge_tooltip")}
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <span className="text-sm text-gray-500">
                 {formatReviewDate(review.created_at || "")}
@@ -46,7 +58,9 @@ const ReviewCard = ({ review, showEquipment = false }: ReviewCardProps) => {
           <div className="text-right">
             <StarRating rating={review.rating} size="sm" />
             <span className="text-sm text-gray-600 mt-1 block">
-              {t("display.rating_display", { rating: review.rating.toFixed(1) })}
+              {t("display.rating_display", {
+                rating: review.rating.toFixed(1),
+              })}
             </span>
           </div>
         </div>
@@ -91,4 +105,3 @@ const ReviewCard = ({ review, showEquipment = false }: ReviewCardProps) => {
 };
 
 export default ReviewCard;
-

@@ -12,6 +12,11 @@ import {
   paymentBookingDataSchema,
   type PaymentBookingData,
 } from "@/lib/stripe";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -301,20 +306,40 @@ const PaymentCheckoutFormInner = ({
       {!isMobile && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { icon: ShieldCheck, label: "Escrow Protected" },
-            { icon: Lock, label: "SSL Encrypted" },
-            { icon: CheckCircle2, label: "Money-Back Guarantee" },
-            { icon: CreditCard, label: "Secure Payments" },
-          ].map(({ icon: Icon, label }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-muted/50 text-center"
-            >
-              <Icon className="h-5 w-5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">
-                {label}
-              </span>
-            </div>
+            {
+              icon: ShieldCheck,
+              label: "Escrow Protected",
+              tip: "Your payment is held securely until the rental is complete",
+            },
+            {
+              icon: Lock,
+              label: "SSL Encrypted",
+              tip: "256-bit encryption protects all your personal data",
+            },
+            {
+              icon: CheckCircle2,
+              label: "Money-Back Guarantee",
+              tip: "Full refund if equipment doesn't match the listing",
+            },
+            {
+              icon: CreditCard,
+              label: "Secure Payments",
+              tip: "Powered by Stripe, trusted by millions worldwide",
+            },
+          ].map(({ icon: Icon, label, tip }) => (
+            <Tooltip key={label}>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-muted/50 text-center cursor-help transition-colors hover:bg-muted">
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-medium">
+                    {label}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[200px] text-center">
+                {tip}
+              </TooltipContent>
+            </Tooltip>
           ))}
         </div>
       )}

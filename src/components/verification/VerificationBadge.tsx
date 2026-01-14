@@ -2,6 +2,11 @@ import { ShieldCheck, ShieldX, Clock, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { VerificationStatus } from "@/types/verification";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type VerificationBadgeProps = {
   status: VerificationStatus;
@@ -17,6 +22,7 @@ const statusConfig: Record<
     label: string;
     containerClass: string;
     iconClass: string;
+    tooltip: string;
   }
 > = {
   verified: {
@@ -25,6 +31,7 @@ const statusConfig: Record<
     containerClass:
       "bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800",
     iconClass: "text-green-600 dark:text-green-400",
+    tooltip: "Identity confirmed through document verification",
   },
   pending: {
     icon: Clock,
@@ -32,6 +39,7 @@ const statusConfig: Record<
     containerClass:
       "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800",
     iconClass: "text-amber-600 dark:text-amber-400",
+    tooltip: "Verification documents under review (24-48 hours)",
   },
   rejected: {
     icon: ShieldX,
@@ -39,13 +47,14 @@ const statusConfig: Record<
     containerClass:
       "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800",
     iconClass: "text-red-600 dark:text-red-400",
+    tooltip: "Verification unsuccessful - please resubmit documents",
   },
   unverified: {
     icon: ShieldAlert,
     label: "Unverified",
-    containerClass:
-      "bg-muted text-muted-foreground border-border",
+    containerClass: "bg-muted text-muted-foreground border-border",
     iconClass: "text-muted-foreground",
+    tooltip: "Complete verification to build trust with renters",
   },
 };
 
@@ -77,37 +86,49 @@ const VerificationBadge = ({
   const sizes = sizeConfig[size];
   const Icon = config.icon;
 
-  if (!showLabel) {
-    return (
-      <div
-        className={cn(
-          "inline-flex items-center justify-center rounded-full border",
-          config.containerClass,
-          sizes.iconOnly,
-          className
-        )}
-        title={config.label}
-        role="img"
-        aria-label={`${status} verification status`}
-      >
-        <Icon className={cn(sizes.icon, config.iconClass)} />
-      </div>
-    );
-  }
+  const BadgeContent = (
+    <>
+      {!showLabel ? (
+        <div
+          className={cn(
+            "inline-flex items-center justify-center rounded-full border cursor-help",
+            config.containerClass,
+            sizes.iconOnly,
+            className
+          )}
+          role="img"
+          aria-label={`${status} verification status`}
+        >
+          <Icon className={cn(sizes.icon, config.iconClass)} />
+        </div>
+      ) : (
+        <Badge
+          variant="outline"
+          className={cn(
+            "font-medium border inline-flex items-center cursor-help",
+            config.containerClass,
+            sizes.badge,
+            className
+          )}
+        >
+          <Icon className={cn(sizes.icon, config.iconClass)} />
+          <span>{config.label}</span>
+        </Badge>
+      )}
+    </>
+  );
 
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "font-medium border inline-flex items-center",
-        config.containerClass,
-        sizes.badge,
-        className
-      )}
-    >
-      <Icon className={cn(sizes.icon, config.iconClass)} />
-      <span>{config.label}</span>
-    </Badge>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* TooltipTrigger needs a single child that accepts ref. 
+            Since our conditional rendering is complex, we wrap in a span */}
+        <span className="inline-flex">{BadgeContent}</span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{config.tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 

@@ -1,7 +1,12 @@
-import { Shield, CheckCircle2 } from "lucide-react";
+import { Shield, CheckCircle2, HelpCircle } from "lucide-react";
 import { INSURANCE_OPTIONS, calculateInsuranceCost } from "@/lib/booking";
 import type { InsuranceType } from "@/types/booking";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface InsuranceSelectorProps {
   selectedInsurance: InsuranceType;
@@ -46,6 +51,20 @@ const InsuranceSelector = ({
       <div className="flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-semibold">Protection Plan</h3>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="p-0 bg-transparent border-0 cursor-help"
+              aria-label="Protection plan information"
+            >
+              <HelpCircle className="h-3 w-3 text-muted-foreground" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[200px]">
+            Optional coverage for peace of mind during your rental
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <div className="space-y-2" role="radiogroup" aria-label="Protection Plan">
@@ -96,8 +115,30 @@ const InsuranceSelector = ({
                       {cost > 0 ? `+$${cost.toFixed(2)}` : "Free"}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed flex items-center gap-1">
                     {option.coverage}
+                    {(option.type === "basic" || option.type === "premium") && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="inline-flex cursor-help"
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            aria-label={`${option.label} details`}
+                          >
+                            <HelpCircle className="h-3 w-3 text-muted-foreground/70" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[200px]">
+                          {option.type === "basic"
+                            ? "Covers minor scratches and small repairs up to $100"
+                            : "Full coverage including major damage, theft protection up to $500"}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </p>
                 </div>
 
@@ -111,8 +152,19 @@ const InsuranceSelector = ({
         })}
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed flex items-center gap-1">
         Covers accidental damage during your rental period.
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <HelpCircle
+              className="h-3 w-3 cursor-help text-muted-foreground/70"
+              aria-label="Coverage period details"
+            />
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[200px]">
+            Coverage applies only during the agreed rental period
+          </TooltipContent>
+        </Tooltip>
       </p>
     </div>
   );

@@ -1,5 +1,10 @@
-import { DollarSign, Shield, RefreshCw } from "lucide-react";
+import { DollarSign, Shield, RefreshCw, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatBookingDuration } from "@/lib/booking";
 import type { BookingCalculation } from "@/types/booking";
 import type { InsuranceType } from "@/types/booking";
@@ -21,14 +26,14 @@ const PricingBreakdown = ({
     calculation &&
       calculation.insurance > 0 &&
       insuranceType &&
-      insuranceType !== "none",
+      insuranceType !== "none"
   );
   const insuranceLabel =
     insuranceType === "basic"
       ? "Basic"
       : insuranceType === "premium"
-        ? "Premium"
-        : "Insurance";
+      ? "Premium"
+      : "Insurance";
   const displayInsuranceLabel =
     insuranceLabel === "Insurance"
       ? insuranceLabel
@@ -55,20 +60,52 @@ const PricingBreakdown = ({
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Daily Rate:</dt>
-              <dd className="font-medium">${calculation.dailyRate.toFixed(2)}</dd>
+              <dt className="flex items-center gap-1 text-muted-foreground">
+                Daily Rate:
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info
+                      className="h-3 w-3 cursor-help"
+                      aria-label="Daily rate information"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[200px]">
+                    Base rate set by the owner for this equipment
+                  </TooltipContent>
+                </Tooltip>
+              </dt>
+              <dd className="font-medium">
+                ${calculation.dailyRate.toFixed(2)}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">
-                Subtotal ({calculation.days} {calculation.days === 1 ? "day" : "days"}):
+                Subtotal ({calculation.days}{" "}
+                {calculation.days === 1 ? "day" : "days"}):
               </dt>
               <dd className="font-medium">
                 ${calculation.subtotal.toFixed(2)}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Service Fee (5%):</dt>
-              <dd className="font-medium">${calculation.serviceFee.toFixed(2)}</dd>
+              <dt className="flex items-center gap-1 text-muted-foreground">
+                Service Fee (5%):
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info
+                      className="h-3 w-3 cursor-help"
+                      aria-label="Service fee information"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[200px]">
+                    Covers platform support, secure payments, and 24/7 customer
+                    assistance
+                  </TooltipContent>
+                </Tooltip>
+              </dt>
+              <dd className="font-medium">
+                ${calculation.serviceFee.toFixed(2)}
+              </dd>
             </div>
 
             {hasInsurance && (
@@ -76,8 +113,21 @@ const PricingBreakdown = ({
                 <dt className="flex items-center gap-1 text-muted-foreground">
                   <Shield className="h-3 w-3" />
                   {displayInsuranceLabel}:
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info
+                        className="h-3 w-3 cursor-help"
+                        aria-label="Insurance information"
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[200px]">
+                      Protection against accidental damage during your rental
+                    </TooltipContent>
+                  </Tooltip>
                 </dt>
-                <dd className="font-medium">${calculation.insurance.toFixed(2)}</dd>
+                <dd className="font-medium">
+                  ${calculation.insurance.toFixed(2)}
+                </dd>
               </div>
             )}
 
@@ -85,7 +135,14 @@ const PricingBreakdown = ({
 
             <div className="flex justify-between font-semibold">
               <dt>Rental Total:</dt>
-              <dd>${(calculation.subtotal + calculation.serviceFee + calculation.insurance).toFixed(2)}</dd>
+              <dd>
+                $
+                {(
+                  calculation.subtotal +
+                  calculation.serviceFee +
+                  calculation.insurance
+                ).toFixed(2)}
+              </dd>
             </div>
 
             {hasDeposit && (
@@ -95,8 +152,22 @@ const PricingBreakdown = ({
                   <dt className="flex items-center gap-1 text-muted-foreground">
                     <RefreshCw className="h-3 w-3 text-green-600" />
                     Damage Deposit (Refundable):
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info
+                          className="h-3 w-3 cursor-help"
+                          aria-label="Deposit information"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[250px]">
+                        Fully refundable within 48 hours after return if no
+                        damage is reported
+                      </TooltipContent>
+                    </Tooltip>
                   </dt>
-                  <dd className="font-medium text-green-600">${calculation.deposit.toFixed(2)}</dd>
+                  <dd className="font-medium text-green-600">
+                    ${calculation.deposit.toFixed(2)}
+                  </dd>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Refunded after successful return

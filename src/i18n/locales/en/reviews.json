@@ -30,6 +30,7 @@
   },
   "display": {
     "verified_badge": "Verified",
+    "verified_badge_tooltip": "This reviewer completed a rental with this equipment",
     "equipment_label": "Equipment: ",
     "overall_rating": "Overall Rating",
     "average_rating": "Average Rating",
