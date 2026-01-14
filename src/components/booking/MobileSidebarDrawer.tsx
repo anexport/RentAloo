@@ -18,7 +18,11 @@ import PaymentCheckoutForm from "@/components/payment/PaymentCheckoutForm";
 import OrderSummaryCard from "@/components/payment/OrderSummaryCard";
 import type { PaymentBookingData } from "@/lib/stripe";
 import type { Listing } from "@/components/equipment/services/listings";
-import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
+import type {
+  BookingCalculation,
+  BookingConflict,
+  InsuranceType,
+} from "@/types/booking";
 import type { DateRange } from "react-day-picker";
 import type { User } from "@supabase/supabase-js";
 
@@ -51,6 +55,10 @@ interface MobileSidebarDrawerProps {
   onPaymentSuccess?: () => void;
   /** Called when user cancels payment */
   onPaymentCancel?: () => void;
+  /** Whether user is verified */
+  isVerified?: boolean;
+  /** Whether verification is loading */
+  verificationLoading?: boolean;
 }
 
 /**
@@ -64,37 +72,73 @@ export const MobileSidebarDrawer = ({
   bookingData,
   onPaymentSuccess,
   onPaymentCancel,
+  isVerified = true,
+  verificationLoading = false,
   ...sidebarProps
 }: MobileSidebarDrawerProps) => {
   const { t } = useTranslation("booking");
-  const isPaymentMode = showPaymentMode && bookingData && sidebarProps.calculation;
+  const isPaymentMode =
+    showPaymentMode && bookingData && sidebarProps.calculation;
 
   const isOwner = sidebarProps.listing.owner?.id === sidebarProps.user?.id;
-  const hasValidDates = !!sidebarProps.dateRange?.from && !!sidebarProps.dateRange?.to;
+  const hasValidDates =
+    !!sidebarProps.dateRange?.from && !!sidebarProps.dateRange?.to;
   const hasConflicts = sidebarProps.conflicts.length > 0;
+  // TODO: Re-enable verification requirement
+  // const showVerificationNudge =
+  //   sidebarProps.user && !isOwner && !isVerified && !verificationLoading;
+  const showVerificationNudge = false;
 
   // Determine button state and text
   const getButtonState = () => {
     if (!sidebarProps.user) {
-      return { disabled: false, text: t("button.login_to_book", { defaultValue: "Log in to Book" }) };
+      return {
+        disabled: false,
+        text: t("button.login_to_book", { defaultValue: "Log in to Book" }),
+      };
     }
     if (isOwner) {
-      return { disabled: true, text: t("button.cannot_book_own", { defaultValue: "Can't book your own listing" }) };
+      return {
+        disabled: true,
+        text: t("button.cannot_book_own", {
+          defaultValue: "Can't book your own listing",
+        }),
+      };
     }
+    // TODO: Re-enable verification requirement
+    // if (!isVerified && !verificationLoading) {
+    //   return {
+    //     disabled: true,
+    //     text: t("button.verify_to_book", { defaultValue: "Verify to Book" }),
+    //   };
+    // }
     if (!hasValidDates) {
-      return { disabled: true, text: t("button.select_dates", { defaultValue: "Select dates to continue" }) };
+      return {
+        disabled: true,
+        text: t("button.select_dates", {
+          defaultValue: "Select dates to continue",
+        }),
+      };
     }
     if (hasConflicts) {
-      return { disabled: true, text: t("button.dates_unavailable", { defaultValue: "Selected dates unavailable" }) };
+      return {
+        disabled: true,
+        text: t("button.dates_unavailable", {
+          defaultValue: "Selected dates unavailable",
+        }),
+      };
     }
     if (!sidebarProps.calculation) {
-      return { disabled: true, text: t("button.calculating", { defaultValue: "Calculating..." }) };
+      return {
+        disabled: true,
+        text: t("button.calculating", { defaultValue: "Calculating..." }),
+      };
     }
     return {
       disabled: sidebarProps.isLoading,
       text: sidebarProps.isLoading
         ? t("button.processing", { defaultValue: "Processing..." })
-        : t("button.book_now", { defaultValue: "Book Now" })
+        : t("button.book_now", { defaultValue: "Book Now" }),
     };
   };
 
@@ -115,19 +159,26 @@ export const MobileSidebarDrawer = ({
           <SheetTitle>
             {isPaymentMode
               ? t("drawer.title_payment", { defaultValue: "Complete Payment" })
-              : t("drawer.title_booking", { defaultValue: "Book This Equipment" })}
+              : t("drawer.title_booking", {
+                  defaultValue: "Book This Equipment",
+                })}
           </SheetTitle>
           <SheetDescription>
             {isPaymentMode
-              ? t("drawer.description_payment", { defaultValue: "Enter your payment details to confirm your booking" })
-              : t("drawer.description_booking", { defaultValue: "Select your dates and confirm your booking" })}
+              ? t("drawer.description_payment", {
+                  defaultValue:
+                    "Enter your payment details to confirm your booking",
+                })
+              : t("drawer.description_booking", {
+                  defaultValue: "Select your dates and confirm your booking",
+                })}
           </SheetDescription>
         </SheetHeader>
 
         {/* Scrollable content area */}
         <div
           className="flex-1 min-h-0 overflow-y-auto px-6 pb-4 overscroll-contain"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          style={{ WebkitOverflowScrolling: "touch" }}
         >
           {isPaymentMode && bookingData && sidebarProps.calculation ? (
             <div className="space-y-6">
@@ -224,10 +275,32 @@ export const MobileSidebarDrawer = ({
         {/* Sticky footer with CTA - only show for non-payment mode */}
         {!isPaymentMode && (
           <div className="flex-shrink-0 px-6 py-4 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            {/* Verification Nudge */}
+            {showVerificationNudge && (
+              <div className="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Verification required
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                  Complete identity verification to book equipment
+                </p>
+                <a
+                  href="/verification"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 mt-2 transition-colors"
+                >
+                  Complete Verification →
+                </a>
+              </div>
+            )}
+
             {sidebarProps.calculation && (
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-muted-foreground">{t("footer.total", { defaultValue: "Total" })}</span>
-                <span className="text-lg font-bold">${sidebarProps.calculation.total.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("footer.total", { defaultValue: "Total" })}
+                </span>
+                <span className="text-lg font-bold">
+                  ${sidebarProps.calculation.total.toFixed(2)}
+                </span>
               </div>
             )}
             <Button

@@ -3,16 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
-  Mountain, 
-  ArrowLeft, 
-  Eye, 
-  EyeOff, 
+import {
+  Mountain,
+  ArrowLeft,
+  Eye,
+  EyeOff,
   User,
   Mail,
   MapPin,
   ArrowRight,
-  Check
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,9 +52,7 @@ const step2Schema = z.object({
 
 // Step 3 Schema
 const step3Schema = z.object({
-  interests: z
-    .array(z.string())
-    .min(1, "Please select at least one interest"),
+  interests: z.array(z.string()).min(1, "Please select at least one interest"),
 });
 
 // Combined Schema
@@ -73,15 +71,31 @@ const STEPS = [
 
 const INTEREST_OPTIONS = [
   { value: "hiking", label: "Hiking", description: "Trails and backpacking" },
-  { value: "climbing", label: "Climbing", description: "Rock and ice climbing" },
+  {
+    value: "climbing",
+    label: "Climbing",
+    description: "Rock and ice climbing",
+  },
   { value: "skiing", label: "Skiing", description: "Alpine and backcountry" },
-  { value: "snowboarding", label: "Snowboarding", description: "Resort and powder" },
+  {
+    value: "snowboarding",
+    label: "Snowboarding",
+    description: "Resort and powder",
+  },
   { value: "cycling", label: "Cycling", description: "Road and gravel" },
   { value: "camping", label: "Camping", description: "Car and backcountry" },
   { value: "kayaking", label: "Kayaking", description: "Rivers and lakes" },
-  { value: "paddleboarding", label: "Paddleboarding", description: "SUP adventures" },
+  {
+    value: "paddleboarding",
+    label: "Paddleboarding",
+    description: "SUP adventures",
+  },
   { value: "surfing", label: "Surfing", description: "Ocean waves" },
-  { value: "mountain-biking", label: "Mountain Biking", description: "Trails and jumps" },
+  {
+    value: "mountain-biking",
+    label: "Mountain Biking",
+    description: "Trails and jumps",
+  },
   { value: "running", label: "Running", description: "Trail running" },
 ];
 
@@ -136,7 +150,12 @@ const RenterRegistration = () => {
     let isValid = false;
 
     if (currentStep === 1) {
-      isValid = await trigger(["fullName", "email", "password", "confirmPassword"]);
+      isValid = await trigger([
+        "fullName",
+        "email",
+        "password",
+        "confirmPassword",
+      ]);
     } else if (currentStep === 2) {
       isValid = await trigger(["location", "experienceLevel"]);
     }
@@ -200,7 +219,9 @@ const RenterRegistration = () => {
             <div className="flex justify-center mb-2">
               <Mountain className="h-10 w-10 text-primary" />
             </div>
-            <CardTitle className="text-3xl font-bold">Join as a Renter</CardTitle>
+            <CardTitle className="text-display-sm font-bold">
+              Join as a Renter
+            </CardTitle>
             <CardDescription className="text-base">
               Create your account to start renting outdoor equipment
             </CardDescription>
@@ -228,7 +249,10 @@ const RenterRegistration = () => {
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Full Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="fullName"
+                      className="flex items-center gap-2"
+                    >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Full Name
                       <span className="text-destructive">*</span>
@@ -239,10 +263,15 @@ const RenterRegistration = () => {
                       placeholder="John Doe"
                       className={errors.fullName ? "border-destructive" : ""}
                       aria-invalid={!!errors.fullName}
-                      aria-describedby={errors.fullName ? "fullName-error" : undefined}
+                      aria-describedby={
+                        errors.fullName ? "fullName-error" : undefined
+                      }
                     />
                     {errors.fullName && (
-                      <p id="fullName-error" className="text-sm text-destructive">
+                      <p
+                        id="fullName-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.fullName.message}
                       </p>
                     )}
@@ -262,7 +291,9 @@ const RenterRegistration = () => {
                       placeholder="john@example.com"
                       className={errors.email ? "border-destructive" : ""}
                       aria-invalid={!!errors.email}
-                      aria-describedby={errors.email ? "email-error" : undefined}
+                      aria-describedby={
+                        errors.email ? "email-error" : undefined
+                      }
                     />
                     {errors.email && (
                       <p id="email-error" className="text-sm text-destructive">
@@ -285,7 +316,9 @@ const RenterRegistration = () => {
                         placeholder="Create a strong password"
                         className={errors.password ? "border-destructive" : ""}
                         aria-invalid={!!errors.password}
-                        aria-describedby={errors.password ? "password-error" : undefined}
+                        aria-describedby={
+                          errors.password ? "password-error" : undefined
+                        }
                       />
                       <Button
                         type="button"
@@ -293,7 +326,9 @@ const RenterRegistration = () => {
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -304,7 +339,10 @@ const RenterRegistration = () => {
                     </div>
                     <PasswordStrength password={password || ""} />
                     {errors.password && (
-                      <p id="password-error" className="text-sm text-destructive">
+                      <p
+                        id="password-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.password.message}
                       </p>
                     )}
@@ -322,18 +360,28 @@ const RenterRegistration = () => {
                         type={showConfirmPassword ? "text" : "password"}
                         {...register("confirmPassword")}
                         placeholder="Confirm your password"
-                        className={errors.confirmPassword ? "border-destructive" : ""}
+                        className={
+                          errors.confirmPassword ? "border-destructive" : ""
+                        }
                         aria-invalid={!!errors.confirmPassword}
-                        aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                        aria-describedby={
+                          errors.confirmPassword
+                            ? "confirmPassword-error"
+                            : undefined
+                        }
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         aria-label={
-                          showConfirmPassword ? "Hide password" : "Show password"
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
                         }
                       >
                         {showConfirmPassword ? (
@@ -344,7 +392,10 @@ const RenterRegistration = () => {
                       </Button>
                     </div>
                     {errors.confirmPassword && (
-                      <p id="confirmPassword-error" className="text-sm text-destructive">
+                      <p
+                        id="confirmPassword-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.confirmPassword.message}
                       </p>
                     )}
@@ -356,7 +407,7 @@ const RenterRegistration = () => {
               {currentStep === 2 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       Help us personalize your experience
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -366,7 +417,10 @@ const RenterRegistration = () => {
 
                   {/* Location */}
                   <div className="space-y-2">
-                    <Label htmlFor="location" className="flex items-center gap-2">
+                    <Label
+                      htmlFor="location"
+                      className="flex items-center gap-2"
+                    >
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       Location
                       <span className="text-destructive">*</span>
@@ -377,13 +431,23 @@ const RenterRegistration = () => {
                       placeholder="San Francisco, CA"
                       className={errors.location ? "border-destructive" : ""}
                       aria-invalid={!!errors.location}
-                      aria-describedby={errors.location ? "location-error" : "location-description"}
+                      aria-describedby={
+                        errors.location
+                          ? "location-error"
+                          : "location-description"
+                      }
                     />
-                    <p id="location-description" className="text-xs text-muted-foreground">
+                    <p
+                      id="location-description"
+                      className="text-xs text-muted-foreground"
+                    >
                       We'll use this to show you nearby equipment
                     </p>
                     {errors.location && (
-                      <p id="location-error" className="text-sm text-destructive">
+                      <p
+                        id="location-error"
+                        className="text-sm text-destructive"
+                      >
                         {errors.location.message}
                       </p>
                     )}
@@ -398,7 +462,10 @@ const RenterRegistration = () => {
                     <RadioGroup
                       value={experienceLevel}
                       onValueChange={(value) =>
-                        setValue("experienceLevel", value as "beginner" | "intermediate" | "advanced")
+                        setValue(
+                          "experienceLevel",
+                          value as "beginner" | "intermediate" | "advanced"
+                        )
                       }
                       role="group"
                       aria-label="Experience level selection"
@@ -413,19 +480,34 @@ const RenterRegistration = () => {
                                 : ""
                             }`}
                             onClick={() =>
-                              setValue("experienceLevel", level.value as "beginner" | "intermediate" | "advanced")
+                              setValue(
+                                "experienceLevel",
+                                level.value as
+                                  | "beginner"
+                                  | "intermediate"
+                                  | "advanced"
+                              )
                             }
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                setValue("experienceLevel", level.value as "beginner" | "intermediate" | "advanced");
+                                setValue(
+                                  "experienceLevel",
+                                  level.value as
+                                    | "beginner"
+                                    | "intermediate"
+                                    | "advanced"
+                                );
                               }
                             }}
                             aria-label={`Select ${level.label} experience level`}
                           >
-                            <RadioGroupItem value={level.value} id={level.value} />
+                            <RadioGroupItem
+                              value={level.value}
+                              id={level.value}
+                            />
                             <div className="flex-1">
                               <Label
                                 htmlFor={level.value}
@@ -454,7 +536,7 @@ const RenterRegistration = () => {
               {currentStep === 3 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       What are you interested in?
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -496,11 +578,7 @@ const RenterRegistration = () => {
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="flex-1" disabled={isLoading}>
                     {isLoading ? (
                       <>
                         <span className="mr-2">Creating Account...</span>
@@ -519,7 +597,10 @@ const RenterRegistration = () => {
               <div className="text-center pt-4">
                 <p className="text-sm text-muted-foreground">
                   Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline font-medium">
+                  <Link
+                    to="/login"
+                    className="text-primary hover:underline font-medium"
+                  >
                     Sign in
                   </Link>
                 </p>

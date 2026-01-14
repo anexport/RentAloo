@@ -11,7 +11,12 @@ import { useSavedEquipment } from "@/hooks/useSavedEquipment";
 const SavedEquipmentTab = () => {
   const { t } = useTranslation("dashboard");
   const { loading: favoritesLoading } = useFavorites();
-  const { data: listings = [], isLoading, error, refetch } = useSavedEquipment();
+  const {
+    data: listings = [],
+    isLoading,
+    error,
+    refetch,
+  } = useSavedEquipment();
 
   const loading = isLoading || favoritesLoading;
 
@@ -19,7 +24,7 @@ const SavedEquipmentTab = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-headline-lg font-bold tracking-tight text-foreground">
             {t("renter.saved.title", { defaultValue: "Watchlist" })}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -28,7 +33,7 @@ const SavedEquipmentTab = () => {
             })}
           </p>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {[...Array(3)].map((_, i) => (
             <ListingCardSkeleton key={i} />
           ))}
@@ -45,7 +50,7 @@ const SavedEquipmentTab = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-headline-lg font-bold tracking-tight text-foreground">
             {t("renter.saved.title", { defaultValue: "Watchlist" })}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -74,7 +79,7 @@ const SavedEquipmentTab = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-headline-lg font-bold tracking-tight text-foreground">
             {t("renter.saved.title", { defaultValue: "Watchlist" })}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -117,7 +122,7 @@ const SavedEquipmentTab = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-headline-lg font-bold tracking-tight text-foreground">
             {t("renter.saved.title", { defaultValue: "Watchlist" })}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -137,7 +142,7 @@ const SavedEquipmentTab = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 auto-rows-fr">
         {listings.map((listing, index) => (
           <div
             key={listing.id}
@@ -153,4 +158,3 @@ const SavedEquipmentTab = () => {
 };
 
 export default SavedEquipmentTab;
-

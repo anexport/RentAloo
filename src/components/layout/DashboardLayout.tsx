@@ -8,9 +8,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import Sidebar from "./Sidebar";
+import MobileMenuSheet from "./MobileMenuSheet";
 import UserMenu from "@/components/UserMenu";
 import BreadcrumbNav from "./BreadcrumbNav";
-import RoleSwitcher from "@/components/RoleSwitcher";
 import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface DashboardLayoutProps {
@@ -33,7 +33,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </div>
 
       {/* Mobile Header - Reduced height for more content space */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/60">
         <div className="flex h-full items-center justify-between gap-2 px-4">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -41,12 +41,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
+            <SheetContent side="left" className="w-72 p-0" hideCloseButton>
+              <MobileMenuSheet />
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-2 flex-1 justify-end">
-            <RoleSwitcher variant="header" />
             <NotificationBell />
             <UserMenu />
           </div>
@@ -62,7 +61,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         )}
       >
         {/* Top Bar - Desktop Only */}
-        <div className="hidden md:block sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="hidden md:block sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/60">
           <div className="flex h-16 items-center justify-end gap-2 px-6">
             <NotificationBell />
             <UserMenu />
@@ -84,4 +83,3 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 };
 
 export default DashboardLayout;
-

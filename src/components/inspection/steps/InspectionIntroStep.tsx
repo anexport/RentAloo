@@ -16,7 +16,8 @@ const INSPECTION_STEPS = [
   {
     icon: Camera,
     title: "Take Photos",
-    description: "Capture at least 3 photos of the equipment from different angles",
+    description:
+      "Capture at least 3 photos of the equipment from different angles",
   },
   {
     icon: ClipboardCheck,
@@ -47,9 +48,9 @@ export default function InspectionIntroStep({
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
           <ShieldCheck className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h2 className="text-headline-lg font-bold tracking-tight">
           {isPickup ? "Pickup" : "Return"} Inspection
-        </h1>
+        </h2>
         <p className="text-muted-foreground max-w-md mx-auto">
           {isPickup
             ? `As the ${role}, document the equipment condition before the rental begins.`
@@ -131,4 +132,3 @@ export default function InspectionIntroStep({
     </div>
   );
 }
-

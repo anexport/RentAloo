@@ -49,10 +49,10 @@ const SocialProofSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-headline-lg font-bold mb-4">
             {t("social_proof.section_title")}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-body-lg text-muted-foreground max-w-2xl mx-auto">
             {t("social_proof.section_subtitle")}
           </p>
         </div>
@@ -61,10 +61,10 @@ const SocialProofSection = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-3xl mx-auto mb-12">
           {stats.map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-primary mb-2">
+              <div className="text-headline-md font-bold text-primary mb-2">
                 {stat.value}
               </div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="text-label-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -86,7 +86,7 @@ const SocialProofSection = () => {
                 <StarRating rating={testimonial.rating} size="sm" />
 
                 {/* Testimonial text */}
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-body-sm text-muted-foreground leading-relaxed">
                   "{testimonial.text}"
                 </p>
 
@@ -98,10 +98,10 @@ const SocialProofSection = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-semibold text-sm">
+                    <div className="text-label-lg">
                       {testimonial.name}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-label-sm text-muted-foreground">
                       {testimonial.role}
                     </div>
                   </div>
@@ -114,7 +114,7 @@ const SocialProofSection = () => {
         {/* Trust badges */}
         <div className="mt-12 pt-12 border-t border-border">
           <div className="text-center mb-8">
-            <p className="text-sm text-muted-foreground font-medium">
+            <p className="text-label-md text-muted-foreground">
               {t("social_proof.trust_label")}
             </p>
           </div>
@@ -123,7 +123,7 @@ const SocialProofSection = () => {
             {brands.map((brand) => (
               <div
                 key={brand}
-                className="text-lg font-bold text-muted-foreground"
+                className="text-label-lg text-muted-foreground"
               >
                 {brand}
               </div>

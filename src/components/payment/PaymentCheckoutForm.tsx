@@ -26,6 +26,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/payment";
+import { cn } from "@/lib/utils";
 
 // Stripe logo SVG component
 const StripeLogo = ({ className = "h-6" }: { className?: string }) => (
@@ -51,6 +52,8 @@ type PaymentCheckoutFormProps = {
   onSuccess?: () => void;
   /** Called when user wants to go back/cancel */
   onCancel?: () => void;
+  /** Enable mobile-optimized compact layout */
+  isMobile?: boolean;
 };
 
 type PaymentCheckoutFormInnerProps = PaymentCheckoutFormProps & {
@@ -62,6 +65,7 @@ const PaymentCheckoutFormInner = ({
   onSuccess,
   onCancel,
   paymentIntentId,
+  isMobile = false,
 }: PaymentCheckoutFormInnerProps) => {
   const navigate = useNavigate();
   const stripe = useStripe();
@@ -99,7 +103,9 @@ const PaymentCheckoutFormInner = ({
       // The booking is created by the webhook, not here
       // Navigate to confirmation page
       onSuccess?.();
-      void navigate(`/payment/confirmation?payment_intent_id=${paymentIntentId}`);
+      void navigate(
+        `/payment/confirmation?payment_intent_id=${paymentIntentId}`
+      );
     } catch (err) {
       console.error("Payment error:", err);
       setError(
@@ -112,51 +118,66 @@ const PaymentCheckoutFormInner = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onCancel}
-          disabled={isProcessing}
-          className="shrink-0"
-          aria-label="Go back to booking"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Complete Payment</h2>
-          <p className="text-muted-foreground">
-            Secure checkout powered by Stripe
-          </p>
-        </div>
-      </div>
-
-      {/* Main Payment Card */}
-      <Card className="overflow-hidden border-2">
-        <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 px-6 py-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Payment Details</h3>
-                <p className="text-sm text-muted-foreground">
-                  Enter your card information
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Lock className="h-4 w-4" />
-              <StripeLogo className="h-5 opacity-70" />
-            </div>
+    <div className={cn("space-y-4", !isMobile && "space-y-6")}>
+      {/* Header - Desktop only */}
+      {!isMobile && (
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCancel}
+            disabled={isProcessing}
+            className="shrink-0"
+            aria-label="Go back to booking"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h2 className="text-headline-lg font-bold tracking-tight">
+              Complete Payment
+            </h2>
+            <p className="text-muted-foreground">
+              Secure checkout powered by Stripe
+            </p>
           </div>
         </div>
+      )}
 
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Main Payment Card */}
+      <Card
+        className={cn(
+          "overflow-hidden",
+          isMobile ? "border-0 shadow-none" : "border-2"
+        )}
+      >
+        {/* Card header - Desktop only */}
+        {!isMobile && (
+          <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 px-6 py-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Payment Details</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter your card information
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lock className="h-4 w-4" />
+                <StripeLogo className="h-5 opacity-70" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <CardContent className={cn(isMobile ? "p-0" : "p-6")}>
+          <form
+            onSubmit={handleSubmit}
+            className={cn(isMobile ? "space-y-4" : "space-y-6")}
+          >
             {/* Error Alert */}
             {error && (
               <Alert variant="destructive">
@@ -166,83 +187,137 @@ const PaymentCheckoutFormInner = ({
             )}
 
             {/* Stripe Payment Element */}
-            <div className="rounded-lg border border-input bg-background p-4">
+            <div
+              className={cn(
+                "rounded-lg bg-background",
+                !isMobile && "border border-input p-4"
+              )}
+            >
               <PaymentElement
                 options={{
-                  layout: "tabs",
+                  layout: isMobile ? "accordion" : "tabs",
+                  fields: {
+                    billingDetails: {
+                      address: {
+                        country: "auto",
+                      },
+                    },
+                  },
                 }}
               />
             </div>
 
-            {/* Security Notice */}
-            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  Your payment is secure
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  All transactions are encrypted and processed securely through Stripe. 
-                  We never store your full card details.
-                </p>
+            {/* Security Notice - Desktop only, mobile shows in sticky footer */}
+            {!isMobile && (
+              <>
+                <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Your payment is secure
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      All transactions are encrypted and processed securely
+                      through Stripe. We never store your full card details.
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+              </>
+            )}
+
+            {/* Action Buttons - Desktop only */}
+            {!isMobile && (
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={onCancel}
+                  disabled={isProcessing}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  size="lg"
+                  disabled={!stripe || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Pay {formatCurrency(totalAmount)}
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
+            )}
 
-            <Separator />
-
-            {/* Action Buttons */}
-            <div className="flex flex-col-reverse sm:flex-row gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={onCancel}
-                disabled={isProcessing}
-              >
-                Go Back
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-primary hover:bg-primary/90"
-                size="lg"
-                disabled={!stripe || isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-2" />
-                    Pay {formatCurrency(totalAmount)}
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Mobile sticky footer with pay button */}
+            {isMobile && (
+              <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t border-border px-4 py-3 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Secure payment via Stripe</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 font-semibold"
+                  disabled={!stripe || isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Pay Now
+                    </>
+                  )}
+                </Button>
+                {/* Safe area padding for iPhone */}
+                <div className="h-[env(safe-area-inset-bottom)]" />
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
 
-      {/* Trust Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { icon: ShieldCheck, label: "Escrow Protected" },
-          { icon: Lock, label: "SSL Encrypted" },
-          { icon: CheckCircle2, label: "Money-Back Guarantee" },
-          { icon: CreditCard, label: "Secure Payments" },
-        ].map(({ icon: Icon, label }) => (
-          <div
-            key={label}
-            className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-muted/50 text-center"
-          >
-            <Icon className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium">
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* Trust Badges - Desktop only */}
+      {!isMobile && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { icon: ShieldCheck, label: "Escrow Protected" },
+            { icon: Lock, label: "SSL Encrypted" },
+            { icon: CheckCircle2, label: "Money-Back Guarantee" },
+            { icon: CreditCard, label: "Secure Payments" },
+          ].map(({ icon: Icon, label }) => (
+            <div
+              key={label}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-muted/50 text-center"
+            >
+              <Icon className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -252,6 +327,7 @@ const PaymentCheckoutForm = ({
   totalAmount,
   onSuccess,
   onCancel,
+  isMobile = false,
 }: PaymentCheckoutFormProps) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
@@ -260,6 +336,9 @@ const PaymentCheckoutForm = ({
   > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(
+    document.documentElement.classList.contains("dark")
+  );
   const isInitializingRef = useRef(false);
   const hasInitializedRef = useRef(false);
 
@@ -273,6 +352,25 @@ const PaymentCheckoutForm = ({
       return `${bookingData.equipment_id}-${bookingData.start_date}-${bookingData.end_date}-${bookingData.total_amount}`;
     }
   }, [bookingData]);
+
+  // Watch for theme changes and update Stripe appearance
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "class") {
+          const isDark = document.documentElement.classList.contains("dark");
+          setIsDarkMode(isDark);
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (isInitializingRef.current || hasInitializedRef.current) {
@@ -334,7 +432,9 @@ const PaymentCheckoutForm = ({
         </div>
         <div className="text-center">
           <p className="font-medium">Initializing secure payment...</p>
-          <p className="text-sm text-muted-foreground">This may take a moment</p>
+          <p className="text-sm text-muted-foreground">
+            This may take a moment
+          </p>
         </div>
       </div>
     );
@@ -378,9 +478,59 @@ const PaymentCheckoutForm = ({
       options={{
         clientSecret,
         appearance: {
-          theme: "stripe",
+          theme: isDarkMode ? "night" : "stripe",
           variables: {
             borderRadius: "8px",
+            colorPrimary: isDarkMode
+              ? "hsl(222.2 84% 65%)"
+              : "hsl(222.2 47.4% 11.2%)",
+            colorBackground: isDarkMode ? "hsl(222.2 84% 4.9%)" : "#ffffff",
+            colorText: isDarkMode ? "hsl(210 40% 98%)" : "hsl(222.2 84% 4.9%)",
+            colorDanger: "hsl(0 84.2% 60.2%)",
+            fontFamily: "system-ui, -apple-system, sans-serif",
+            spacingUnit: "4px",
+            fontSizeBase: "14px",
+          },
+          rules: {
+            ".Input": {
+              backgroundColor: isDarkMode
+                ? "hsl(217.2 32.6% 17.5%)"
+                : "#ffffff",
+              border: isDarkMode
+                ? "1px solid hsl(217.2 32.6% 27.5%)"
+                : "1px solid hsl(214.3 31.8% 91.4%)",
+              color: isDarkMode ? "hsl(210 40% 98%)" : "hsl(222.2 84% 4.9%)",
+              boxShadow: "none",
+            },
+            ".Input:focus": {
+              border: isDarkMode
+                ? "1px solid hsl(222.2 84% 65%)"
+                : "1px solid hsl(222.2 47.4% 11.2%)",
+              boxShadow: isDarkMode
+                ? "0 0 0 1px hsl(222.2 84% 65%)"
+                : "0 0 0 1px hsl(222.2 47.4% 11.2%)",
+            },
+            ".Label": {
+              color: isDarkMode
+                ? "hsl(215 20.2% 65.1%)"
+                : "hsl(215.4 16.3% 46.9%)",
+              fontSize: "13px",
+              fontWeight: "500",
+            },
+            ".Tab": {
+              backgroundColor: isDarkMode
+                ? "hsl(217.2 32.6% 17.5%)"
+                : "#ffffff",
+              border: isDarkMode
+                ? "1px solid hsl(217.2 32.6% 27.5%)"
+                : "1px solid hsl(214.3 31.8% 91.4%)",
+            },
+            ".Tab--selected": {
+              backgroundColor: isDarkMode ? "hsl(222.2 84% 4.9%)" : "#ffffff",
+              border: isDarkMode
+                ? "1px solid hsl(222.2 84% 65%)"
+                : "1px solid hsl(222.2 47.4% 11.2%)",
+            },
           },
         },
       }}
@@ -391,6 +541,7 @@ const PaymentCheckoutForm = ({
         onSuccess={onSuccess}
         onCancel={onCancel}
         paymentIntentId={paymentIntentId}
+        isMobile={isMobile}
       />
     </Elements>
   );

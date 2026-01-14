@@ -169,6 +169,7 @@ export interface UseNotificationPreferencesReturn {
   updatePreferences: (
     updates: NotificationPreferencesUpdate
   ) => Promise<boolean>;
+  refetch: () => Promise<void>;
 }
 
 // ============================================================================

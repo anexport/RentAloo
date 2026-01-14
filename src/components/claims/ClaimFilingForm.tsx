@@ -51,7 +51,9 @@ export default function ClaimFilingForm({
     }
     if (estimatedCostNum > maxClaimAmount) {
       setError(
-        `Claim amount cannot exceed $${maxClaimAmount.toFixed(2)} (deposit + insurance)`
+        `Claim amount cannot exceed $${maxClaimAmount.toFixed(
+          2
+        )} (deposit + insurance)`
       );
       return false;
     }
@@ -87,16 +89,18 @@ export default function ClaimFilingForm({
 
     if (allowedTypes?.length && !allowedTypes.includes(file.type)) {
       throw new Error(
-        `File type ${file.type || "unknown"} is not allowed. Accepted types: ${allowedTypes.join(
-          ", "
-        )}.`
+        `File type ${
+          file.type || "unknown"
+        } is not allowed. Accepted types: ${allowedTypes.join(", ")}.`
       );
     }
 
-    const { error: uploadError } = await supabase.storage.from(bucketName).upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
+    const { error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
     if (uploadError) {
       throw new Error(
@@ -137,12 +141,18 @@ export default function ClaimFilingForm({
       if (!uploadedFiles.length) return;
 
       const results = await Promise.all(
-        uploadedFiles.map(({ bucket, path }) => supabase.storage.from(bucket).remove([path]))
+        uploadedFiles.map(({ bucket, path }) =>
+          supabase.storage.from(bucket).remove([path])
+        )
       );
 
       results.forEach(({ error }, index) => {
         if (error) {
-          console.error("Failed to clean up uploaded file", uploadedFiles[index], error);
+          console.error(
+            "Failed to clean up uploaded file",
+            uploadedFiles[index],
+            error
+          );
         }
       });
     };
@@ -155,7 +165,9 @@ export default function ClaimFilingForm({
       for (let i = 0; i < evidencePhotos.length; i++) {
         const file = evidencePhotos[i];
         const fileExt = getFileExtension(file.name, "jpg");
-        const fileName = `${user.id}/${bookingId}/claim/${Date.now()}_${i}.${fileExt}`;
+        const fileName = `${
+          user.id
+        }/${bookingId}/claim/${Date.now()}_${i}.${fileExt}`;
         const publicUrl = await uploadFile(file, fileName, bucketName, 10, [
           "image/jpeg",
           "image/png",
@@ -171,7 +183,9 @@ export default function ClaimFilingForm({
       for (let i = 0; i < repairQuotes.length; i++) {
         const file = repairQuotes[i];
         const fileExt = getFileExtension(file.name, "pdf");
-        const fileName = `${user.id}/${bookingId}/quotes/${Date.now()}_${i}.${fileExt}`;
+        const fileName = `${
+          user.id
+        }/${bookingId}/quotes/${Date.now()}_${i}.${fileExt}`;
         const publicUrl = await uploadFile(file, fileName, bucketName, 10, [
           "application/pdf",
           "image/jpeg",
@@ -209,7 +223,9 @@ export default function ClaimFilingForm({
       await cleanupUploadedFiles();
       console.error("Error filing claim:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to file claim. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to file claim. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -220,7 +236,9 @@ export default function ClaimFilingForm({
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <CheckCircle2 className="h-16 w-16 text-green-500" />
-        <h2 className="text-xl font-semibold">Claim Filed Successfully</h2>
+        <h2 className="text-title-lg font-semibold">
+          Claim Filed Successfully
+        </h2>
         <p className="text-muted-foreground text-center">
           Your damage claim has been submitted. The renter will be notified and
           has 48 hours to respond.

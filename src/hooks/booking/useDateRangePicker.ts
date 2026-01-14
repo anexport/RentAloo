@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
+import { differenceInDays, format } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface UseDateRangePickerProps {
   dateRange?: DateRange;
@@ -14,6 +17,7 @@ export const useDateRangePicker = ({
   onStartDateSelect,
   onEndDateSelect,
 }: UseDateRangePickerProps) => {
+  const { t } = useTranslation("booking");
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
 
@@ -66,9 +70,23 @@ export const useDateRangePicker = ({
         };
         onDateRangeChange(newRange);
         setEndDateOpen(false);
+
+        // Show toast when both dates are selected
+        const days = differenceInDays(date, dateRange.from) + 1;
+        toast.success(
+          t("sidebar.dates_confirmed", "Dates confirmed!"),
+          {
+            description: t("sidebar.dates_confirmed_description", {
+              start: format(dateRange.from, "MMM d"),
+              end: format(date, "MMM d"),
+              days,
+              defaultValue: "{{start}} - {{end}} ({{days}} days)",
+            }),
+          }
+        );
       }
     },
-    [dateRange, onDateRangeChange, onEndDateSelect]
+    [dateRange, onDateRangeChange, onEndDateSelect, t]
   );
 
   return {

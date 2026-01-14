@@ -43,7 +43,10 @@ const LoginPage = () => {
     setError(null);
 
     try {
-      const { error, user: returnedUser } = await signIn(data.email, data.password);
+      const { error, user: returnedUser } = await signIn(
+        data.email,
+        data.password
+      );
 
       if (error) {
         setError(error.message);
@@ -84,7 +87,7 @@ const LoginPage = () => {
             <div className="flex justify-center mb-4">
               <Mountain className="h-12 w-12 text-primary" />
             </div>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="text-headline-lg">Welcome Back</CardTitle>
             <CardDescription>Sign in to your Vaymo account</CardDescription>
           </CardHeader>
           <CardContent>

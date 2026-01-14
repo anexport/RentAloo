@@ -54,7 +54,7 @@ export const EquipmentOverviewTab = ({
 
       {/* Description */}
       <div>
-        <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+        <h2 className="text-title-lg font-semibold mb-3 flex items-center gap-2">
           About This Equipment
         </h2>
         <p className="text-foreground leading-relaxed whitespace-pre-wrap">
@@ -98,4 +98,3 @@ export const EquipmentOverviewTab = ({
     </div>
   );
 };
-

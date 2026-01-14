@@ -19,7 +19,9 @@
     "aria_location_contact": "Location and Contact",
     "aria_dates": "Dates",
     "aria_pricing_breakdown": "Pricing Breakdown",
-    "aria_insurance": "Insurance Options"
+    "aria_insurance": "Insurance Options",
+    "dates_confirmed": "Dates confirmed!",
+    "dates_confirmed_description": "{{start}} - {{end}} ({{days}} days)"
   },
   "status": {
     "pending": "Pending",
@@ -162,5 +164,9 @@
       "conversation_failed": "Failed to start conversation. Please try again.",
       "cancel_failed": "Failed to cancel booking. Please try again."
     }
+  },
+  "deposit": {
+    "title": "Refundable Deposit",
+    "description": "This deposit will be refunded after you return the equipment in good condition."
   }
 }

@@ -72,25 +72,29 @@
     "stats": {
       "total_listings": {
         "label": "Total Listings",
-        "description": "Active equipment"
+        "description": "Active equipment",
+        "tooltip": "Total number of equipment items you've listed for rent"
       },
       "pending_requests": {
         "label": "Pending Requests",
-        "description": "Awaiting payment"
+        "description": "Awaiting payment",
+        "tooltip": "Booking requests from renters awaiting your approval or payment"
       },
       "total_earnings": {
         "label": "Total Earnings",
-        "description": "All time"
+        "description": "All time",
+        "tooltip": "Total amount you've earned from all completed rentals"
       },
       "average_rating": {
         "label": "Average Rating",
-        "description": "Based on reviews"
+        "description": "Based on reviews",
+        "tooltip": "Your average rating based on reviews from renters"
       }
     },
     "tabs": {
       "overview": "Overview",
       "equipment": "Equipment Management",
-      "bookings": "Booking Requests",
+      "bookings": "Active Bookings",
       "messages": "Messages",
       "reviews": "Reviews",
       "payments": "Payments & Escrow"
@@ -123,7 +127,7 @@
       }
     },
     "bookings": {
-      "section_title": "Booking Requests",
+      "section_title": "Active Bookings",
       "section_description": "Manage rental requests for your equipment",
       "loading": "Loading booking requests...",
       "empty_state": {

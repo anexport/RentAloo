@@ -90,10 +90,10 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
               <div className="flex justify-center mb-4">
                 <Mountain className="h-12 w-12 text-primary" />
               </div>
-              <DialogTitle className="text-2xl">{t("signup.title")}</DialogTitle>
-              <DialogDescription>
-                {t("signup.subtitle")}
-              </DialogDescription>
+              <DialogTitle className="text-headline-lg">
+                {t("signup.title")}
+              </DialogTitle>
+              <DialogDescription>{t("signup.subtitle")}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {/* Renter Option */}
@@ -108,7 +108,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
                     <User className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       {t("signup.renter_option_title")}
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -130,7 +130,7 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
                     <Store className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">
+                    <h3 className="text-title-lg font-semibold mb-1">
                       {t("signup.owner_option_title")}
                     </h3>
                     <p className="text-sm text-muted-foreground">

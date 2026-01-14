@@ -1,18 +1,16 @@
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
-import MessagingInterface from "../components/messaging/MessagingInterface";
+import { MessageSquare } from "lucide-react";
+import MessagingInterface from "@/components/messaging/MessagingInterface";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import PageHeader from "@/components/layout/PageHeader";
+import PageShell from "@/components/layout/PageShell";
+import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
 
 const MessagingPage = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <PageTransitionLoader />;
   }
 
   if (!user) {
@@ -21,14 +19,15 @@ const MessagingPage = () => {
 
   return (
     <DashboardLayout>
-      {/* Hide PageHeader on mobile to save vertical space */}
-      <div className="hidden md:block">
-        <PageHeader
-          title="Messages"
-          description="Communicate with other users about your bookings"
-        />
-      </div>
-
+      {/* Page header is hidden on mobile to maximize messaging space */}
+      <PageShell
+        title="Messages"
+        description="Communicate with other users about your bookings"
+        icon={MessageSquare}
+        iconColor="text-blue-500"
+        className="hidden md:block"
+      />
+      {/* Single MessagingInterface instance to prevent duplicate Supabase Realtime subscriptions */}
       <MessagingInterface />
     </DashboardLayout>
   );

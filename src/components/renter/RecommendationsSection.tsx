@@ -25,7 +25,9 @@ type RecommendationsSectionProps = {
   onOpenListing?: (listing: Listing) => void;
 };
 
-const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) => {
+const RecommendationsSection = ({
+  onOpenListing,
+}: RecommendationsSectionProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -130,7 +132,9 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
         const categoryIds = [
           ...new Set(
             bookings
-              ?.map((b) => (b.equipment as { category_id: string })?.category_id)
+              ?.map(
+                (b) => (b.equipment as { category_id: string })?.category_id
+              )
               .filter(Boolean) || []
           ),
         ] as string[];
@@ -245,9 +249,7 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
         }
       } catch (error) {
         console.error("Error loading recommendations:", error);
-        setSections((prev) =>
-          prev.map((s) => ({ ...s, loading: false }))
-        );
+        setSections((prev) => prev.map((s) => ({ ...s, loading: false })));
       }
     };
 
@@ -280,8 +282,8 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
   };
 
   // Check if there's any content to show
-  const hasContent = sections.some(s => !s.loading && s.listings.length > 0);
-  const isLoading = sections.some(s => s.loading);
+  const hasContent = sections.some((s) => !s.loading && s.listings.length > 0);
+  const isLoading = sections.some((s) => s.loading);
 
   // Don't render if there's nothing to show
   if (!isLoading && !hasContent) {
@@ -304,7 +306,9 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
           return (
             <section
               key={section.type}
-              className={`py-16 sm:py-20 ${index % 2 === 0 ? "bg-muted/30" : "bg-background"}`}
+              className={`py-16 sm:py-20 ${
+                index % 2 === 0 ? "bg-muted/30" : "bg-background"
+              }`}
             >
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between mb-8">
@@ -313,7 +317,9 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
                       {getSectionIcon(section.type)}
                       <h2 className="text-3xl font-bold">{section.title}</h2>
                     </div>
-                    <p className="text-muted-foreground">{section.description}</p>
+                    <p className="text-muted-foreground">
+                      {section.description}
+                    </p>
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -330,7 +336,9 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
         return (
           <section
             key={section.type}
-            className={`py-16 sm:py-20 ${index % 2 === 0 ? "bg-muted/30" : "bg-background"}`}
+            className={`py-16 sm:py-20 ${
+              index % 2 === 0 ? "bg-muted/30" : "bg-background"
+            }`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between mb-8">
@@ -373,13 +381,17 @@ const RecommendationsSection = ({ onOpenListing }: RecommendationsSectionProps) 
               </div>
 
               <div className="overflow-hidden" ref={carouselRef}>
-                <div className="flex gap-6">
+                <div className="flex gap-4 md:gap-6">
                   {section.listings.map((listing) => (
                     <div
                       key={listing.id}
-                      className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(25%-18px)]"
+                      className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_calc(50%-12px)] lg:flex-[0_0_calc(25%-18px)]"
                     >
-                      <ListingCard listing={listing} onOpen={onOpenListing} className="h-full" />
+                      <ListingCard
+                        listing={listing}
+                        onOpen={onOpenListing}
+                        className="h-full"
+                      />
                     </div>
                   ))}
                 </div>

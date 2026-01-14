@@ -8,6 +8,7 @@ import StructuredData from "@/components/seo/StructuredData";
 import { generateHomePageMeta } from "@/lib/seo/meta";
 import { generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo/schema";
 import ExploreHeader from "@/components/layout/ExploreHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import LoginModal from "@/components/auth/LoginModal";
 import SignupModal from "@/components/auth/SignupModal";
 import HeroSection from "@/components/explore/HeroSection";
@@ -136,7 +137,10 @@ export default function HomePage() {
       params.set("priceMax", searchFilters.priceMax.toString());
     }
     if (searchFilters.dateRange?.from) {
-      params.set("dateFrom", format(searchFilters.dateRange.from, "yyyy-MM-dd"));
+      params.set(
+        "dateFrom",
+        format(searchFilters.dateRange.from, "yyyy-MM-dd")
+      );
     }
     if (searchFilters.dateRange?.to) {
       params.set("dateTo", format(searchFilters.dateRange.to, "yyyy-MM-dd"));
@@ -190,7 +194,8 @@ export default function HomePage() {
     }
     if (debouncedFilters.equipmentCategoryId) {
       // Use specific category id from "what" when category bar is at "all"
-      filters.categoryId = filters.categoryId ?? debouncedFilters.equipmentCategoryId;
+      filters.categoryId =
+        filters.categoryId ?? debouncedFilters.equipmentCategoryId;
     }
     if (debouncedFilters.equipmentType) {
       filters.equipmentTypeName = debouncedFilters.equipmentType;
@@ -199,12 +204,7 @@ export default function HomePage() {
     return filters;
   }, [debouncedFilters, categoryId, filterValues.priceRange]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["listings", effectiveFilters],
     queryFn: () => fetchListings(effectiveFilters),
     staleTime: 1000 * 60 * 5,
@@ -335,7 +335,11 @@ export default function HomePage() {
             onSubmit={handleSearchSubmit}
           />
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" onClick={handleSearchSubmit} className="sm:w-auto">
+            <Button
+              size="lg"
+              onClick={handleSearchSubmit}
+              className="sm:w-auto"
+            >
               <Map className="mr-2 h-4 w-4" />
               {t("cta.start_browsing")}
             </Button>
@@ -354,9 +358,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h2 className="text-3xl font-bold mb-2">{t("browse.title")}</h2>
-            <p className="text-muted-foreground">
-              {t("browse.subtitle")}
-            </p>
+            <p className="text-muted-foreground">{t("browse.subtitle")}</p>
           </div>
 
           {/* Categories */}
@@ -375,11 +377,15 @@ export default function HomePage() {
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex-1">
               <h3 className="text-lg font-semibold">
-                {t("browse.items_count", { count: clientFilteredListings.length })}
+                {t("browse.items_count", {
+                  count: clientFilteredListings.length,
+                })}
                 {debouncedFilters.location && (
                   <span className="text-muted-foreground font-normal">
                     {" "}
-                    {t("browse.in_location", { location: debouncedFilters.location })}
+                    {t("browse.in_location", {
+                      location: debouncedFilters.location,
+                    })}
                   </span>
                 )}
               </h3>
@@ -398,15 +404,28 @@ export default function HomePage() {
                 value={sortBy}
                 onValueChange={(value) => setSortBy(value as SortOption)}
               >
-                <SelectTrigger className="min-w-[180px]" aria-label={t("filters.sort_by")}>
+                <SelectTrigger
+                  className="min-w-[180px]"
+                  aria-label={t("filters.sort_by")}
+                >
                   <SelectValue placeholder={t("filters.sort_by")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recommended">{t("filters.recommended")}</SelectItem>
-                  <SelectItem value="price-low">{t("filters.price_low_high")}</SelectItem>
-                  <SelectItem value="price-high">{t("filters.price_high_low")}</SelectItem>
-                  <SelectItem value="newest">{t("filters.newest_first")}</SelectItem>
-                  <SelectItem value="rating">{t("filters.highest_rated")}</SelectItem>
+                  <SelectItem value="recommended">
+                    {t("filters.recommended")}
+                  </SelectItem>
+                  <SelectItem value="price-low">
+                    {t("filters.price_low_high")}
+                  </SelectItem>
+                  <SelectItem value="price-high">
+                    {t("filters.price_high_low")}
+                  </SelectItem>
+                  <SelectItem value="newest">
+                    {t("filters.newest_first")}
+                  </SelectItem>
+                  <SelectItem value="rating">
+                    {t("filters.highest_rated")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -430,7 +449,7 @@ export default function HomePage() {
                 </Button>
               </div>
             ) : isLoading ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <ListingCardSkeleton key={i} />
                 ))}
@@ -446,7 +465,7 @@ export default function HomePage() {
                 onOpenListing={handleOpenListing}
               />
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                 {sortedListings.map((item) => (
                   <ListingCard
                     key={item.id}
@@ -461,11 +480,7 @@ export default function HomePage() {
           {/* View More CTA */}
           {data && data.length > 0 && (
             <div className="text-center mt-12">
-              <Button
-                size="lg"
-                onClick={handleBrowseAll}
-                className="group"
-              >
+              <Button size="lg" onClick={handleBrowseAll} className="group">
                 {t("browse.view_all")}
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -486,9 +501,7 @@ export default function HomePage() {
       {/* Footer CTA */}
       <div className="bg-muted py-16">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            {t("cta.ready_title")}
-          </h2>
+          <h2 className="text-3xl font-bold mb-4">{t("cta.ready_title")}</h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
             {t("cta.ready_message")}
           </p>
@@ -498,6 +511,8 @@ export default function HomePage() {
           </Button>
         </div>
       </div>
+
+      <SiteFooter />
 
       {/* Equipment Detail Dialog */}
       <EquipmentDetailDialog

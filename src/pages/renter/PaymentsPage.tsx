@@ -1,20 +1,19 @@
+import { CreditCard } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import PageHeader from "@/components/layout/PageHeader";
+import PageShell from "@/components/layout/PageShell";
 import TransactionHistory from "@/components/payment/TransactionHistory";
 
 const PaymentsPage = () => {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header Section */}
-        <PageHeader
-          title="Payment History"
-          description="Track all your rental payments and transactions"
-        />
-
-        {/* Transaction History */}
+      <PageShell
+        title="Payment History"
+        description="Track all your rental payments and transactions"
+        icon={CreditCard}
+        iconColor="text-blue-500"
+      >
         <TransactionHistory userType="renter" />
-      </div>
+      </PageShell>
     </DashboardLayout>
   );
 };

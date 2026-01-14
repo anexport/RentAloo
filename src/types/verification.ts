@@ -28,6 +28,16 @@ export interface TrustScore {
   };
 }
 
+/**
+ * User verification profile with verification status for each type.
+ * 
+ * Note: Only identity and phone have detailed tracking fields (status, documentUrl,
+ * submittedAt, rejectionReason) because:
+ * - Identity: Requires document upload and admin review workflow
+ * - Phone: Requires OTP/SMS verification workflow
+ * - Email: Uses Supabase Auth's built-in email_confirmed_at (no custom workflow needed)
+ * - Address: Not yet implemented; will be added when address verification is supported
+ */
 export interface UserVerificationProfile {
   userId: string;
   identityVerified: boolean;
@@ -36,6 +46,14 @@ export interface UserVerificationProfile {
   addressVerified: boolean;
   trustScore: TrustScore;
   verifiedAt?: string;
+  // Pending verification status for identity and phone (see doc comment above)
+  identityStatus?: VerificationStatus;
+  identityDocumentUrl?: string;
+  identitySubmittedAt?: string;
+  identityRejectionReason?: string;
+  phoneStatus?: VerificationStatus;
+  phoneSubmittedAt?: string;
+  phoneRejectionReason?: string;
 }
 
 export interface VerificationBadgeProps {

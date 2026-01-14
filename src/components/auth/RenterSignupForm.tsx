@@ -177,7 +177,7 @@ const RenterSignupForm = ({
 
   const handlePrevStep = () => {
     if (isLoading) return;
-    
+
     if (currentStep === 1) {
       onBack();
     } else {
@@ -221,7 +221,7 @@ const RenterSignupForm = ({
         <div className="flex justify-center mb-2">
           <Mountain className="h-10 w-10 text-primary" />
         </div>
-        <h2 className="text-3xl font-bold">Join as a Renter</h2>
+        <h2 className="text-display-sm font-bold">Join as a Renter</h2>
         <p className="text-base text-muted-foreground">
           Create your account to start renting outdoor equipment
         </p>
@@ -266,7 +266,10 @@ const RenterSignupForm = ({
                 }
               />
               {errors.fullName && (
-                <p id="fullName-error" className="text-sm text-destructive flex items-center gap-1.5">
+                <p
+                  id="fullName-error"
+                  className="text-sm text-destructive flex items-center gap-1.5"
+                >
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{errors.fullName.message}</span>
                 </p>
@@ -293,7 +296,10 @@ const RenterSignupForm = ({
                 aria-describedby={errors.email ? "email-error" : undefined}
               />
               {errors.email && (
-                <p id="email-error" className="text-sm text-destructive flex items-center gap-1.5">
+                <p
+                  id="email-error"
+                  className="text-sm text-destructive flex items-center gap-1.5"
+                >
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{errors.email.message}</span>
                 </p>
@@ -313,7 +319,9 @@ const RenterSignupForm = ({
                   autoComplete="new-password"
                   {...register("password")}
                   placeholder="Create a strong password"
-                  className={errors.password ? "border-destructive pr-11" : "pr-11"}
+                  className={
+                    errors.password ? "border-destructive pr-11" : "pr-11"
+                  }
                   aria-invalid={!!errors.password}
                   aria-describedby={
                     errors.password ? "password-error" : undefined
@@ -336,7 +344,10 @@ const RenterSignupForm = ({
               </div>
               <PasswordStrength password={password || ""} />
               {errors.password && (
-                <p id="password-error" className="text-sm text-destructive flex items-center gap-1.5">
+                <p
+                  id="password-error"
+                  className="text-sm text-destructive flex items-center gap-1.5"
+                >
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{errors.password.message}</span>
                 </p>
@@ -356,7 +367,11 @@ const RenterSignupForm = ({
                   autoComplete="new-password"
                   {...register("confirmPassword")}
                   placeholder="Confirm your password"
-                  className={errors.confirmPassword ? "border-destructive pr-11" : "pr-11"}
+                  className={
+                    errors.confirmPassword
+                      ? "border-destructive pr-11"
+                      : "pr-11"
+                  }
                   aria-invalid={!!errors.confirmPassword}
                   aria-describedby={
                     errors.confirmPassword ? "confirmPassword-error" : undefined
@@ -395,7 +410,7 @@ const RenterSignupForm = ({
         {currentStep === 2 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold mb-1">
+              <h3 className="text-title-lg font-semibold mb-1">
                 Help us personalize your experience
               </h3>
               <p className="text-sm text-muted-foreground">
@@ -492,7 +507,7 @@ const RenterSignupForm = ({
         {currentStep === 3 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold mb-1">
+              <h3 className="text-title-lg font-semibold mb-1">
                 What are you interested in?
               </h3>
               <p className="text-sm text-muted-foreground">

@@ -65,7 +65,9 @@ export default function InspectionForm({
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i];
         const fileExt = file.name.split(".").pop() || "jpg";
-        const fileName = `${user.id}/${bookingId}/${inspectionType}/${Date.now()}_${i}.${fileExt}`;
+        const fileName = `${
+          user.id
+        }/${bookingId}/${inspectionType}/${Date.now()}_${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("inspection-photos")
@@ -76,7 +78,9 @@ export default function InspectionForm({
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
-          throw new Error(`Failed to upload photo ${i + 1}: ${uploadError.message}`);
+          throw new Error(
+            `Failed to upload photo ${i + 1}: ${uploadError.message}`
+          );
         }
 
         const {
@@ -139,7 +143,9 @@ export default function InspectionForm({
     } catch (err) {
       console.error("Error submitting inspection:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to submit inspection. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to submit inspection. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -150,7 +156,7 @@ export default function InspectionForm({
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <CheckCircle2 className="h-16 w-16 text-green-500" />
-        <h2 className="text-xl font-semibold">Inspection Submitted</h2>
+        <h2 className="text-title-lg font-semibold">Inspection Submitted</h2>
         <p className="text-muted-foreground">
           Your {inspectionType} inspection has been recorded successfully.
         </p>
@@ -161,7 +167,7 @@ export default function InspectionForm({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold capitalize">
+        <h2 className="text-title-lg font-semibold capitalize">
           {inspectionType} Inspection
         </h2>
         <p className="text-muted-foreground">
@@ -207,11 +213,7 @@ export default function InspectionForm({
             Cancel
           </Button>
         )}
-        <Button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="flex-1"
-        >
+        <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1">
           {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {isSubmitting ? "Submitting..." : "Complete Inspection"}
         </Button>

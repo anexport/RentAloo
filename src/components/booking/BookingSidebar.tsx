@@ -8,7 +8,11 @@ import PricingBreakdown from "./sidebar/PricingBreakdown";
 import InsuranceSelector from "./sidebar/InsuranceSelector";
 import BookingButton from "./sidebar/BookingButton";
 import type { Listing } from "@/components/equipment/services/listings";
-import type { BookingCalculation, BookingConflict, InsuranceType } from "@/types/booking";
+import type {
+  BookingCalculation,
+  BookingConflict,
+  InsuranceType,
+} from "@/types/booking";
 import type { DateRange } from "react-day-picker";
 import type { User } from "@supabase/supabase-js";
 
@@ -31,6 +35,8 @@ interface BookingSidebarProps {
   isLoading: boolean;
   user: User | null;
   equipmentId?: string;
+  isVerified?: boolean;
+  verificationLoading?: boolean;
 }
 
 const BookingSidebar = ({
@@ -52,6 +58,8 @@ const BookingSidebar = ({
   isLoading,
   user,
   equipmentId,
+  isVerified,
+  verificationLoading,
 }: BookingSidebarProps) => {
   const { t } = useTranslation("booking");
   const isOwner = listing.owner?.id === user?.id;
@@ -140,6 +148,8 @@ const BookingSidebar = ({
           hasConflicts={hasConflicts}
           isLoading={isLoading}
           hasCalculation={!!calculation}
+          isVerified={isVerified}
+          verificationLoading={verificationLoading}
           onBook={onBooking}
         />
       </Card>

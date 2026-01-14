@@ -83,7 +83,9 @@ const EquipmentDetailPage = () => {
       <StructuredData data={breadcrumbSchema} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-semibold text-foreground">{data.title}</h1>
+        <h1 className="text-headline-lg font-semibold text-foreground">
+          {data.title}
+        </h1>
         <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <MapPin className="h-4 w-4" /> {data.location}
@@ -143,7 +145,7 @@ const EquipmentDetailPage = () => {
           </div>
 
           <aside className="h-fit rounded-md border border-border p-4 bg-card">
-            <div className="text-2xl font-bold text-foreground">
+            <div className="text-headline-lg font-bold text-foreground">
               ${data.daily_rate}{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 / day

@@ -23,9 +23,20 @@ import { calculateRentalCountdown } from "@/types/rental";
 import { format, differenceInHours } from "date-fns";
 
 // Helper to get display name from profile
-const getDisplayName = (profile: { full_name?: string | null; username?: string | null; email?: string | null } | null): string => {
+const getDisplayName = (
+  profile: {
+    full_name?: string | null;
+    username?: string | null;
+    email?: string | null;
+  } | null
+): string => {
   if (!profile) return "User";
-  return profile.full_name || profile.username || profile.email?.split("@")[0] || "User";
+  return (
+    profile.full_name ||
+    profile.username ||
+    profile.email?.split("@")[0] ||
+    "User"
+  );
 };
 
 // Helper to get initials for avatar fallback
@@ -49,30 +60,36 @@ export default function ActiveRentalPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background animate-page-enter">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-64 w-full rounded-xl" />
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-8 w-48" shimmer />
+          <Skeleton className="h-64 w-full rounded-2xl" shimmer />
+          <Skeleton className="h-32 w-full rounded-2xl" shimmer />
+          <Skeleton className="h-24 w-full rounded-2xl" shimmer />
         </div>
       </div>
     );
   }
 
   if (error || !booking) {
-    const errorMessage = error instanceof Error ? error.message : error || "This rental doesn't exist or you don't have access to it.";
-    const dashboardPath = user?.user_metadata?.role === "owner" ? "/owner/dashboard" : "/renter/dashboard";
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : error || "This rental doesn't exist or you don't have access to it.";
+    const dashboardPath =
+      user?.user_metadata?.role === "owner"
+        ? "/owner/dashboard"
+        : "/renter/dashboard";
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
+      <div className="min-h-screen bg-background flex items-center justify-center animate-page-enter">
+        <Card className="max-w-md w-full mx-4 rounded-2xl">
           <CardContent className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Rental Not Found</h2>
-            <p className="text-muted-foreground mb-6">
-              {errorMessage}
-            </p>
+            <h2 className="text-title-lg font-semibold mb-2">
+              Rental Not Found
+            </h2>
+            <p className="text-muted-foreground mb-6">{errorMessage}</p>
             <Button onClick={() => navigate(dashboardPath)}>
               Back to Dashboard
             </Button>
@@ -89,8 +106,14 @@ export default function ActiveRentalPage() {
 
   const isRenter = booking.renter_id === user?.id;
   const isOwner = equipment.owner_id === user?.id;
-  const countdown = calculateRentalCountdown(booking.start_date, booking.end_date);
-  const hoursUntilEnd = differenceInHours(new Date(booking.end_date), new Date());
+  const countdown = calculateRentalCountdown(
+    booking.start_date,
+    booking.end_date
+  );
+  const hoursUntilEnd = differenceInHours(
+    new Date(booking.end_date),
+    new Date()
+  );
   const isEndingSoon = hoursUntilEnd <= 24 && hoursUntilEnd > 0;
   const isOverdue = countdown.isOverdue;
 
@@ -103,13 +126,15 @@ export default function ActiveRentalPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <Badge variant={booking.status === "active" ? "default" : "secondary"}>
+          <Badge
+            variant={booking.status === "active" ? "default" : "secondary"}
+          >
             {booking.status === "active" ? "Active Rental" : booking.status}
           </Badge>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-page-enter">
         {/* Return Reminder Banner */}
         {isRenter && isEndingSoon && !returnInspection && (
           <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
@@ -118,8 +143,8 @@ export default function ActiveRentalPage() {
               Return Reminder
             </AlertTitle>
             <AlertDescription className="text-orange-600 dark:text-orange-300">
-              Your rental ends in less than 24 hours. Please prepare to return the
-              equipment and complete the return inspection.
+              Your rental ends in less than 24 hours. Please prepare to return
+              the equipment and complete the return inspection.
             </AlertDescription>
           </Alert>
         )}
@@ -130,14 +155,15 @@ export default function ActiveRentalPage() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Rental Overdue</AlertTitle>
             <AlertDescription>
-              Your rental period has ended. Please return the equipment immediately
-              and complete the return inspection to avoid additional charges.
+              Your rental period has ended. Please return the equipment
+              immediately and complete the return inspection to avoid additional
+              charges.
             </AlertDescription>
           </Alert>
         )}
 
         {/* Equipment Hero */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden rounded-2xl">
           <div className="relative h-48 sm:h-64 bg-muted">
             {photoUrl ? (
               <img
@@ -152,17 +178,22 @@ export default function ActiveRentalPage() {
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h1 className="text-2xl font-bold">{equipment.title}</h1>
+              <h1 className="text-headline-lg font-bold">{equipment.title}</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Avatar className="h-6 w-6 border border-white/30">
-                  <AvatarImage 
-                    src={isRenter 
-                      ? equipment.owner?.avatar_url || undefined 
-                      : booking.renter?.avatar_url || undefined
-                    } 
+                  <AvatarImage
+                    src={
+                      isRenter
+                        ? equipment.owner?.avatar_url || undefined
+                        : booking.renter?.avatar_url || undefined
+                    }
                   />
                   <AvatarFallback className="text-[10px] bg-white/20">
-                    {getInitials(getDisplayName(isRenter ? equipment.owner : booking.renter))}
+                    {getInitials(
+                      getDisplayName(
+                        isRenter ? equipment.owner : booking.renter
+                      )
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <p className="text-white/90">
@@ -176,11 +207,14 @@ export default function ActiveRentalPage() {
         </Card>
 
         {/* Countdown Timer */}
-        <RentalCountdown startDate={booking.start_date} endDate={booking.end_date} />
+        <RentalCountdown
+          startDate={booking.start_date}
+          endDate={booking.end_date}
+        />
 
         {/* Rental Details */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -197,7 +231,7 @@ export default function ActiveRentalPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -205,14 +239,16 @@ export default function ActiveRentalPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="font-medium">${(booking.total_amount ?? 0).toFixed(2)}</p>
+                  <p className="font-medium">
+                    ${(booking.total_amount ?? 0).toFixed(2)}
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {equipment.location && (
-            <Card className="sm:col-span-2">
+            <Card className="sm:col-span-2 rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
@@ -225,7 +261,9 @@ export default function ActiveRentalPage() {
                     <p className="font-medium">{equipment.location}</p>
                   </div>
                   <a
-                    href={`https://maps.google.com/maps?q=${encodeURIComponent(equipment.location)}`}
+                    href={`https://maps.google.com/maps?q=${encodeURIComponent(
+                      equipment.location
+                    )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -240,7 +278,7 @@ export default function ActiveRentalPage() {
         </div>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Quick Actions</CardTitle>
           </CardHeader>
@@ -256,7 +294,7 @@ export default function ActiveRentalPage() {
         </Card>
 
         {/* Inspection Summary */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Inspection Status</CardTitle>
           </CardHeader>
@@ -268,7 +306,10 @@ export default function ActiveRentalPage() {
                   <p className="font-medium">Pickup Inspection</p>
                   <p className="text-sm text-muted-foreground">
                     {pickupInspection?.completed_at
-                      ? `Completed ${format(new Date(pickupInspection.completed_at), "MMM d, h:mm a")}`
+                      ? `Completed ${format(
+                          new Date(pickupInspection.completed_at),
+                          "MMM d, h:mm a"
+                        )}`
                       : "Not completed"}
                   </p>
                 </div>
@@ -287,13 +328,21 @@ export default function ActiveRentalPage() {
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
               <div className="flex items-center gap-3">
                 <Camera
-                  className={cn("h-5 w-5", returnInspection ? "text-emerald-500" : "text-muted-foreground")}
+                  className={cn(
+                    "h-5 w-5",
+                    returnInspection
+                      ? "text-emerald-500"
+                      : "text-muted-foreground"
+                  )}
                 />
                 <div>
                   <p className="font-medium">Return Inspection</p>
                   <p className="text-sm text-muted-foreground">
                     {returnInspection?.completed_at
-                      ? `Completed ${format(new Date(returnInspection.completed_at), "MMM d, h:mm a")}`
+                      ? `Completed ${format(
+                          new Date(returnInspection.completed_at),
+                          "MMM d, h:mm a"
+                        )}`
                       : "Not started"}
                   </p>
                 </div>
@@ -309,7 +358,9 @@ export default function ActiveRentalPage() {
                   {isRenter && (
                     <Link to={`/inspection/${booking.id}/return`}>
                       <Button
-                        variant={isEndingSoon || isOverdue ? "default" : "outline"}
+                        variant={
+                          isEndingSoon || isOverdue ? "default" : "outline"
+                        }
                         size="sm"
                       >
                         Start
@@ -327,22 +378,22 @@ export default function ActiveRentalPage() {
 
         {/* Main Return CTA */}
         {isRenter && !returnInspection && (
-          <Card className="border-primary/30 bg-primary/5">
+          <Card className="border-primary/30 bg-primary/5 rounded-2xl">
             <CardContent className="p-6 text-center">
               <Camera className="h-10 w-10 text-primary mx-auto mb-3" />
               <h3 className="text-lg font-semibold mb-2">
                 {isOverdue
                   ? "Return Required"
                   : isEndingSoon
-                    ? "Rental Ending Soon"
-                    : "Ready to Return?"}
+                  ? "Rental Ending Soon"
+                  : "Ready to Return?"}
               </h3>
               <p className="text-muted-foreground mb-4">
                 {isOverdue
                   ? "Your rental has ended. Complete the return inspection to finalize."
                   : isEndingSoon
-                    ? "Your rental ends soon. Complete the return inspection when ready."
-                    : "When you're done with the equipment, start the return inspection."}
+                  ? "Your rental ends soon. Complete the return inspection when ready."
+                  : "When you're done with the equipment, start the return inspection."}
               </p>
               <Link to={`/inspection/${booking.id}/return`}>
                 <Button size="lg" className="gap-2">

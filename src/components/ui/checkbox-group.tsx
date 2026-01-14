@@ -57,7 +57,8 @@ export const CheckboxGroup = ({
               key={option.value}
               className={cn(
                 "flex items-start space-x-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-accent",
-                value.includes(option.value) && "border-primary bg-accent"
+                value.includes(option.value) &&
+                  "border-primary bg-accent animate-celebrate-pulse"
               )}
               htmlFor={optionId}
             >

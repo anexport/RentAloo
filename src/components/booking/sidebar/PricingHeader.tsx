@@ -13,9 +13,9 @@ const PricingHeader = ({
 }: PricingHeaderProps) => {
   return (
     <div role="region" aria-labelledby="pricing-header">
-      <div id="pricing-header" className="text-3xl font-bold text-foreground">
+      <div id="pricing-header" className="text-headline-lg font-bold text-foreground">
         ${dailyRate.toLocaleString()}
-        <span className="text-base font-normal text-muted-foreground">
+        <span className="text-label-md text-muted-foreground">
           {" "}
           / day
         </span>
@@ -23,7 +23,7 @@ const PricingHeader = ({
       {avgRating > 0 && (
         <div className="mt-2 flex items-center gap-2">
           <StarRating rating={avgRating} size="sm" />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-label-sm text-muted-foreground">
             {avgRating.toFixed(1)} ({reviewCount} reviews)
           </span>
         </div>

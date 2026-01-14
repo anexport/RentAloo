@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import InspectionWizard from "@/components/inspection/InspectionWizard";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Camera } from "lucide-react";
 import type { InspectionType } from "@/types/inspection";
 
 interface BookingDetails {
@@ -182,19 +182,42 @@ export default function EquipmentInspectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading inspection...</p>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 animate-page-enter"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span className="sr-only">Loading inspection...</span>
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
+            <Camera className="h-8 w-8 text-primary animate-pulse" aria-hidden="true" />
+          </div>
+          <div className="flex gap-1.5 justify-center" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"
+                style={{ animationDelay: `${i * 150}ms` }}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground" aria-hidden="true">Loading inspection...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 animate-page-enter"
+        role="alert"
+        aria-live="assertive"
+      >
         <div className="max-w-md w-full space-y-4">
           <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
             <AlertDescription>{error || "Something went wrong"}</AlertDescription>
           </Alert>
           <Button
@@ -202,7 +225,7 @@ export default function EquipmentInspectionPage() {
             className="w-full"
             onClick={handleCancel}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
             Go Back
           </Button>
         </div>

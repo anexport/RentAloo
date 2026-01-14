@@ -21,6 +21,7 @@ import {
   Package,
 } from "lucide-react";
 import type { Database } from "@/lib/database.types";
+import { fireSuccessConfetti } from "@/lib/celebrations";
 
 type PaymentWithRelations = Database["public"]["Tables"]["payments"]["Row"] & {
   booking_request?: Database["public"]["Tables"]["booking_requests"]["Row"] & {
@@ -40,7 +41,8 @@ const PaymentConfirmation = () => {
 
   const paymentId = searchParams.get("payment_id");
   // Handle both Stripe's redirect param (payment_intent) and our custom param (payment_intent_id)
-  const paymentIntentId = searchParams.get("payment_intent_id") || searchParams.get("payment_intent");
+  const paymentIntentId =
+    searchParams.get("payment_intent_id") || searchParams.get("payment_intent");
 
   useEffect(() => {
     const fetchPaymentDetails = async () => {
@@ -69,10 +71,8 @@ const PaymentConfirmation = () => {
 
         const pollPayment = async (): Promise<PaymentWithRelations | null> => {
           for (let i = 0; i < maxAttempts; i++) {
-            let query = supabase
-              .from("payments")
-              .select(
-                `
+            let query = supabase.from("payments").select(
+              `
                 *,
                 booking_request:booking_requests (
                   *,
@@ -85,7 +85,7 @@ const PaymentConfirmation = () => {
                   )
                 )
               `
-              );
+            );
 
             // Query by payment_id if available, otherwise use payment_intent_id
             if (paymentId) {
@@ -98,8 +98,14 @@ const PaymentConfirmation = () => {
 
             if (data) {
               // Verify user is authorized to view this payment
-              if (!user || (data.renter_id !== user.id && data.owner_id !== user.id)) {
-                console.error("Unauthorized access attempt to payment:", data.id);
+              if (
+                !user ||
+                (data.renter_id !== user.id && data.owner_id !== user.id)
+              ) {
+                console.error(
+                  "Unauthorized access attempt to payment:",
+                  data.id
+                );
                 void navigate("/");
                 return null;
               }
@@ -147,6 +153,13 @@ const PaymentConfirmation = () => {
 
     void fetchPaymentDetails();
   }, [paymentId, paymentIntentId, navigate, user, authLoading]);
+
+  // Fire confetti on successful payment
+  useEffect(() => {
+    if (payment && !loading) {
+      fireSuccessConfetti();
+    }
+  }, [payment, loading]);
 
   if (loading) {
     return (
@@ -204,8 +217,8 @@ const PaymentConfirmation = () => {
     insuranceType === "basic"
       ? "Insurance (Basic Protection)"
       : insuranceType === "premium"
-        ? "Insurance (Premium Protection)"
-        : "Insurance";
+      ? "Insurance (Premium Protection)"
+      : "Insurance";
 
   type NextStep = {
     id: string;
@@ -218,31 +231,36 @@ const PaymentConfirmation = () => {
     {
       id: "message-owner",
       title: "Message the owner",
-      description: "Coordinate pickup time, location, and any special instructions.",
+      description:
+        "Coordinate pickup time, location, and any special instructions.",
       icon: <MessageSquare className="h-4 w-4" />,
     },
     {
       id: "pickup-inspection",
       title: "Pickup inspection",
-      description: "Take photos and document the equipment condition at pickup.",
+      description:
+        "Take photos and document the equipment condition at pickup.",
       icon: <Camera className="h-4 w-4" />,
     },
     {
       id: "pickup",
       title: "Pick up equipment",
-      description: "Meet the owner, pick up the equipment, and start your rental.",
+      description:
+        "Meet the owner, pick up the equipment, and start your rental.",
       icon: <Package className="h-4 w-4" />,
     },
     {
       id: "return-inspection",
       title: "Return inspection",
-      description: "Take photos and confirm the condition when returning the equipment.",
+      description:
+        "Take photos and confirm the condition when returning the equipment.",
       icon: <Camera className="h-4 w-4" />,
     },
     {
       id: "return",
       title: "Return equipment",
-      description: "Return the equipment in the same condition and complete the rental.",
+      description:
+        "Return the equipment in the same condition and complete the rental.",
       icon: <Package className="h-4 w-4" />,
     },
     ...(depositAmount > 0
@@ -250,7 +268,9 @@ const PaymentConfirmation = () => {
           {
             id: "deposit-release",
             title: "Deposit release",
-            description: `Your refundable deposit (${formatCurrency(depositAmount)}) is released after successful return unless there’s a damage claim.`,
+            description: `Your refundable deposit (${formatCurrency(
+              depositAmount
+            )}) is released after successful return unless there’s a damage claim.`,
             icon: <Banknote className="h-4 w-4" />,
           },
         ]
@@ -262,20 +282,22 @@ const PaymentConfirmation = () => {
       <div className="container mx-auto px-4 max-w-3xl">
         {/* Success Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full mb-4 animate-bounce-in">
             <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-display-sm font-bold text-foreground mb-2">
             Payment Successful!
           </h1>
           <Alert className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mb-4">
             <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
             <AlertDescription className="text-green-800 dark:text-green-200">
-              Payment successful! Your booking is confirmed and the owner has been notified.
+              Payment successful! Your booking is confirmed and the owner has
+              been notified.
             </AlertDescription>
           </Alert>
           <p className="text-muted-foreground">
-            Your booking has been automatically confirmed. You can now contact the owner to arrange pickup.
+            Your booking has been automatically confirmed. You can now contact
+            the owner to arrange pickup.
           </p>
         </div>
 
@@ -405,7 +427,9 @@ const PaymentConfirmation = () => {
                 {depositAmount > 0 && (
                   <>
                     {" "}
-                    The refundable deposit of {formatCurrency(depositAmount)}{" "}
+                    The refundable deposit of {formatCurrency(
+                      depositAmount
+                    )}{" "}
                     will be returned after successful return unless it is used
                     for a damage claim.
                   </>
@@ -439,9 +463,7 @@ const PaymentConfirmation = () => {
                         <div className="font-medium leading-tight">
                           {step.title}
                         </div>
-                        {index === 0 && (
-                          <Badge variant="secondary">Next</Badge>
-                        )}
+                        {index === 0 && <Badge variant="secondary">Next</Badge>}
                       </div>
                       <div className="text-sm text-muted-foreground mt-0.5">
                         {step.description}

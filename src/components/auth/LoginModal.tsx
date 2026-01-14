@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
-import { Mountain, Eye, EyeOff } from "lucide-react";
+import { Mountain, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,8 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/FloatingInput";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,14 +30,19 @@ type LoginModalProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+/** Delay before closing modal after successful login to show success animation */
+const SUCCESS_ANIMATION_DELAY_MS = 400;
+
 const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
   const { t } = useTranslation("auth");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { signIn, signInWithOAuth } = useAuth();
   const navigate = useNavigate();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     register,
@@ -49,13 +53,21 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     resolver: zodResolver(loginSchema),
   });
 
-  // Reset form when modal closes
+  // Reset form when modal closes and cleanup timeout on unmount
   useEffect(() => {
     if (!open) {
       reset();
       setError(null);
       setShowPassword(false);
+      setShowSuccess(false);
     }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
   }, [open, reset]);
 
   const onSubmit = async (data: LoginFormData) => {
@@ -74,17 +86,27 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
         // Explicit defensive check: authentication succeeded but user data is missing
         setError(t("login.errors.auth_failed"));
       } else {
-        // Close modal
-        onOpenChange(false);
-        // Redirect based on user role from returned user
-        const role = returnedUser.user_metadata?.role;
-        if (role === "renter") {
-          void navigate("/renter/dashboard");
-        } else if (role === "owner") {
-          void navigate("/owner/dashboard");
-        } else {
-          void navigate("/");
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
         }
+
+        // Show success animation first
+        setShowSuccess(true);
+
+        // Then close modal and navigate after delay
+        timeoutRef.current = setTimeout(() => {
+          onOpenChange(false);
+          // Redirect based on user role from returned user
+          const role = returnedUser.user_metadata?.role;
+          if (role === "renter") {
+            void navigate("/renter/dashboard");
+          } else if (role === "owner") {
+            void navigate("/owner/dashboard");
+          } else {
+            void navigate("/");
+          }
+        }, SUCCESS_ANIMATION_DELAY_MS);
       }
     } catch {
       setError(t("login.errors.unexpected_error"));
@@ -127,16 +149,24 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md shadow-xl">
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Mountain className="h-12 w-12 text-primary" />
           </div>
-          <DialogTitle className="text-2xl">{t("login.title")}</DialogTitle>
-          <DialogDescription>
-            {t("login.subtitle")}
-          </DialogDescription>
+          <DialogTitle className="text-headline-lg">
+            {t("login.title")}
+          </DialogTitle>
+          <DialogDescription>{t("login.subtitle")}</DialogDescription>
         </DialogHeader>
+
+        {/* Success animation overlay */}
+        {showSuccess && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10 rounded-lg">
+            <CheckCircle2 className="h-16 w-16 text-green-500 animate-success-check" />
+          </div>
+        )}
+
         <div className="space-y-4">
           <form
             onSubmit={(e) => {
@@ -152,56 +182,50 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
             )}
 
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">{t("login.email_label")}</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                autoCapitalize="off"
-                spellCheck="false"
-                {...register("email")}
-                placeholder={t("login.email_placeholder")}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">
-                  {t("login.errors.invalid_email")}
-                </p>
-              )}
-            </div>
+            <FloatingInput
+              id="email"
+              type="email"
+              autoComplete="email"
+              autoCapitalize="off"
+              spellCheck={false}
+              {...register("email")}
+              label={t("login.email_label")}
+              error={errors.email ? t("login.errors.invalid_email") : undefined}
+            />
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("login.password_label")}</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  {...register("password")}
-                  placeholder={t("login.password_placeholder")}
-                  className="pr-12"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 hover:bg-transparent"
-                  onClick={handleTogglePassword}
-                  aria-label={showPassword ? t("login.hide_password") : t("login.show_password")}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-destructive">
-                  {t("login.errors.password_required")}
-                </p>
-              )}
+            <div className="relative">
+              <FloatingInput
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                {...register("password")}
+                label={t("login.password_label")}
+                error={
+                  errors.password
+                    ? t("login.errors.password_required")
+                    : undefined
+                }
+                className="pr-12"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-1 inset-y-0 my-auto h-8 hover:bg-transparent"
+                onClick={handleTogglePassword}
+                aria-label={
+                  showPassword
+                    ? t("login.hide_password")
+                    : t("login.show_password")
+                }
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
             </div>
 
             {/* Submit Button */}

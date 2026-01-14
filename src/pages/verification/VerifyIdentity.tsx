@@ -50,6 +50,11 @@ type StepConfig = {
   duration: string;
 };
 
+/** Animation stagger delay in milliseconds for loading dots */
+const STAGGER_DELAY_MS = 150;
+/** Number of dots in the loading indicator */
+const DOT_INDICES = [0, 1, 2] as const;
+
 const VERIFICATION_STEPS: StepConfig[] = [
   {
     id: "identity",
@@ -132,7 +137,9 @@ const VerifyIdentity = () => {
       const isInvalidCode =
         error instanceof Error && error.message.includes("Invalid");
       toast({
-        title: isInvalidCode ? "Verification failed" : "Verification incomplete",
+        title: isInvalidCode
+          ? "Verification failed"
+          : "Verification incomplete",
         description: isInvalidCode
           ? error.message
           : "Phone verified but profile refresh failed. Please reload the page.",
@@ -146,12 +153,33 @@ const VerifyIdentity = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="min-h-[60vh] flex items-center justify-center">
+        <div
+          className="min-h-[60vh] flex items-center justify-center animate-page-enter"
+          role="status"
+          aria-live="polite"
+        >
           <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 animate-pulse">
-              <Shield className="h-8 w-8 text-primary" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
+              <Shield
+                className="h-8 w-8 text-primary animate-pulse"
+                aria-hidden="true"
+              />
             </div>
-            <p className="text-muted-foreground">Loading verification status...</p>
+            <div className="flex gap-1.5 justify-center" aria-hidden="true">
+              {DOT_INDICES.map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"
+                  style={{ animationDelay: `${i * STAGGER_DELAY_MS}ms` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Loading verification status...
+            </p>
+            <span className="sr-only">
+              Loading verification status, please wait
+            </span>
           </div>
         </div>
       </DashboardLayout>
@@ -159,15 +187,14 @@ const VerifyIdentity = () => {
   }
 
   const progress = profile ? getVerificationProgress(profile) : 0;
-  const completedSteps = VERIFICATION_STEPS.filter(step => 
+  const completedSteps = VERIFICATION_STEPS.filter((step) =>
     step.id === "identity" ? profile?.identityVerified : profile?.phoneVerified
   ).length;
   const totalSteps = VERIFICATION_STEPS.length;
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6 pb-8">
-
+      <div className="max-w-4xl mx-auto space-y-6 pb-8 animate-page-enter">
         {/* Social Proof Banner */}
         <div className="flex items-center justify-center gap-2 py-2">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
@@ -183,7 +210,7 @@ const VerifyIdentity = () => {
           {/* Animated gradient orbs */}
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-primary/20 to-purple-500/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-tr from-blue-500/10 to-primary/20 rounded-full blur-2xl animate-pulse delay-700" />
-          
+
           <div className="relative p-6 sm:p-8">
             {/* Header Row */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -207,19 +234,22 @@ const VerifyIdentity = () => {
                 <div className="flex items-center gap-3 mt-4">
                   <div className="flex items-center gap-2">
                     {VERIFICATION_STEPS.map((step, index) => {
-                      const isCompleted = step.id === "identity" 
-                        ? profile?.identityVerified 
-                        : profile?.phoneVerified;
+                      const isCompleted =
+                        step.id === "identity"
+                          ? profile?.identityVerified
+                          : profile?.phoneVerified;
                       const StepIcon = step.icon;
-                      
+
                       return (
                         <div key={step.id} className="flex items-center gap-2">
-                          <div className={cn(
-                            "flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all",
-                            isCompleted 
-                              ? "bg-green-100 border-green-500 dark:bg-green-900/30 dark:border-green-400" 
-                              : "bg-muted border-muted-foreground/30"
-                          )}>
+                          <div
+                            className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all",
+                              isCompleted
+                                ? "bg-green-100 border-green-500 dark:bg-green-900/30 dark:border-green-400"
+                                : "bg-muted border-muted-foreground/30"
+                            )}
+                          >
                             {isCompleted ? (
                               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                             ) : (
@@ -227,10 +257,14 @@ const VerifyIdentity = () => {
                             )}
                           </div>
                           {index < VERIFICATION_STEPS.length - 1 && (
-                            <div className={cn(
-                              "w-8 h-0.5 rounded-full",
-                              isCompleted ? "bg-green-500" : "bg-muted-foreground/20"
-                            )} />
+                            <div
+                              className={cn(
+                                "w-8 h-0.5 rounded-full",
+                                isCompleted
+                                  ? "bg-green-500"
+                                  : "bg-muted-foreground/20"
+                              )}
+                            />
                           )}
                         </div>
                       );
@@ -245,7 +279,11 @@ const VerifyIdentity = () => {
               {/* Right: Trust Score Hero */}
               {profile && (
                 <div className="flex-shrink-0">
-                  <TrustScore score={profile.trustScore} compact className="bg-background/50 backdrop-blur-sm rounded-xl p-4 border" />
+                  <TrustScore
+                    score={profile.trustScore}
+                    compact
+                    className="bg-background/50 backdrop-blur-sm rounded-xl p-4 border"
+                  />
                 </div>
               )}
             </div>
@@ -257,14 +295,17 @@ const VerifyIdentity = () => {
                 <span>Estimated time:</span>
               </div>
               {VERIFICATION_STEPS.map((step) => {
-                const isCompleted = step.id === "identity" ? profile?.identityVerified : profile?.phoneVerified;
+                const isCompleted =
+                  step.id === "identity"
+                    ? profile?.identityVerified
+                    : profile?.phoneVerified;
                 return (
-                  <div 
+                  <div
                     key={step.id}
                     className={cn(
                       "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs",
-                      isCompleted 
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" 
+                      isCompleted
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                         : "bg-background text-foreground"
                     )}
                   >
@@ -283,7 +324,7 @@ const VerifyIdentity = () => {
           <Card className="border-amber-200/50 bg-gradient-to-r from-amber-50/80 to-orange-50/50 dark:border-amber-900/50 dark:from-amber-950/30 dark:to-orange-950/20 overflow-hidden">
             <CardContent className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-5">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-200/30 to-orange-200/20 dark:from-amber-800/20 dark:to-orange-800/10 rounded-full blur-2xl -mr-10 -mt-10" />
-              
+
               <div className="relative flex items-start gap-4">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/60 dark:to-amber-900/30 shadow-sm">
                   <Trophy className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -291,7 +332,9 @@ const VerifyIdentity = () => {
                 <div>
                   <p className="font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
                     Start your verification journey
-                    <span className="text-xs font-normal bg-amber-200/50 dark:bg-amber-800/50 px-2 py-0.5 rounded-full">+40 points</span>
+                    <span className="text-xs font-normal bg-amber-200/50 dark:bg-amber-800/50 px-2 py-0.5 rounded-full">
+                      +40 points
+                    </span>
                   </p>
                   <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
                     Takes less than 3 minutes to complete both steps
@@ -358,7 +401,8 @@ const VerifyIdentity = () => {
                           <div className="flex items-start gap-2">
                             <Lock className="h-4 w-4 text-muted-foreground mt-0.5" />
                             <p className="text-xs text-muted-foreground">
-                              Your documents are encrypted and never shared with other users.
+                              Your documents are encrypted and never shared with
+                              other users.
                             </p>
                           </div>
                         </div>
@@ -423,16 +467,20 @@ const VerifyIdentity = () => {
                             <p className="text-sm text-muted-foreground line-clamp-2">
                               {step.description}
                             </p>
-                            
+
                             {/* Tags Row */}
                             <div className="flex items-center gap-2 mt-3">
-                              <span className={cn(
-                                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-                                isCompleted 
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                  : "bg-primary/10 text-primary"
-                              )}>
-                                {isCompleted ? "✓ Complete" : `+${step.points} pts`}
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                                  isCompleted
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                    : "bg-primary/10 text-primary"
+                                )}
+                              >
+                                {isCompleted
+                                  ? "✓ Complete"
+                                  : `+${step.points} pts`}
                               </span>
                               {!isCompleted && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">
@@ -453,127 +501,146 @@ const VerifyIdentity = () => {
                 <Alert className="mt-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-sm">
-                    <strong>Quick tip:</strong> Complete both verifications in under 3 minutes
-                    and unlock instant booking plus access to premium equipment.
+                    <strong>Quick tip:</strong> Complete both verifications in
+                    under 3 minutes and unlock instant booking plus access to
+                    premium equipment.
                   </AlertDescription>
                 </Alert>
               </CardContent>
             </Card>
           ) : activeStep === "identity" ? (
-              /* Identity Verification */
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Identity Verification</CardTitle>
-                      <CardDescription>
-                        Upload a clear photo of your government ID
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActiveStep("overview")}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
+            /* Identity Verification */
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Identity Verification</CardTitle>
+                    <CardDescription>
+                      Upload a clear photo of your government ID
+                    </CardDescription>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {profile?.identityVerified ? (
-                    <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-700 dark:text-green-300">
-                        <strong>Identity Verified!</strong> Your identity has been
-                        successfully verified.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <>
-                      <DocumentUpload
-                        type="identity"
-                        onUpload={handleUpload}
-                        isUploading={uploading}
-                      />
-
-                      <div className="space-y-3 p-4 rounded-xl bg-muted/50">
-                        <h4 className="text-sm font-semibold">Accepted Documents:</h4>
-                        <ul className="text-sm text-muted-foreground space-y-2">
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                            Driver's License (front and back)
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                            Passport (photo page)
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                            State-issued ID card
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
-                        <div className="flex items-start gap-2">
-                          <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <p className="text-xs text-muted-foreground">
-                            <strong className="text-foreground">Your privacy matters:</strong>{" "}
-                            Documents are encrypted and only used for verification.
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              /* Phone Verification */
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Phone Verification</CardTitle>
-                      <CardDescription>
-                        Verify your phone number via SMS
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActiveStep("overview")}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-1" />
-                      Back
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {profile?.phoneVerified ? (
-                    <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-700 dark:text-green-300">
-                        <strong>Phone Verified!</strong> Your phone number has been
-                        successfully verified.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <PhoneVerification
-                      onVerify={handlePhoneVerify}
-                      isVerifying={isVerifyingPhone}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveStep("overview")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {profile?.identityVerified ? (
+                  <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-700 dark:text-green-300">
+                      <strong>Identity Verified!</strong> Your identity has been
+                      successfully verified.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    <DocumentUpload
+                      type="identity"
+                      onUpload={handleUpload}
+                      isUploading={uploading}
+                      pendingDocument={
+                        profile?.identityStatus &&
+                        profile.identityStatus !== "unverified"
+                          ? {
+                              url: profile.identityDocumentUrl || "",
+                              submittedAt:
+                                profile.identitySubmittedAt ||
+                                new Date().toISOString(),
+                              status: profile.identityStatus,
+                              rejectionReason: profile.identityRejectionReason,
+                            }
+                          : undefined
+                      }
                     />
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
-            {/* Trust Score Breakdown - Shown below on mobile */}
-            {profile && activeStep === "overview" && (
-              <div className="lg:hidden">
-                <TrustScore score={profile.trustScore} />
-              </div>
-            )}
+                    <div className="space-y-3 p-4 rounded-xl bg-muted/50">
+                      <h4 className="text-sm font-semibold">
+                        Accepted Documents:
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-2">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                          Driver's License (front and back)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                          Passport (photo page)
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                          State-issued ID card
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                      <div className="flex items-start gap-2">
+                        <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground">
+                          <strong className="text-foreground">
+                            Your privacy matters:
+                          </strong>{" "}
+                          Documents are encrypted and only used for
+                          verification.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            /* Phone Verification */
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Phone Verification</CardTitle>
+                    <CardDescription>
+                      Verify your phone number via SMS
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveStep("overview")}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Back
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {profile?.phoneVerified ? (
+                  <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-700 dark:text-green-300">
+                      <strong>Phone Verified!</strong> Your phone number has
+                      been successfully verified.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <PhoneVerification
+                    onVerify={handlePhoneVerify}
+                    isVerifying={isVerifyingPhone}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trust Score Breakdown - Shown below on mobile */}
+          {profile && activeStep === "overview" && (
+            <div className="lg:hidden">
+              <TrustScore score={profile.trustScore} />
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

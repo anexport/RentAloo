@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { useMessaging } from "@/hooks/useMessaging";
@@ -6,20 +6,8 @@ import { usePayment } from "@/hooks/usePayment";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { BookingRequestWithDetails } from "../../types/booking";
 import type { Database } from "@/lib/database.types";
-import {
-  formatBookingDuration,
-  getBookingStatusColor,
-  getBookingStatusText,
-} from "../../lib/booking";
+import { formatBookingDuration, getBookingStatusText } from "../../lib/booking";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Calendar,
@@ -34,16 +22,64 @@ import {
 import { useNavigate } from "react-router-dom";
 import MessagingInterface from "../messaging/MessagingInterface";
 import RenterScreening from "../verification/RenterScreening";
-import { 
-  InspectionFlowBanner, 
+import {
+  InspectionFlowBanner,
   BookingLifecycleStepper,
   MobileInspectionCard,
 } from "./inspection-flow";
 import { cn } from "@/lib/utils";
-import { format, differenceInDays, isPast, isFuture } from "date-fns";
+import { format, differenceInDays, isFuture } from "date-fns";
 
-type Payment = Database["public"]["Tables"]["payments"]["Row"];
-type InspectionRow = Database["public"]["Tables"]["equipment_inspections"]["Row"];
+type InspectionRow =
+  Database["public"]["Tables"]["equipment_inspections"]["Row"];
+
+type BookingStatus = BookingRequestWithDetails["status"];
+
+interface StatusBadgeConfig {
+  className: string;
+  text: string;
+}
+
+/**
+ * Returns the status badge configuration based on booking status and payment state
+ */
+function getStatusBadgeConfig(
+  status: BookingStatus | undefined,
+  hasPayment: boolean
+): StatusBadgeConfig {
+  if (status === "active") {
+    return {
+      className:
+        "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
+      text: "In Progress",
+    };
+  }
+  if (status === "approved" && hasPayment) {
+    return {
+      className:
+        "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
+      text: "Confirmed",
+    };
+  }
+  if (status === "pending") {
+    return {
+      className:
+        "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+      text: getBookingStatusText(status),
+    };
+  }
+  if (status === "cancelled") {
+    return {
+      className: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
+      text: getBookingStatusText(status),
+    };
+  }
+  // Default fallback for unknown or undefined status
+  return {
+    className: "bg-muted text-muted-foreground",
+    text: status ? getBookingStatusText(status) : "Unknown",
+  };
+}
 
 interface BookingRequestCardProps {
   bookingRequest: BookingRequestWithDetails;
@@ -61,23 +97,29 @@ const BookingRequestCard = ({
   const { processRefund } = usePayment();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [hasPayment, setHasPayment] = useState(false);
   const [showRenterScreening, setShowRenterScreening] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
-  const [pickupInspectionId, setPickupInspectionId] = useState<string | null>(null);
-  const [returnInspection, setReturnInspection] = useState<
-    Pick<
-      InspectionRow,
-      "id" | "verified_by_owner" | "verified_by_renter" | "timestamp" | "created_at"
-    > | null
-  >(null);
+  const [pickupInspectionId, setPickupInspectionId] = useState<string | null>(
+    null
+  );
+  const [returnInspection, setReturnInspection] = useState<Pick<
+    InspectionRow,
+    | "id"
+    | "verified_by_owner"
+    | "verified_by_renter"
+    | "timestamp"
+    | "created_at"
+  > | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const detailsId = useId();
 
-  // Check if inspections exist for this booking
+  // Check if inspections exist for this booking (initial fetch only)
+  // Real-time updates are handled by useBookingSubscriptions in parent component
   useEffect(() => {
     const checkInspections = async () => {
       try {
@@ -98,7 +140,9 @@ const BookingRequestCard = ({
         // Check for return inspection
         const { data: returnData, error: returnError } = await supabase
           .from("equipment_inspections")
-          .select("id, verified_by_owner, verified_by_renter, timestamp, created_at")
+          .select(
+            "id, verified_by_owner, verified_by_renter, timestamp, created_at"
+          )
           .eq("booking_id", bookingRequest.id)
           .eq("inspection_type", "return")
           .maybeSingle();
@@ -114,28 +158,10 @@ const BookingRequestCard = ({
     };
 
     void checkInspections();
-
-    // Subscribe to real-time inspection updates
-    const inspectionChannel = supabase
-      .channel(`inspections-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "equipment_inspections",
-          filter: `booking_id=eq.${bookingRequest.id}`,
-        },
-        () => void checkInspections()
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(inspectionChannel);
-    };
   }, [bookingRequest.id]);
 
-  // Check if payment exists for this booking and subscribe to real-time updates
+  // Check if payment exists for this booking (initial fetch only)
+  // Real-time updates are handled by useBookingSubscriptions in parent component
   useEffect(() => {
     const checkPayment = async () => {
       try {
@@ -160,55 +186,9 @@ const BookingRequestCard = ({
     };
 
     void checkPayment();
+  }, [bookingRequest.id]);
 
-    // Subscribe to real-time payment updates
-    const paymentChannel = supabase
-      .channel(`payment-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "payments",
-          filter: `booking_request_id=eq.${bookingRequest.id}`,
-        },
-        (payload) => {
-          const newPayment = payload.new as Payment | null;
-
-          if (newPayment?.payment_status === "succeeded") {
-            setHasPayment(true);
-            onStatusChange?.();
-          } else if (newPayment?.payment_status === "failed") {
-            setHasPayment(false);
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to real-time booking request status updates
-    const bookingChannel = supabase
-      .channel(`booking-${bookingRequest.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "booking_requests",
-          filter: `id=eq.${bookingRequest.id}`,
-        },
-        () => {
-          onStatusChange?.();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(paymentChannel);
-      void supabase.removeChannel(bookingChannel);
-    };
-  }, [bookingRequest.id, onStatusChange]);
-
-  const handleStatusUpdate = async (newStatus: "cancelled") => {
+  const handleStatusUpdate = async (_newStatus: "cancelled") => {
     if (!user) return;
 
     const confirmed = window.confirm(
@@ -330,7 +310,8 @@ const BookingRequestCard = ({
 
   // Get equipment image
   const equipmentImage =
-    bookingRequest.equipment.photos && bookingRequest.equipment.photos.length > 0
+    bookingRequest.equipment.photos &&
+    bookingRequest.equipment.photos.length > 0
       ? bookingRequest.equipment.photos.find((p) => p.is_primary)?.photo_url ||
         bookingRequest.equipment.photos[0]?.photo_url
       : null;
@@ -339,14 +320,14 @@ const BookingRequestCard = ({
   const startDate = new Date(bookingRequest.start_date);
   const endDate = new Date(bookingRequest.end_date);
   const today = new Date();
-  const isActive = isPast(startDate) && isFuture(endDate);
   const daysUntilStart = differenceInDays(startDate, today);
   const claimWindowHours =
     bookingRequest.equipment.deposit_refund_timeline_hours || 48;
   const returnInspectionSubmittedAt =
     returnInspection?.timestamp || returnInspection?.created_at;
   const claimDeadlineMs = returnInspectionSubmittedAt
-    ? new Date(returnInspectionSubmittedAt).getTime() + claimWindowHours * 60 * 60 * 1000
+    ? new Date(returnInspectionSubmittedAt).getTime() +
+      claimWindowHours * 60 * 60 * 1000
     : null;
   const isClaimWindowExpired =
     typeof claimDeadlineMs === "number" && Date.now() > claimDeadlineMs;
@@ -370,64 +351,95 @@ const BookingRequestCard = ({
       (bookingRequest.status === "completed" && needsOwnerReturnReview));
 
   return (
-    <Card className="w-full overflow-hidden hover:shadow-lg transition-shadow !p-0">
-      <div className="flex flex-col md:flex-row">
-        {/* Equipment Image */}
+    <div className="group relative rounded-2xl border border-border/60 bg-card overflow-hidden transition-all duration-300 hover:border-border hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20">
+      <div className="flex flex-col sm:flex-row">
+        {/* Equipment Image - Cleaner proportions */}
         {equipmentImage && (
-          <div className="w-full md:w-48 aspect-[4/3] md:aspect-auto md:min-h-[200px] flex-shrink-0 relative overflow-hidden bg-muted">
+          <div className="w-full sm:w-40 md:w-48 aspect-[16/10] sm:aspect-auto sm:min-h-[180px] flex-shrink-0 relative overflow-hidden bg-muted">
             <img
               src={equipmentImage}
               alt={bookingRequest.equipment.title}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            {bookingRequest.equipment.category && (
-              <div className="absolute top-2 left-2">
-                <Badge variant="secondary" className="text-xs">
-                  {bookingRequest.equipment.category.name}
-                </Badge>
-              </div>
-            )}
+            {/* Gradient overlay for better text contrast on mobile */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent sm:hidden" />
           </div>
         )}
 
-        <div className="flex-1 py-4">
-          <CardHeader className="pb-3 pt-0">
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg md:text-xl mb-1 line-clamp-1">
-                  {bookingRequest.equipment.title}
-                </CardTitle>
-                <CardDescription className="flex items-center gap-2 flex-wrap">
-                  {bookingRequest.equipment.location && (
-                    <span className="flex items-center gap-1 text-xs">
-                      <MapPin className="h-3 w-3" />
-                      {bookingRequest.equipment.location}
+        <div className="flex-1 p-4 sm:p-5">
+          {/* Header - Simplified */}
+          <div className="flex justify-between items-start gap-3 mb-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground line-clamp-1 mb-1">
+                {bookingRequest.equipment.title}
+              </h3>
+              {bookingRequest.equipment.location && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {bookingRequest.equipment.location}
+                  </span>
+                </p>
+              )}
+            </div>
+            {(() => {
+              const statusConfig = getStatusBadgeConfig(
+                bookingRequest.status,
+                hasPayment
+              );
+              return (
+                <span
+                  className={cn(
+                    "shrink-0 px-2.5 py-1 rounded-full text-xs font-medium",
+                    statusConfig.className
+                  )}
+                >
+                  {statusConfig.text}
+                </span>
+              );
+            })()}
+          </div>
+
+          {/* Date & Price - Clean inline layout */}
+          <div className="flex items-center justify-between gap-4 py-3 px-4 -mx-4 sm:-mx-5 bg-muted/30 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm text-foreground">
+                  {format(startDate, "MMM d")} – {format(endDate, "MMM d")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBookingDuration(
+                    bookingRequest.start_date,
+                    bookingRequest.end_date
+                  )}
+                  {isFuture(startDate) && daysUntilStart <= 7 && (
+                    <span className="ml-2 text-primary font-medium">
+                      {daysUntilStart === 0
+                        ? "Today"
+                        : daysUntilStart === 1
+                        ? "Tomorrow"
+                        : `in ${daysUntilStart}d`}
                     </span>
                   )}
-                </CardDescription>
+                </p>
               </div>
-              <Badge
-                className={cn(
-                  "shrink-0",
-                  bookingRequest.status === "active"
-                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                    : bookingRequest.status === "approved" && hasPayment
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : getBookingStatusColor(bookingRequest.status || "approved")
-                )}
-              >
-                {bookingRequest.status === "active"
-                  ? "In Progress"
-                  : bookingRequest.status === "approved" && hasPayment
-                  ? "Confirmed"
-                  : getBookingStatusText(bookingRequest.status || "approved")}
-              </Badge>
             </div>
-          </CardHeader>
+            <div className="text-right">
+              <p className="font-semibold text-lg text-foreground">
+                ${bookingRequest.total_amount.toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ${bookingRequest.equipment.daily_rate.toFixed(2)}/day
+              </p>
+            </div>
+          </div>
 
-          <CardContent className="space-y-4 pb-2">
-            {/* Desktop: Compact Lifecycle Stepper */}
-            {!isMobile && hasPayment && bookingRequest.status !== "cancelled" && (
+          {/* Lifecycle Stepper - Desktop only, simplified */}
+          {!isMobile && hasPayment && bookingRequest.status !== "cancelled" && (
+            <div className="mb-4">
               <BookingLifecycleStepper
                 hasPayment={hasPayment}
                 hasPickupInspection={!!pickupInspectionId}
@@ -437,215 +449,146 @@ const BookingRequestCard = ({
                 bookingStatus={bookingRequest.status || "approved"}
                 compact={true}
               />
-            )}
+            </div>
+          )}
 
-            {/* INSPECTION FLOW - Responsive display */}
-            {shouldShowInspectionBanner && (
-              <>
-                {/* Mobile: Compact card with bottom sheet */}
-                {isMobile ? (
-                  <MobileInspectionCard
-                    bookingId={bookingRequest.id}
-                    equipmentTitle={bookingRequest.equipment.title}
-                    startDate={startDate}
-                    endDate={endDate}
-                    hasPickupInspection={!!pickupInspectionId}
-                    hasReturnInspection={!!returnInspection?.id}
-                    isOwner={isOwner}
-                    returnInspection={returnInspection}
-                    claimWindowHours={claimWindowHours}
-                  />
-                ) : (
-                  /* Desktop: Full banner */
-                  <InspectionFlowBanner
-                    bookingId={bookingRequest.id}
-                    startDate={startDate}
-                    endDate={endDate}
-                    hasPickupInspection={!!pickupInspectionId}
-                    hasReturnInspection={!!returnInspection?.id}
-                    isOwner={isOwner}
-                    returnInspection={returnInspection}
-                    claimWindowHours={claimWindowHours}
-                  />
-                )}
-              </>
-            )}
+          {/* Inspection Flow Banner - Responsive */}
+          {shouldShowInspectionBanner && (
+            <div className="mb-4">
+              {isMobile ? (
+                <MobileInspectionCard
+                  bookingId={bookingRequest.id}
+                  equipmentTitle={bookingRequest.equipment.title}
+                  startDate={startDate}
+                  endDate={endDate}
+                  hasPickupInspection={!!pickupInspectionId}
+                  hasReturnInspection={!!returnInspection?.id}
+                  isOwner={isOwner}
+                  returnInspection={returnInspection}
+                  claimWindowHours={claimWindowHours}
+                />
+              ) : (
+                <InspectionFlowBanner
+                  bookingId={bookingRequest.id}
+                  startDate={startDate}
+                  endDate={endDate}
+                  hasPickupInspection={!!pickupInspectionId}
+                  hasReturnInspection={!!returnInspection?.id}
+                  isOwner={isOwner}
+                  returnInspection={returnInspection}
+                  claimWindowHours={claimWindowHours}
+                />
+              )}
+            </div>
+          )}
 
-            {/* File Damage Claim - Desktop only, for owners */}
-            {!isMobile &&
-              shouldShowInspectionBanner &&
-              isOwner &&
-              !!returnInspection?.id &&
-              !isClaimWindowExpired &&
-              !returnInspection.verified_by_owner && (
+          {/* Damage Claim Button - Desktop owners only */}
+          {!isMobile &&
+            shouldShowInspectionBanner &&
+            isOwner &&
+            !!returnInspection?.id &&
+            !isClaimWindowExpired &&
+            !returnInspection.verified_by_owner && (
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
+                className="mb-4"
               >
-                <AlertTriangle className="h-4 w-4 mr-1" />
+                <AlertTriangle className="h-4 w-4 mr-1.5" />
                 File Damage Claim
               </Button>
             )}
 
-            {/* Prominent Date Display */}
-            <div className="bg-muted/50 rounded-lg p-3 md:p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span className="font-semibold text-sm">Rental Period</span>
-                </div>
-                {isActive && (
-                  <Badge variant="default" className="text-xs">
-                    Active
-                  </Badge>
-                )}
-                {isFuture(startDate) && daysUntilStart <= 7 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {daysUntilStart === 0
-                      ? "Today"
-                      : daysUntilStart === 1
-                      ? "Tomorrow"
-                      : `${daysUntilStart}d`}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium text-sm md:text-base">
-                    {format(startDate, "MMM d")} - {format(endDate, "MMM d, yyyy")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatBookingDuration(bookingRequest.start_date, bookingRequest.end_date)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-base md:text-lg text-primary">
-                    ${bookingRequest.total_amount.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    ${bookingRequest.equipment.daily_rate}/day
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Cancelled Status Alert */}
+          {bookingRequest.status === "cancelled" && (
+            <Alert variant="destructive" className="mb-4">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>
+                {isRenter
+                  ? "You cancelled this booking."
+                  : "This booking was cancelled."}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {/* Collapsible Details Section */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full justify-between text-xs text-muted-foreground"
+          {/* Expandable Details */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+            aria-expanded={isExpanded}
+            aria-controls={detailsId}
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span>{isExpanded ? "Hide details" : "Show details"}</span>
+          </button>
+
+          {isExpanded && (
+            <div
+              id={detailsId}
+              className="space-y-3 pt-3 border-t border-border/50 mb-4"
             >
-              <span>{isExpanded ? "Hide" : "Show"} Details</span>
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-
-            {isExpanded && (
-              <div className="space-y-3 pt-2 border-t">
-                {/* User Information */}
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span>
-                    {isOwner ? "Renter" : "Owner"}:{" "}
-                    <span className="font-medium text-foreground">
-                      {isOwner ? bookingRequest.renter.email : bookingRequest.owner.email}
-                    </span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <User className="h-4 w-4 shrink-0" />
+                <span>
+                  {isOwner ? "Renter:" : "Owner:"}{" "}
+                  <span className="text-foreground">
+                    {isOwner
+                      ? bookingRequest.renter.email
+                      : bookingRequest.owner.email}
                   </span>
-                </div>
-
-                {/* Message */}
-                {bookingRequest.message && (
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <div className="flex items-start space-x-2">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground mb-1">Message:</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                          {bookingRequest.message}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Timestamps */}
-                <div className="text-xs text-muted-foreground pt-2 border-t space-y-1">
-                  {bookingRequest.created_at && (
-                    <div>
-                      Requested:{" "}
-                      {(() => {
-                        const date = new Date(bookingRequest.created_at);
-                        return !isNaN(date.getTime()) ? format(date, "MMM d, yyyy 'at' h:mm a") : "Invalid date";
-                      })()}
-                    </div>
-                  )}
-                  {bookingRequest.updated_at && bookingRequest.updated_at !== bookingRequest.created_at && (
-                    <div>
-                      Updated:{" "}
-                      {(() => {
-                        const date = new Date(bookingRequest.updated_at);
-                        return !isNaN(date.getTime()) ? format(date, "MMM d, yyyy 'at' h:mm a") : "Invalid date";
-                      })()}
-                    </div>
-                  )}
-                </div>
+                </span>
               </div>
-            )}
 
-            {/* Status-specific information */}
-            {bookingRequest.status === "cancelled" && (
-              <Alert variant="destructive">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {isRenter
-                    ? "You cancelled this booking."
-                    : "This booking was cancelled."}
-                </AlertDescription>
-              </Alert>
-            )}
+              {bookingRequest.message && (
+                <div className="flex gap-2 text-sm">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-muted-foreground">
+                    {bookingRequest.message}
+                  </p>
+                </div>
+              )}
 
-            {/* Action Buttons */}
-            {showActions && (
-              <div className="flex flex-wrap gap-2 pt-4 border-t">
-                {/* Message Button */}
+              <p className="text-xs text-muted-foreground">
+                Requested{" "}
+                {bookingRequest.created_at &&
+                  format(new Date(bookingRequest.created_at), "MMM d, yyyy")}
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons - Cleaner layout */}
+          {showActions && (
+            <div className="flex items-center gap-2 pt-3 border-t border-border/50">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void handleOpenMessaging()}
+                disabled={isLoadingConversation}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <MessageSquare className="h-4 w-4 mr-1.5" />
+                Message
+              </Button>
+
+              {canCancel && (
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    void handleOpenMessaging();
-                  }}
-                  disabled={isLoadingConversation}
+                  variant="ghost"
+                  onClick={() => void handleStatusUpdate("cancelled")}
+                  disabled={isUpdating}
+                  className="ml-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                 >
-                  <MessageSquare className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">
-                    {isLoadingConversation ? "Loading..." : "Message"}
-                  </span>
+                  <XCircle className="h-4 w-4 mr-1.5" />
+                  {isUpdating ? "Cancelling..." : "Cancel"}
                 </Button>
-
-                {canCancel && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      void handleStatusUpdate("cancelled");
-                    }}
-                    disabled={isUpdating}
-                    className="ml-auto"
-                  >
-                    <XCircle className="h-4 w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">
-                      {isUpdating ? "Cancelling..." : "Cancel"}
-                    </span>
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardContent>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -661,7 +604,10 @@ const BookingRequestCard = ({
             }
           }}
         >
-          <div className="max-w-4xl w-full flex flex-col" style={{ height: 'min(90vh, 800px)' }}>
+          <div
+            className="max-w-4xl w-full flex flex-col"
+            style={{ height: "min(90vh, 800px)" }}
+          >
             <MessagingInterface
               initialConversationId={conversationId}
               onClose={() => {
@@ -678,7 +624,7 @@ const BookingRequestCard = ({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-background rounded-lg max-w-3xl w-full max-h-[90dvh] overflow-y-auto p-6 border shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-headline-lg font-bold">
                 Renter Verification Profile
               </h2>
               <Button
@@ -694,7 +640,7 @@ const BookingRequestCard = ({
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 };
 
