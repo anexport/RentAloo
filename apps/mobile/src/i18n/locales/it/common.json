@@ -1,0 +1,206 @@
+{
+  "buttons": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "submit": "Invia",
+    "continue": "Continua",
+    "back": "Indietro",
+    "close": "Chiudi",
+    "confirm": "Conferma",
+    "view_details": "Visualizza dettagli",
+    "load_more": "Carica altro",
+    "upload": "Carica",
+    "download": "Scarica",
+    "search": "Cerca",
+    "filter": "Filtra",
+    "apply": "Applica",
+    "reset": "Reimposta",
+    "send": "Invia",
+    "next": "Avanti",
+    "previous": "Precedente"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "name": "Nome",
+    "phone": "Telefono",
+    "address": "Indirizzo",
+    "city": "Città",
+    "state": "Provincia",
+    "zip": "CAP",
+    "country": "Paese",
+    "date": "Data",
+    "time": "Ora",
+    "description": "Descrizione",
+    "title": "Titolo",
+    "price": "Prezzo",
+    "location": "Posizione",
+    "category": "Categoria",
+    "status": "Stato"
+  },
+  "status": {
+    "pending": "In attesa",
+    "approved": "Approvato",
+    "declined": "Rifiutato",
+    "cancelled": "Annullato",
+    "completed": "Completato",
+    "active": "Attivo",
+    "inactive": "Inattivo"
+  },
+  "time": {
+    "per_day": "al giorno",
+    "per_week": "a settimana",
+    "per_month": "al mese",
+    "days": "giorni",
+    "hours": "ore",
+    "minutes": "minuti",
+    "seconds": "secondi"
+  },
+  "errors": {
+    "required_field": "Questo campo è obbligatorio",
+    "invalid_email": "Inserisci un indirizzo email valido",
+    "invalid_phone": "Inserisci un numero di telefono valido",
+    "min_length": "Minimo {{count}} caratteri richiesti",
+    "max_length": "Massimo {{count}} caratteri consentiti",
+    "generic_error": "Qualcosa è andato storto. Riprova.",
+    "network_error": "Errore di rete. Controlla la connessione.",
+    "unauthorized": "Non sei autorizzato a eseguire questa azione",
+    "not_found": "La risorsa richiesta non è stata trovata"
+  },
+  "success": {
+    "saved": "Salvato con successo",
+    "deleted": "Eliminato con successo",
+    "updated": "Aggiornato con successo",
+    "created": "Creato con successo",
+    "sent": "Inviato con successo"
+  },
+  "loading": {
+    "default": "Caricamento...",
+    "saving": "Salvataggio...",
+    "uploading": "Caricamento in corso...",
+    "processing": "Elaborazione...",
+    "searching": "Ricerca..."
+  },
+  "confirmation": {
+    "delete_title": "Sei sicuro?",
+    "delete_message": "Questa azione non può essere annullata.",
+    "cancel_title": "Annullare?",
+    "cancel_message": "Sei sicuro di voler annullare?"
+  },
+  "theme": {
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Sistema",
+    "toggle": "Cambia tema"
+  },
+  "language": {
+    "select": "Seleziona lingua",
+    "english": "Inglese",
+    "spanish": "Spagnolo",
+    "french": "Francese",
+    "german": "Tedesco"
+  },
+  "navigation": {
+    "menu": "Menu"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "filters": {
+      "all": "Tutti",
+      "bookings": "Prenotazioni",
+      "messages": "Messaggi",
+      "payments": "Pagamenti",
+      "reviews": "Recensioni"
+    },
+    "actions": {
+      "mark_all_read": "Segna tutto come letto",
+      "delete": "Elimina notifica"
+    },
+    "empty": {
+      "title": "Nessuna notifica",
+      "description": "Ti avviseremo quando accadrà qualcosa di importante"
+    },
+    "toast": {
+      "marked_as_read": "Segnato come letto",
+      "marked_as_read_description": "{{count}} notifica segnata come letta.",
+      "marked_as_read_description_plural": "{{count}} notifiche segnate come lette."
+    },
+    "settings": {
+      "title": "Impostazioni notifiche",
+      "description": "Gestisci come ricevi le notifiche",
+      "updated": "Impostazioni aggiornate",
+      "updated_description": "Le tue preferenze di notifica sono state salvate.",
+      "error": "Errore",
+      "error_description": "Impossibile aggiornare le preferenze. Riprova.",
+      "quiet_hours_updated": "Ore tranquille aggiornate",
+      "quiet_hours_updated_description": "Le tue ore tranquille sono state salvate.",
+      "quiet_hours_error_description": "Impossibile aggiornare le ore tranquille. Riprova.",
+      "in_app": {
+        "title": "Notifiche in-app",
+        "description": "Scegli quali tipi di notifiche desideri ricevere"
+      },
+      "toast": {
+        "title": "Popup Toast",
+        "description": "Mostra notifiche popup per eventi importanti"
+      },
+      "quiet_hours": {
+        "title": "Ore tranquille",
+        "description": "Sopprimi i popup toast durante orari specifici",
+        "enable": "Abilita ore tranquille",
+        "enable_description": "Nessuna notifica toast durante questi orari",
+        "start_time": "Ora di inizio",
+        "end_time": "Ora di fine"
+      },
+      "categories": {
+        "booking": {
+          "label": "Aggiornamenti prenotazioni",
+          "description": "Conferme, cancellazioni e promemoria"
+        },
+        "message": {
+          "label": "Nuovi messaggi",
+          "description": "Quando qualcuno ti invia un messaggio"
+        },
+        "payment": {
+          "label": "Notifiche di pagamento",
+          "description": "Pagamenti ricevuti, versamenti e rimborsi"
+        },
+        "review": {
+          "label": "Recensioni",
+          "description": "Quando qualcuno ti lascia una recensione"
+        },
+        "verification": {
+          "label": "Aggiornamenti verifica",
+          "description": "Modifiche dello stato della tua verifica"
+        },
+        "equipment": {
+          "label": "Attività attrezzatura",
+          "description": "Quando qualcuno aggiunge la tua attrezzatura ai preferiti o traguardi visualizzazioni"
+        },
+        "promotion": {
+          "label": "Promozioni e annunci",
+          "description": "Offerte speciali e annunci di sistema"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Notifiche critiche",
+          "description": "Pagamenti, versamenti e rimborsi"
+        },
+        "high": {
+          "label": "Priorità alta",
+          "description": "Conferme prenotazione e recensioni"
+        },
+        "medium": {
+          "label": "Priorità media",
+          "description": "Nuovi messaggi e promemoria"
+        },
+        "low": {
+          "label": "Priorità bassa",
+          "description": "Preferiti e traguardi visualizzazioni"
+        }
+      }
+    }
+  }
+}

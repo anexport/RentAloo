@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { Stripe, PaymentSheetEventsEnum } from '@capacitor-community/stripe';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { createPaymentIntent } from '@rentaloo/shared/api';
 import { getConfig } from '@rentaloo/shared';
 

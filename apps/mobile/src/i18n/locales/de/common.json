@@ -1,0 +1,206 @@
+{
+  "buttons": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "submit": "Absenden",
+    "continue": "Fortfahren",
+    "back": "Zurück",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "view_details": "Details anzeigen",
+    "load_more": "Mehr laden",
+    "upload": "Hochladen",
+    "download": "Herunterladen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "apply": "Anwenden",
+    "reset": "Zurücksetzen",
+    "send": "Senden",
+    "next": "Weiter",
+    "previous": "Zurück"
+  },
+  "labels": {
+    "email": "E-Mail",
+    "password": "Passwort",
+    "name": "Name",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "city": "Stadt",
+    "state": "Bundesland",
+    "zip": "Postleitzahl",
+    "country": "Land",
+    "date": "Datum",
+    "time": "Zeit",
+    "description": "Beschreibung",
+    "title": "Titel",
+    "price": "Preis",
+    "location": "Standort",
+    "category": "Kategorie",
+    "status": "Status"
+  },
+  "status": {
+    "pending": "Ausstehend",
+    "approved": "Genehmigt",
+    "declined": "Abgelehnt",
+    "cancelled": "Abgebrochen",
+    "completed": "Abgeschlossen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
+  },
+  "time": {
+    "per_day": "pro Tag",
+    "per_week": "pro Woche",
+    "per_month": "pro Monat",
+    "days": "Tage",
+    "hours": "Stunden",
+    "minutes": "Minuten",
+    "seconds": "Sekunden"
+  },
+  "errors": {
+    "required_field": "Dieses Feld ist erforderlich",
+    "invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+    "invalid_phone": "Bitte geben Sie eine gültige Telefonnummer ein",
+    "min_length": "Mindestens {{count}} Zeichen erforderlich",
+    "max_length": "Maximal {{count}} Zeichen zulässig",
+    "generic_error": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "network_error": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "unauthorized": "Sie sind nicht berechtigt, diese Aktion auszuführen",
+    "not_found": "Die angeforderte Ressource wurde nicht gefunden"
+  },
+  "success": {
+    "saved": "Erfolgreich gespeichert",
+    "deleted": "Erfolgreich gelöscht",
+    "updated": "Erfolgreich aktualisiert",
+    "created": "Erfolgreich erstellt",
+    "sent": "Erfolgreich gesendet"
+  },
+  "loading": {
+    "default": "Wird geladen...",
+    "saving": "Wird gespeichert...",
+    "uploading": "Wird hochgeladen...",
+    "processing": "Wird verarbeitet...",
+    "searching": "Wird gesucht..."
+  },
+  "confirmation": {
+    "delete_title": "Sind Sie sicher?",
+    "delete_message": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "cancel_title": "Abbrechen?",
+    "cancel_message": "Möchten Sie wirklich abbrechen?"
+  },
+  "theme": {
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System",
+    "toggle": "Designs wechseln"
+  },
+  "language": {
+    "select": "Sprache wählen",
+    "english": "Englisch",
+    "spanish": "Spanisch",
+    "french": "Französisch",
+    "german": "Deutsch"
+  },
+  "navigation": {
+    "menu": "Menü"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "filters": {
+      "all": "Alle",
+      "bookings": "Buchungen",
+      "messages": "Nachrichten",
+      "payments": "Zahlungen",
+      "reviews": "Bewertungen"
+    },
+    "actions": {
+      "mark_all_read": "Alle als gelesen markieren",
+      "delete": "Benachrichtigung löschen"
+    },
+    "empty": {
+      "title": "Noch keine Benachrichtigungen",
+      "description": "Wir benachrichtigen Sie, wenn etwas Wichtiges passiert"
+    },
+    "toast": {
+      "marked_as_read": "Als gelesen markiert",
+      "marked_as_read_description": "{{count}} Benachrichtigung als gelesen markiert.",
+      "marked_as_read_description_plural": "{{count}} Benachrichtigungen als gelesen markiert."
+    },
+    "settings": {
+      "title": "Benachrichtigungseinstellungen",
+      "description": "Verwalten Sie, wie Sie Benachrichtigungen erhalten",
+      "updated": "Einstellungen aktualisiert",
+      "updated_description": "Ihre Benachrichtigungseinstellungen wurden gespeichert.",
+      "error": "Fehler",
+      "error_description": "Einstellungen konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "quiet_hours_updated": "Ruhezeiten aktualisiert",
+      "quiet_hours_updated_description": "Ihre Ruhezeiten wurden gespeichert.",
+      "quiet_hours_error_description": "Ruhezeiten konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "in_app": {
+        "title": "In-App-Benachrichtigungen",
+        "description": "Wählen Sie, welche Arten von Benachrichtigungen Sie erhalten möchten"
+      },
+      "toast": {
+        "title": "Toast-Popups",
+        "description": "Popup-Benachrichtigungen für wichtige Ereignisse anzeigen"
+      },
+      "quiet_hours": {
+        "title": "Ruhezeiten",
+        "description": "Toast-Popups zu bestimmten Zeiten unterdrücken",
+        "enable": "Ruhezeiten aktivieren",
+        "enable_description": "Keine Toast-Benachrichtigungen während dieser Zeiten",
+        "start_time": "Startzeit",
+        "end_time": "Endzeit"
+      },
+      "categories": {
+        "booking": {
+          "label": "Buchungsaktualisierungen",
+          "description": "Bestätigungen, Stornierungen und Erinnerungen"
+        },
+        "message": {
+          "label": "Neue Nachrichten",
+          "description": "Wenn Ihnen jemand eine Nachricht sendet"
+        },
+        "payment": {
+          "label": "Zahlungsbenachrichtigungen",
+          "description": "Erhaltene Zahlungen, Auszahlungen und Erstattungen"
+        },
+        "review": {
+          "label": "Bewertungen",
+          "description": "Wenn Ihnen jemand eine Bewertung hinterlässt"
+        },
+        "verification": {
+          "label": "Verifizierungsaktualisierungen",
+          "description": "Statusänderungen Ihrer Verifizierung"
+        },
+        "equipment": {
+          "label": "Geräteaktivität",
+          "description": "Wenn jemand Ihre Ausrüstung favorisiert oder Anzeigemeilensteine"
+        },
+        "promotion": {
+          "label": "Aktionen & Ankündigungen",
+          "description": "Sonderangebote und Systemankündigungen"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Kritische Benachrichtigungen",
+          "description": "Zahlungen, Auszahlungen und Erstattungen"
+        },
+        "high": {
+          "label": "Hohe Priorität",
+          "description": "Buchungsbestätigungen und Bewertungen"
+        },
+        "medium": {
+          "label": "Mittlere Priorität",
+          "description": "Neue Nachrichten und Erinnerungen"
+        },
+        "low": {
+          "label": "Niedrige Priorität",
+          "description": "Favoriten und Anzeigemeilensteine"
+        }
+      }
+    }
+  }
+}

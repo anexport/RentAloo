@@ -1,0 +1,206 @@
+{
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "submit": "Enviar",
+    "continue": "Continuar",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "view_details": "Ver Detalles",
+    "load_more": "Cargar Más",
+    "upload": "Subir",
+    "download": "Descargar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "apply": "Aplicar",
+    "reset": "Restablecer",
+    "send": "Enviar",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "labels": {
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "phone": "Teléfono",
+    "address": "Dirección",
+    "city": "Ciudad",
+    "state": "Provincia",
+    "zip": "Código Postal",
+    "country": "País",
+    "date": "Fecha",
+    "time": "Hora",
+    "description": "Descripción",
+    "title": "Título",
+    "price": "Precio",
+    "location": "Ubicación",
+    "category": "Categoría",
+    "status": "Estado"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "approved": "Aprobado",
+    "declined": "Rechazado",
+    "cancelled": "Cancelado",
+    "completed": "Completado",
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "time": {
+    "per_day": "por día",
+    "per_week": "por semana",
+    "per_month": "por mes",
+    "days": "días",
+    "hours": "horas",
+    "minutes": "minutos",
+    "seconds": "segundos"
+  },
+  "errors": {
+    "required_field": "Este campo es obligatorio",
+    "invalid_email": "Por favor ingresa un correo electrónico válido",
+    "invalid_phone": "Por favor ingresa un número de teléfono válido",
+    "min_length": "Se requieren mínimo {{count}} caracteres",
+    "max_length": "Se permiten máximo {{count}} caracteres",
+    "generic_error": "Algo salió mal. Por favor, intenta de nuevo.",
+    "network_error": "Error de red. Por favor verifica tu conexión.",
+    "unauthorized": "No estás autorizado para realizar esta acción",
+    "not_found": "El recurso solicitado no fue encontrado"
+  },
+  "success": {
+    "saved": "Guardado exitosamente",
+    "deleted": "Eliminado exitosamente",
+    "updated": "Actualizado exitosamente",
+    "created": "Creado exitosamente",
+    "sent": "Enviado exitosamente"
+  },
+  "loading": {
+    "default": "Cargando...",
+    "saving": "Guardando...",
+    "uploading": "Subiendo...",
+    "processing": "Procesando...",
+    "searching": "Buscando..."
+  },
+  "confirmation": {
+    "delete_title": "¿Estás seguro?",
+    "delete_message": "Esta acción no se puede deshacer.",
+    "cancel_title": "¿Cancelar?",
+    "cancel_message": "¿Estás seguro de que deseas cancelar?"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "toggle": "Cambiar tema"
+  },
+  "language": {
+    "select": "Seleccionar Idioma",
+    "english": "Inglés",
+    "spanish": "Español",
+    "french": "Francés",
+    "german": "Alemán"
+  },
+  "navigation": {
+    "menu": "Menú"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "filters": {
+      "all": "Todos",
+      "bookings": "Reservas",
+      "messages": "Mensajes",
+      "payments": "Pagos",
+      "reviews": "Reseñas"
+    },
+    "actions": {
+      "mark_all_read": "Marcar todo como leído",
+      "delete": "Eliminar notificación"
+    },
+    "empty": {
+      "title": "Sin notificaciones",
+      "description": "Te notificaremos cuando ocurra algo importante"
+    },
+    "toast": {
+      "marked_as_read": "Marcado como leído",
+      "marked_as_read_description": "{{count}} notificación marcada como leída.",
+      "marked_as_read_description_plural": "{{count}} notificaciones marcadas como leídas."
+    },
+    "settings": {
+      "title": "Configuración de notificaciones",
+      "description": "Administra cómo recibes las notificaciones",
+      "updated": "Configuración actualizada",
+      "updated_description": "Tus preferencias de notificación han sido guardadas.",
+      "error": "Error",
+      "error_description": "No se pudieron actualizar las preferencias. Por favor, inténtalo de nuevo.",
+      "quiet_hours_updated": "Horas tranquilas actualizadas",
+      "quiet_hours_updated_description": "Tus horas tranquilas han sido guardadas.",
+      "quiet_hours_error_description": "No se pudieron actualizar las horas tranquilas. Por favor, inténtalo de nuevo.",
+      "in_app": {
+        "title": "Notificaciones en la aplicación",
+        "description": "Elige qué tipos de notificaciones quieres recibir"
+      },
+      "toast": {
+        "title": "Popups Toast",
+        "description": "Mostrar notificaciones popup para eventos importantes"
+      },
+      "quiet_hours": {
+        "title": "Horas tranquilas",
+        "description": "Suprimir popups toast durante horas específicas",
+        "enable": "Habilitar horas tranquilas",
+        "enable_description": "Sin notificaciones toast durante estas horas",
+        "start_time": "Hora de inicio",
+        "end_time": "Hora de fin"
+      },
+      "categories": {
+        "booking": {
+          "label": "Actualizaciones de reservas",
+          "description": "Confirmaciones, cancelaciones y recordatorios"
+        },
+        "message": {
+          "label": "Nuevos mensajes",
+          "description": "Cuando alguien te envía un mensaje"
+        },
+        "payment": {
+          "label": "Notificaciones de pago",
+          "description": "Pagos recibidos, desembolsos y reembolsos"
+        },
+        "review": {
+          "label": "Reseñas",
+          "description": "Cuando alguien te deja una reseña"
+        },
+        "verification": {
+          "label": "Actualizaciones de verificación",
+          "description": "Cambios de estado de tu verificación"
+        },
+        "equipment": {
+          "label": "Actividad del equipo",
+          "description": "Cuando alguien marca tu equipo como favorito o hitos de vistas"
+        },
+        "promotion": {
+          "label": "Promociones y anuncios",
+          "description": "Ofertas especiales y anuncios del sistema"
+        }
+      },
+      "priority": {
+        "critical": {
+          "label": "Notificaciones críticas",
+          "description": "Pagos, desembolsos y reembolsos"
+        },
+        "high": {
+          "label": "Prioridad alta",
+          "description": "Confirmaciones de reserva y reseñas"
+        },
+        "medium": {
+          "label": "Prioridad media",
+          "description": "Nuevos mensajes y recordatorios"
+        },
+        "low": {
+          "label": "Prioridad baja",
+          "description": "Favoritos y hitos de vistas"
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import { TabLayout } from './components/navigation/TabLayout';
+import { useAuth } from './hooks/useAuth';
+import { AuthLayout, AppLayout } from './components/layout';
 import { ExploreScreen } from './screens/ExploreScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
 import { RentalsScreen } from './screens/RentalsScreen';
@@ -12,6 +12,7 @@ import { EquipmentDetailScreen } from './screens/EquipmentDetailScreen';
 import { BookingDetailScreen } from './screens/BookingDetailScreen';
 import { ConversationScreen } from './screens/ConversationScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
+import { FavoritesScreen } from './screens/FavoritesScreen';
 import { useDeepLinks } from './plugins/deepLinks';
 
 export function App() {
@@ -30,53 +31,42 @@ export function App() {
 
   return (
     <Routes>
-      {/* Auth routes */}
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/" replace /> : <LoginScreen />}
-      />
-      <Route
-        path="/signup"
-        element={user ? <Navigate to="/" replace /> : <SignupScreen />}
-      />
-      <Route path="/verify" element={<VerifyScreen />} />
-
-      {/* Protected routes with tab navigation */}
-      <Route
-        path="/"
-        element={user ? <TabLayout /> : <Navigate to="/login" replace />}
-      >
-        <Route index element={<Navigate to="/explore" replace />} />
-        <Route path="explore" element={<ExploreScreen />} />
-        <Route path="messages" element={<MessagesScreen />} />
-        <Route path="rentals" element={<RentalsScreen />} />
-        <Route path="profile" element={<ProfileScreen />} />
+      {/* Auth routes - NO bottom navigation */}
+      <Route element={<AuthLayout />}>
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/explore" replace /> : <LoginScreen />}
+        />
+        <Route
+          path="/signup"
+          element={user ? <Navigate to="/explore" replace /> : <SignupScreen />}
+        />
+        <Route path="/verify" element={<VerifyScreen />} />
+        <Route path="/auth/*" element={<VerifyScreen />} />
       </Route>
 
-      {/* Detail screens (outside tab navigation) */}
+      {/* Protected routes - WITH bottom navigation */}
       <Route
-        path="/equipment/:id"
-        element={user ? <EquipmentDetailScreen /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/booking/:id"
-        element={user ? <BookingDetailScreen /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/conversation/:id"
-        element={user ? <ConversationScreen /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/payment/:bookingId"
-        element={user ? <PaymentScreen /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/payment/confirmation"
-        element={user ? <PaymentConfirmationScreen /> : <Navigate to="/login" replace />}
-      />
+        element={user ? <AppLayout /> : <Navigate to="/login" replace />}
+      >
+        {/* Main tabs */}
+        <Route path="/" element={<Navigate to="/explore" replace />} />
+        <Route path="/explore" element={<ExploreScreen />} />
+        <Route path="/favorites" element={<FavoritesScreen />} />
+        <Route path="/messages" element={<MessagesScreen />} />
+        <Route path="/rentals" element={<RentalsScreen />} />
+        <Route path="/profile" element={<ProfileScreen />} />
+        
+        {/* Detail screens (still show bottom nav) */}
+        <Route path="/equipment/:id" element={<EquipmentDetailScreen />} />
+        <Route path="/booking/:id" element={<BookingDetailScreen />} />
+        <Route path="/conversation/:id" element={<ConversationScreen />} />
+        <Route path="/payment/:bookingId" element={<PaymentScreen />} />
+        <Route path="/payment/confirmation" element={<PaymentConfirmationScreen />} />
+      </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/explore" replace />} />
     </Routes>
   );
 }
