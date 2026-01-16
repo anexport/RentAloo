@@ -26,6 +26,7 @@ interface BookingInfo {
 interface InspectionWizardProps {
   bookingId: string;
   equipmentTitle: string;
+  equipmentImageUrl?: string;
   categorySlug?: string;
   inspectionType: InspectionType;
   isOwner: boolean;
@@ -56,6 +57,7 @@ const getWizardSteps = (inspectionType: InspectionType) => {
 export default function InspectionWizard({
   bookingId,
   equipmentTitle,
+  equipmentImageUrl,
   categorySlug,
   inspectionType,
   isOwner,
@@ -321,6 +323,7 @@ export default function InspectionWizard({
         return (
           <InspectionIntroStep
             equipmentTitle={equipmentTitle}
+            equipmentImageUrl={equipmentImageUrl}
             inspectionType={inspectionType}
             isOwner={isOwner}
             onContinue={handleNext}

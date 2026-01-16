@@ -25,11 +25,10 @@ export default function InspectionPhotoStep({
   const canContinue = photos.length >= minPhotos;
 
   return (
-    <div className={cn("flex flex-col min-h-0", className)}>
+    <div className={cn("flex min-h-[100dvh] flex-col", className)}>
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="space-y-6">
-          {/* Header */}
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
+        <div className="max-w-2xl mx-auto py-6 space-y-6">
           <div className="space-y-2">
             <h2 className="text-headline-lg font-bold tracking-tight">
               Photo Documentation
@@ -40,7 +39,6 @@ export default function InspectionPhotoStep({
             </p>
           </div>
 
-          {/* Photo capture component */}
           <PhotoCapture
             photos={photos}
             onPhotosChange={onPhotosChange}

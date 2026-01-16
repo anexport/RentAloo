@@ -63,6 +63,7 @@ export default function InspectionReviewStep({
   className,
 }: InspectionReviewStepProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
   const safePhotos = photos ?? [];
   const safePhotoPreviews = photoPreviews ?? [];
   const safeChecklistItems = checklistItems ?? [];
@@ -80,67 +81,104 @@ export default function InspectionReviewStep({
     (statusCounts.fair || 0) > 0 || (statusCounts.damaged || 0) > 0;
 
   const canSubmit = confirmed && !isSubmitting;
+  const visiblePreviews = showAllPhotos
+    ? safePhotoPreviews
+    : safePhotoPreviews.slice(0, 4);
+  const remainingPhotos = Math.max(safePhotoPreviews.length - visiblePreviews.length, 0);
 
   return (
-    <div className={cn("flex flex-col min-h-0", className)}>
+    <div className={cn("flex min-h-[100dvh] flex-col", className)}>
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+132px)]">
+        <div className="max-w-2xl mx-auto py-6 space-y-6">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Review {inspectionType === "pickup" ? "pickup" : "return"} inspection
+            </p>
             <h2 className="text-headline-lg font-bold tracking-tight">
               Review & Confirm
             </h2>
             <p className="text-muted-foreground">
-              Review your inspection details before submitting.
+              Double-check photos and checklist before submitting.
             </p>
           </div>
 
-          {/* Photos summary */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Camera className="h-5 w-5 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Photos</p>
                   <p className="text-sm text-muted-foreground">
                     {safePhotos.length} photo
                     {safePhotos.length !== 1 ? "s" : ""} captured
                   </p>
                 </div>
-              </div>
-
-              {/* Photo thumbnails */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {safePhotoPreviews.slice(0, 6).map((preview, index) => (
-                  <div
-                    key={`${preview}-${index}`}
-                    className="h-16 w-16 rounded-lg overflow-hidden shrink-0 border"
-                  >
-                    <img
-                      src={preview}
-                      alt={`Photo ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
-                {safePhotos.length > 6 && (
-                  <div className="h-16 w-16 rounded-lg border flex items-center justify-center bg-muted shrink-0">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      +{safePhotos.length - 6}
-                    </span>
-                  </div>
+                {safePhotoPreviews.length > 0 && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                    {visiblePreviews.length}/{safePhotoPreviews.length} viewed
+                  </span>
                 )}
               </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {visiblePreviews.map((preview, index) => {
+                  const isLastVisible =
+                    !showAllPhotos &&
+                    remainingPhotos > 0 &&
+                    index === visiblePreviews.length - 1;
+
+                  return (
+                    <div
+                      key={`${preview}-${index}`}
+                      className="relative aspect-[4/3] rounded-lg overflow-hidden border bg-muted"
+                    >
+                      <img
+                        src={preview}
+                        alt={`Photo ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      {isLastVisible && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllPhotos(true)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 text-white text-sm font-semibold"
+                          aria-label={`Show ${remainingPhotos} more photos`}
+                        >
+                          +{remainingPhotos} more
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {safePhotoPreviews.length > 4 && (
+                <div className="flex items-center justify-between text-sm">
+                  <p className="text-muted-foreground">
+                    {showAllPhotos
+                      ? "Showing all photos"
+                      : `Showing first ${visiblePreviews.length}`}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAllPhotos((prev) => !prev)}
+                    className="h-9 px-3"
+                  >
+                    {showAllPhotos ? "Collapse" : "View all"}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Checklist summary */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <ClipboardCheck className="h-5 w-5 text-primary" />
                 </div>
@@ -152,8 +190,7 @@ export default function InspectionReviewStep({
                 </div>
               </div>
 
-              {/* Status breakdown */}
-              <div className="flex gap-3 mb-4">
+              <div className="flex flex-wrap gap-2">
                 {(["good", "fair", "damaged"] as const).map((status) => {
                   const count = statusCounts[status] || 0;
                   if (count === 0) return null;
@@ -176,7 +213,6 @@ export default function InspectionReviewStep({
                 })}
               </div>
 
-              {/* Items with issues */}
               {hasIssues && (
                 <div className="space-y-2 border-t pt-3">
                   <p className="text-sm font-medium text-muted-foreground">
@@ -191,7 +227,7 @@ export default function InspectionReviewStep({
                         <div
                           key={`${item.item}-${index}`}
                           className={cn(
-                            "flex items-start gap-2 p-2 rounded-lg",
+                            "flex items-start gap-2 p-3 rounded-lg",
                             config.bgColor
                           )}
                         >
@@ -224,7 +260,6 @@ export default function InspectionReviewStep({
             </CardContent>
           </Card>
 
-          {/* Additional notes */}
           <div className="space-y-2">
             <Label htmlFor="condition-notes">Additional Notes (Optional)</Label>
             <Textarea
@@ -237,7 +272,6 @@ export default function InspectionReviewStep({
             />
           </div>
 
-          {/* Confirmation checkbox */}
           <Card className="border-2 border-primary/20 bg-primary/5">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -245,7 +279,7 @@ export default function InspectionReviewStep({
                   id="confirmation"
                   checked={confirmed}
                   onCheckedChange={(checked) => setConfirmed(checked === true)}
-                  className="mt-1 h-5 w-5"
+                  className="mt-1.5 h-6 w-6"
                 />
                 <div className="space-y-1">
                   <Label
@@ -256,17 +290,15 @@ export default function InspectionReviewStep({
                   </Label>
                   <p className="text-xs text-muted-foreground">
                     As the {role}, I certify that the photos and condition
-                    assessment accurately represent the equipment&apos;s state
-                    at the time of this {isPickup ? "pickup" : "return"}{" "}
-                    inspection. I understand this record may be used to resolve
-                    any disputes.
+                    assessment accurately represent the equipment&apos;s state at
+                    the time of this {isPickup ? "pickup" : "return"} inspection.
+                    I understand this record may be used to resolve any disputes.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Trust badge */}
           <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
             <ShieldCheck className="h-8 w-8 text-green-600 dark:text-green-400 shrink-0" />
             <div>

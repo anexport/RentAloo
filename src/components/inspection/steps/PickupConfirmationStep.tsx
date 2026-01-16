@@ -150,10 +150,10 @@ export default function PickupConfirmationStep({
   }
 
   return (
-    <div className={cn("flex flex-col min-h-0", className)}>
+    <div className={cn("flex min-h-[100dvh] flex-col", className)}>
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        <div className="space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+132px)]">
+        <div className="max-w-2xl mx-auto py-6 space-y-6">
           {/* Header */}
           <div className="space-y-2 text-center">
             <div className="mx-auto h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
@@ -162,7 +162,7 @@ export default function PickupConfirmationStep({
             <h2 className="text-2xl font-bold tracking-tight">
               Pickup Inspection Complete!
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-base">
               Your inspection has been recorded. Confirm to start your rental.
             </p>
           </div>
@@ -183,23 +183,21 @@ export default function PickupConfirmationStep({
                 Inspection Summary
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Photos */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 rounded-lg bg-background px-3 py-2">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                     <Camera className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-base font-semibold">
                       {inspectionSummary.photosCount} photos
                     </p>
                     <p className="text-xs text-muted-foreground">documented</p>
                   </div>
                 </div>
 
-                {/* Checklist */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center">
+                <div className="flex items-center gap-3 rounded-lg bg-background px-3 py-2">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                     <CheckCircle2
                       className={cn(
                         "h-5 w-5",
@@ -208,7 +206,7 @@ export default function PickupConfirmationStep({
                     />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-base font-semibold">
                       {inspectionSummary.checklistPassedCount}/
                       {inspectionSummary.checklistItemsCount} items
                     </p>
@@ -216,14 +214,13 @@ export default function PickupConfirmationStep({
                   </div>
                 </div>
 
-                {/* Location */}
                 {inspectionSummary.location && (
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center">
+                  <div className="flex items-center gap-3 rounded-lg bg-background px-3 py-2">
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                       <MapPin className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Location</p>
+                      <p className="text-base font-semibold">Location</p>
                       <p className="text-xs text-muted-foreground">
                         {inspectionSummary.location.lat.toFixed(4)}°,{" "}
                         {inspectionSummary.location.lng.toFixed(4)}°
@@ -232,13 +229,12 @@ export default function PickupConfirmationStep({
                   </div>
                 )}
 
-                {/* Timestamp */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center">
+                <div className="flex items-center gap-3 rounded-lg bg-background px-3 py-2">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Timestamp</p>
+                    <p className="text-base font-semibold">Timestamp</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(inspectionSummary.timestamp).toLocaleString(
                         "en-US",
@@ -258,32 +254,32 @@ export default function PickupConfirmationStep({
 
           {/* Rental Period Card */}
           <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <CardContent className="p-4 space-y-4">
+              <h3 className="font-semibold flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5 text-primary" />
                 Your Rental Period
               </h3>
 
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b">
+              <div className="grid grid-cols-1 gap-3 text-base">
+                <div className="flex items-start justify-between rounded-lg bg-muted/50 px-3 py-2">
                   <span className="text-muted-foreground">Equipment</span>
-                  <span className="font-medium">{equipmentTitle}</span>
+                  <span className="font-semibold text-right">{equipmentTitle}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex items-start justify-between rounded-lg bg-muted/50 px-3 py-2">
                   <span className="text-muted-foreground">Start Date</span>
-                  <span className="font-medium">
+                  <span className="font-semibold text-right">
                     {formatBookingDate(rentalPeriod.startDate)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
+                <div className="flex items-start justify-between rounded-lg bg-muted/50 px-3 py-2">
                   <span className="text-muted-foreground">End Date</span>
-                  <span className="font-medium">
+                  <span className="font-semibold text-right">
                     {formatBookingDate(rentalPeriod.endDate)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2">
+                <div className="flex items-start justify-between rounded-lg bg-muted/50 px-3 py-2">
                   <span className="text-muted-foreground">Duration</span>
-                  <span className="font-medium">
+                  <span className="font-semibold text-right">
                     {formatBookingDuration(
                       rentalPeriod.startDate,
                       rentalPeriod.endDate
@@ -305,11 +301,14 @@ export default function PickupConfirmationStep({
 
           {/* Responsibility Notice */}
           <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
+            <CardContent className="p-4 text-base text-muted-foreground space-y-2">
+              <p>
                 By starting this rental, the equipment is now in your care.
-                Please return it in the same condition. Any damage beyond normal
-                wear and tear may result in charges from your security deposit.
+                Please return it in the same condition.
+              </p>
+              <p className="text-sm">
+                Any damage beyond normal wear and tear may result in charges
+                from your security deposit.
               </p>
             </CardContent>
           </Card>
@@ -318,20 +317,11 @@ export default function PickupConfirmationStep({
 
       {/* Fixed bottom navigation */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t safe-area-bottom">
-        <div className="max-w-2xl mx-auto flex gap-3">
-          <Button
-            variant="outline"
-            onClick={onBack}
-            disabled={isActivating}
-            className="h-12"
-            aria-label="Go back to review"
-          >
-            Back
-          </Button>
+        <div className="max-w-2xl mx-auto flex">
           <Button
             onClick={handleStartRental}
             disabled={isActivating}
-            className="flex-1 h-14 font-semibold text-base bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            className="w-full h-14 font-semibold text-base bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             aria-label="Start rental"
           >
             {isActivating ? (
@@ -351,4 +341,3 @@ export default function PickupConfirmationStep({
     </div>
   );
 }
-

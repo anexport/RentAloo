@@ -208,7 +208,7 @@ export function useActiveRentals(role: "renter" | "owner" | "both" = "both"): {
             ),
             renter:renter_id (id, email, username, full_name, avatar_url)
           `)
-          .eq("status", "active")
+          .in("status", ["active", "approved"])
           .eq("renter_id", user.id)
           .order("start_date", { ascending: true });
 
@@ -242,7 +242,7 @@ export function useActiveRentals(role: "renter" | "owner" | "both" = "both"): {
               ),
               renter:renter_id (id, email, username, full_name, avatar_url)
             `)
-            .eq("status", "active")
+            .in("status", ["active", "approved"])
             .in("equipment_id", equipmentIds)
             .order("start_date", { ascending: true });
 

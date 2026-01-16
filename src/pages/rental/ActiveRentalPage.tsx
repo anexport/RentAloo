@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Package,
@@ -7,18 +7,23 @@ import {
   Calendar,
   MapPin,
   DollarSign,
+  Clock,
+  MessageCircle,
+  HelpCircle,
+  ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import { useActiveRental } from "@/hooks/useActiveRental";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import RentalCountdown from "@/components/rental/RentalCountdown";
-import RentalQuickActions from "@/components/rental/RentalQuickActions";
+import BookingLifecycleStepper from "@/components/booking/inspection-flow/BookingLifecycleStepper";
 import { calculateRentalCountdown } from "@/types/rental";
 import { format, differenceInHours } from "date-fns";
 
@@ -61,11 +66,18 @@ export default function ActiveRentalPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background animate-page-enter">
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          <Skeleton className="h-8 w-48" shimmer />
-          <Skeleton className="h-64 w-full rounded-2xl" shimmer />
-          <Skeleton className="h-32 w-full rounded-2xl" shimmer />
-          <Skeleton className="h-24 w-full rounded-2xl" shimmer />
+        <div className="max-w-md mx-auto pb-24">
+          {/* Skeleton matching new layout */}
+          <div className="h-64 w-full bg-muted animate-pulse" />
+          <div className="p-4 space-y-6">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -73,9 +85,7 @@ export default function ActiveRentalPage() {
 
   if (error || !booking) {
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : error || "This rental doesn't exist or you don't have access to it.";
+      error || "This rental doesn't exist or you don't have access to it.";
     const dashboardPath =
       user?.user_metadata?.role === "owner"
         ? "/owner/dashboard"
@@ -101,164 +111,266 @@ export default function ActiveRentalPage() {
 
   const equipment = booking.equipment;
   const primaryPhoto = equipment.equipment_photos?.find((p) => p.is_primary);
-  const photoUrl =
-    primaryPhoto?.photo_url || equipment.equipment_photos?.[0]?.photo_url;
+  const photoUrl = primaryPhoto?.photo_url || equipment.equipment_photos?.[0]?.photo_url;
 
   const isRenter = booking.renter_id === user?.id;
-  const isOwner = equipment.owner_id === user?.id;
+  // const isOwner = equipment.owner_id === user?.id; // kept for potential future logic
+
   const countdown = calculateRentalCountdown(
     booking.start_date,
     booking.end_date
   );
+
   const hoursUntilEnd = differenceInHours(
     new Date(booking.end_date),
     new Date()
   );
+
   const isEndingSoon = hoursUntilEnd <= 24 && hoursUntilEnd > 0;
   const isOverdue = countdown.isOverdue;
+  const isApproved = booking.status === "approved";
+  const isActiveStatus = booking.status === "active";
+
+  // Determine sticky bar state
+  let ctaConfig = {
+    label: "",
+    action: () => {},
+    variant: "default" as
+      | "default"
+      | "destructive"
+      | "outline"
+      | "secondary"
+      | "ghost"
+      | "link",
+    show: false,
+    icon: null as React.ReactNode,
+  };
+
+  if (isRenter) {
+    if (isApproved && !pickupInspection) {
+      ctaConfig = {
+        label: "Start Pickup Inspection",
+        action: () => navigate(`/inspection/${booking.id}/pickup`),
+        variant: "default",
+        show: true,
+        icon: <Camera className="h-4 w-4 mr-2" />,
+      };
+    } else if (isActiveStatus && !returnInspection) {
+      if (isOverdue) {
+        ctaConfig = {
+          label: "Return Required - Start Inspection",
+          action: () => navigate(`/inspection/${booking.id}/return`),
+          variant: "destructive",
+          show: true,
+          icon: <AlertTriangle className="h-4 w-4 mr-2" />,
+        };
+      } else if (isEndingSoon) {
+        ctaConfig = {
+          label: "Start Return Inspection",
+          action: () => navigate(`/inspection/${booking.id}/return`),
+          variant: "default",
+          show: true,
+          icon: <Camera className="h-4 w-4 mr-2" />,
+        };
+      } else {
+        // Standard active state
+        ctaConfig = {
+          label: "Message Owner",
+          action: () => navigate(`/messages/${equipment.owner.id}`), // Assuming message route
+          variant: "secondary",
+          show: true,
+          icon: <MessageCircle className="h-4 w-4 mr-2" />,
+        };
+      }
+    }
+  } else {
+    // Owner View
+    ctaConfig = {
+      label: "Message Renter",
+      action: () => navigate(`/messages/${booking.renter.id}`),
+      variant: "secondary",
+      show: true,
+      icon: <MessageCircle className="h-4 w-4 mr-2" />,
+    };
+  }
+
+  // Count down text logic
+  const getCountdownText = () => {
+    if (isOverdue) return "Rental overdue";
+    if (isEndingSoon) return `${hoursUntilEnd} hours remaining`;
+    if (countdown.daysRemaining > 0)
+      return `${countdown.daysRemaining} days, ${countdown.hoursRemaining} hours remaining`;
+    return `${countdown.hoursRemaining} hours remaining`;
+  };
+
+  const countdownColor = isOverdue
+    ? "text-destructive"
+    : isEndingSoon
+    ? "text-orange-500"
+    : "text-emerald-600";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24 relative">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent pointer-events-none">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between pointer-events-auto">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-9 w-9 bg-background/80 backdrop-blur-md shadow-sm rounded-full"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <Badge
-            variant={booking.status === "active" ? "default" : "secondary"}
+            variant={isActiveStatus ? "default" : "secondary"}
+            className="bg-background/80 backdrop-blur-md shadow-sm backdrop-saturate-150"
           >
-            {booking.status === "active" ? "Active Rental" : booking.status}
+            {booking.status === "active"
+              ? "Active"
+              : booking.status === "approved"
+              ? "Approved"
+              : booking.status}
           </Badge>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-page-enter">
-        {/* Return Reminder Banner */}
-        {isRenter && isEndingSoon && !returnInspection && (
-          <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-            <AlertTitle className="text-orange-700 dark:text-orange-400">
-              Return Reminder
-            </AlertTitle>
-            <AlertDescription className="text-orange-600 dark:text-orange-300">
-              Your rental ends in less than 24 hours. Please prepare to return
-              the equipment and complete the return inspection.
-            </AlertDescription>
-          </Alert>
-        )}
+      <main className="max-w-md mx-auto bg-background min-h-screen shadow-2xl shadow-black/5 overflow-hidden">
+        {/* Full-width Photo Hero */}
+        <div className="relative h-72 w-full bg-muted mb-6">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={equipment.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-muted">
+              <Package className="h-16 w-16 text-muted-foreground" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
 
-        {/* Overdue Alert */}
-        {isRenter && isOverdue && !returnInspection && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Rental Overdue</AlertTitle>
-            <AlertDescription>
-              Your rental period has ended. Please return the equipment
-              immediately and complete the return inspection to avoid additional
-              charges.
-            </AlertDescription>
-          </Alert>
-        )}
+          {/* Title Overlay */}
+          <div className="absolute bottom-4 left-4 right-4">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2 shadow-sm">
+              {equipment.title}
+            </h1>
 
-        {/* Equipment Hero */}
-        <Card className="overflow-hidden rounded-2xl">
-          <div className="relative h-48 sm:h-64 bg-muted">
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={equipment.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center">
-                <Package className="h-16 w-16 text-muted-foreground" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h1 className="text-headline-lg font-bold">{equipment.title}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Avatar className="h-6 w-6 border border-white/30">
-                  <AvatarImage
-                    src={
-                      isRenter
-                        ? equipment.owner?.avatar_url || undefined
-                        : booking.renter?.avatar_url || undefined
-                    }
-                  />
-                  <AvatarFallback className="text-[10px] bg-white/20">
-                    {getInitials(
-                      getDisplayName(
-                        isRenter ? equipment.owner : booking.renter
-                      )
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-white/90">
-                  {isRenter
-                    ? `Renting from ${getDisplayName(equipment.owner)}`
-                    : `Rented by ${getDisplayName(booking.renter)}`}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6 border border-border bg-background">
+                <AvatarImage
+                  src={
+                    isRenter
+                      ? equipment.owner?.avatar_url || undefined
+                      : booking.renter?.avatar_url || undefined
+                  }
+                />
+                <AvatarFallback className="text-[10px]">
+                  {getInitials(
+                    getDisplayName(isRenter ? equipment.owner : booking.renter)
+                  )}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-sm font-medium text-foreground/90 mix-blend-difference">
+                {isRenter
+                  ? `Owner: ${getDisplayName(equipment.owner)}`
+                  : `Renter: ${getDisplayName(booking.renter)}`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 space-y-6">
+          {/* Progress Stepper */}
+          <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              Rental Progress
+            </h3>
+            <BookingLifecycleStepper
+              hasPayment={true}
+              hasPickupInspection={!!pickupInspection}
+              hasReturnInspection={!!returnInspection}
+              startDate={new Date(booking.start_date)}
+              endDate={new Date(booking.end_date)}
+              bookingStatus={booking.status || "active"}
+              compact={true}
+            />
+          </div>
+
+          {/* Countdown / Status Text */}
+          {isActiveStatus && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <Clock className={cn("h-5 w-5", countdownColor)} />
+              <div>
+                <p className={cn("font-medium", countdownColor)}>
+                  {getCountdownText()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Ends {format(new Date(booking.end_date), "MMM d, h:mm a")}
                 </p>
               </div>
             </div>
-          </div>
-        </Card>
+          )}
 
-        {/* Countdown Timer */}
-        <RentalCountdown
-          startDate={booking.start_date}
-          endDate={booking.end_date}
-        />
+          {/* Warnings */}
+          {isRenter && isEndingSoon && !returnInspection && (
+            <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <AlertTitle className="text-orange-700 dark:text-orange-400">
+                Return Soon
+              </AlertTitle>
+              <AlertDescription className="text-orange-600 dark:text-orange-300 text-xs">
+                Please prepare to return the equipment.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Rental Details */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
+          {/* Details List */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Rental Details</h3>
+
+            <div className="space-y-0 divide-y">
+              {/* Dates */}
+              <div className="flex items-center gap-4 py-4">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Calendar className="h-5 w-5 text-foreground" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rental Period</p>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Dates</p>
                   <p className="font-medium">
                     {format(new Date(booking.start_date), "MMM d")} -{" "}
                     {format(new Date(booking.end_date), "MMM d, yyyy")}
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <DollarSign className="h-5 w-5 text-primary" />
+              {/* Cost */}
+              <div className="flex items-center gap-4 py-4">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <DollarSign className="h-5 w-5 text-foreground" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Total Cost</p>
                   <p className="font-medium">
                     ${(booking.total_amount ?? 0).toFixed(2)}
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {equipment.location && (
-            <Card className="sm:col-span-2 rounded-2xl">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
+              {/* Location */}
+              {equipment.location && (
+                <div className="flex items-center gap-4 py-4">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <MapPin className="h-5 w-5 text-foreground" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground">
-                      Equipment Location
+                      Pick up / Return
                     </p>
-                    <p className="font-medium">{equipment.location}</p>
+                    <p className="font-medium text-sm line-clamp-1">
+                      {equipment.location}
+                    </p>
                   </div>
                   <a
                     href={`https://maps.google.com/maps?q=${encodeURIComponent(
@@ -267,154 +379,119 @@ export default function ActiveRentalPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="h-8">
                       Directions
                     </Button>
                   </a>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RentalQuickActions
-              bookingId={booking.id}
-              ownerId={equipment.owner?.id}
-              equipmentLocation={equipment.location}
-              hasPickupInspection={!!pickupInspection}
-              showReturnAction={isRenter && (isEndingSoon || isOverdue)}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Inspection Summary */}
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Inspection Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Camera className="h-5 w-5 text-emerald-500" />
-                <div>
-                  <p className="font-medium">Pickup Inspection</p>
-                  <p className="text-sm text-muted-foreground">
-                    {pickupInspection?.completed_at
-                      ? `Completed ${format(
-                          new Date(pickupInspection.completed_at),
-                          "MMM d, h:mm a"
-                        )}`
-                      : "Not completed"}
-                  </p>
-                </div>
-              </div>
-              {pickupInspection ? (
-                <Link to={`/inspection/${booking.id}/view/pickup`}>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                </Link>
-              ) : (
-                <Badge variant="secondary">Pending</Badge>
               )}
             </div>
+          </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Camera
+          <Separator className="my-6" />
+
+          {/* Secondary Actions */}
+          <div className="space-y-3 pb-8">
+            <Button
+              variant="outline"
+              className="w-full justify-between h-12"
+              onClick={() => navigate("/support")}
+            >
+              <span className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4" />
+                Get Help
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full justify-between h-12"
+              onClick={() => {
+                // Placeholder for inspection view logic
+                if (pickupInspection) {
+                  navigate(`/inspection/${booking.id}/view/pickup`);
+                } else if (isRenter && isApproved) {
+                  navigate(`/inspection/${booking.id}/pickup`);
+                }
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck
                   className={cn(
-                    "h-5 w-5",
+                    "h-4 w-4",
+                    pickupInspection
+                      ? "text-emerald-500"
+                      : "text-muted-foreground"
+                  )}
+                />
+                Pickup Inspection
+              </span>
+              {pickupInspection ? (
+                <Badge
+                  variant="secondary"
+                  className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                >
+                  Completed
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">Pending</span>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full justify-between h-12"
+              onClick={() => {
+                if (returnInspection) {
+                  navigate(`/inspection/${booking.id}/view/return`);
+                } else if (isRenter && isActiveStatus) {
+                  navigate(`/inspection/${booking.id}/return`);
+                }
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck
+                  className={cn(
+                    "h-4 w-4",
                     returnInspection
                       ? "text-emerald-500"
                       : "text-muted-foreground"
                   )}
                 />
-                <div>
-                  <p className="font-medium">Return Inspection</p>
-                  <p className="text-sm text-muted-foreground">
-                    {returnInspection?.completed_at
-                      ? `Completed ${format(
-                          new Date(returnInspection.completed_at),
-                          "MMM d, h:mm a"
-                        )}`
-                      : "Not started"}
-                  </p>
-                </div>
-              </div>
+                Return Inspection
+              </span>
               {returnInspection ? (
-                <Link to={`/inspection/${booking.id}/view/return`}>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                </Link>
+                <Badge
+                  variant="secondary"
+                  className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                >
+                  Completed
+                </Badge>
               ) : (
-                <>
-                  {isRenter && (
-                    <Link to={`/inspection/${booking.id}/return`}>
-                      <Button
-                        variant={
-                          isEndingSoon || isOverdue ? "default" : "outline"
-                        }
-                        size="sm"
-                      >
-                        Start
-                      </Button>
-                    </Link>
-                  )}
-                  {isOwner && (
-                    <Badge variant="secondary">Awaiting renter</Badge>
-                  )}
-                </>
+                <span className="text-xs text-muted-foreground">Pending</span>
               )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Return CTA */}
-        {isRenter && !returnInspection && (
-          <Card className="border-primary/30 bg-primary/5 rounded-2xl">
-            <CardContent className="p-6 text-center">
-              <Camera className="h-10 w-10 text-primary mx-auto mb-3" />
-              <h3 className="text-lg font-semibold mb-2">
-                {isOverdue
-                  ? "Return Required"
-                  : isEndingSoon
-                  ? "Rental Ending Soon"
-                  : "Ready to Return?"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {isOverdue
-                  ? "Your rental has ended. Complete the return inspection to finalize."
-                  : isEndingSoon
-                  ? "Your rental ends soon. Complete the return inspection when ready."
-                  : "When you're done with the equipment, start the return inspection."}
-              </p>
-              <Link to={`/inspection/${booking.id}/return`}>
-                <Button size="lg" className="gap-2">
-                  <Camera className="h-5 w-5" />
-                  Start Return Inspection
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Help Link */}
-        <div className="text-center">
-          <Link
-            to="/support"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Need help with your rental? Contact Support
-          </Link>
+            </Button>
+          </div>
         </div>
       </main>
+
+      {/* Sticky Bottom Action Bar */}
+      {ctaConfig.show && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t safe-area-bottom z-40">
+          <div className="max-w-md mx-auto">
+            <Button
+              size="lg"
+              className="w-full shadow-lg text-base font-semibold"
+              variant={ctaConfig.variant}
+              onClick={ctaConfig.action}
+            >
+              {ctaConfig.icon}
+              {ctaConfig.label}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

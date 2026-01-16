@@ -18,23 +18,70 @@ export function InspectionStepIndicator({
   currentStep,
   className,
 }: InspectionStepIndicatorProps) {
-  const clampedStep = Math.min(Math.max(currentStep, 0), Math.max(steps.length - 1, 0));
+  const clampedStep = Math.min(
+    Math.max(currentStep, 0),
+    Math.max(steps.length - 1, 0)
+  );
+  const progressPercent =
+    steps.length > 1 ? (clampedStep / (steps.length - 1)) * 100 : 100;
+
   return (
     <div className={cn("w-full", className)}>
-      {/* Mobile: Compact horizontal stepper */}
-      <div className="flex items-center">
+      {/* Mobile: progress bar + dots */}
+      <div className="space-y-2 sm:hidden">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">
+            {steps[clampedStep]?.title}
+          </span>
+          <span>
+            Step {clampedStep + 1} of {steps.length}
+          </span>
+        </div>
+
+        <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 bg-primary transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+            aria-hidden="true"
+          />
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
+          {steps.map((step, index) => {
+            const isCurrent = index === clampedStep;
+            const isComplete = index < clampedStep;
+            return (
+              <span
+                key={step.id}
+                className={cn(
+                  "h-2 w-2 rounded-full transition-all duration-200",
+                  isCurrent && "h-2.5 w-2.5 bg-primary shadow-sm",
+                  isComplete && !isCurrent && "bg-primary/70",
+                  !isCurrent && !isComplete && "bg-muted-foreground/40"
+                )}
+              />
+            );
+          })}
+        </div>
+
+        {steps[clampedStep]?.description && (
+          <p className="text-xs text-muted-foreground text-center">
+            {steps[clampedStep].description}
+          </p>
+        )}
+      </div>
+
+      {/* Desktop: keep detailed stepper */}
+      <div className="hidden sm:flex items-center">
         {steps.map((step, index) => {
           const isCompleted = index < clampedStep;
           const isCurrent = index === clampedStep;
           const isUpcoming = index > clampedStep;
-
           const isLast = index === steps.length - 1;
-          
+
           return (
             <div key={step.id} className={cn("flex flex-col", !isLast && "flex-1")}>
-              {/* Circle and connector row */}
               <div className="flex items-center w-full">
-                {/* Step circle */}
                 <div className="flex flex-col items-center shrink-0">
                   <div
                     className={cn(
@@ -55,11 +102,9 @@ export function InspectionStepIndicator({
                       <span className="text-sm font-semibold">{index + 1}</span>
                     )}
                   </div>
-                  
-                  {/* Step title - visible on larger screens */}
                   <span
                     className={cn(
-                      "mt-2 text-xs font-medium text-center line-clamp-1 hidden sm:block w-20",
+                      "mt-2 text-xs font-medium text-center line-clamp-1 hidden sm:block w-24",
                       isCompleted && "text-primary",
                       isCurrent && "text-primary font-semibold",
                       isUpcoming && "text-muted-foreground"
@@ -69,11 +114,10 @@ export function InspectionStepIndicator({
                   </span>
                 </div>
 
-                {/* Connector line */}
                 {index < steps.length - 1 && (
                   <div
                     className={cn(
-                      "h-0.5 flex-1 mx-2 transition-colors duration-300 self-start mt-5",
+                      "h-0.5 flex-1 mx-3 transition-colors duration-300 self-start mt-5",
                       index < clampedStep ? "bg-primary" : "bg-muted-foreground/20"
                     )}
                   />
@@ -82,21 +126,6 @@ export function InspectionStepIndicator({
             </div>
           );
         })}
-      </div>
-
-      {/* Current step info - mobile */}
-      <div className="mt-4 text-center sm:hidden">
-        <p className="text-sm font-semibold text-primary">
-          Step {clampedStep + 1} of {steps.length}
-        </p>
-        <p className="text-base font-medium mt-1">
-          {steps[clampedStep]?.title}
-        </p>
-        {steps[clampedStep]?.description && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {steps[clampedStep].description}
-          </p>
-        )}
       </div>
     </div>
   );

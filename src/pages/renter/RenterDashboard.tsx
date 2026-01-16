@@ -16,8 +16,7 @@ import type { BookingRequestWithDetails } from "@/types/booking";
 import { useActiveRentals } from "@/hooks/useActiveRental";
 import CompactStats from "@/components/dashboard/CompactStats";
 import CollapsibleSection from "@/components/dashboard/CollapsibleSection";
-import RentalListItem from "@/components/rental/RentalListItem";
-import BookingListItem from "@/components/booking/BookingListItem";
+import BookingCard from "@/components/booking/BookingCard";
 import { formatDateForStorage } from "@/lib/utils";
 
 interface InspectionStatus {
@@ -288,7 +287,7 @@ const RenterDashboard = () => {
             activeRentals.slice(0, 5).map((rental) => {
               const status = inspectionStatuses.get(rental.id);
               return (
-                <RentalListItem
+                <BookingCard
                   key={rental.id}
                   booking={rental}
                   viewerRole="renter"
@@ -311,11 +310,10 @@ const RenterDashboard = () => {
             emptyMessage="All caught up!"
           >
             {pendingBookings.map((booking) => (
-              <BookingListItem
+              <BookingCard
                 key={booking.id}
                 booking={booking}
                 viewerRole="renter"
-                onCancel={() => void handleBookingStatusChange()}
               />
             ))}
           </CollapsibleSection>
@@ -338,14 +336,13 @@ const RenterDashboard = () => {
           {upcomingBookings.slice(0, 5).map((booking) => {
             const status = inspectionStatuses.get(booking.id);
             return (
-              <BookingListItem
+              <BookingCard
                 key={booking.id}
                 booking={booking}
                 viewerRole="renter"
                 showInspectionStatus
                 hasPickupInspection={status?.hasPickup}
                 hasReturnInspection={status?.hasReturn}
-                onCancel={() => void handleBookingStatusChange()}
               />
             );
           })}
@@ -366,7 +363,7 @@ const RenterDashboard = () => {
           }
         >
           {historyBookings.slice(0, 5).map((booking) => (
-            <BookingListItem
+            <BookingCard
               key={booking.id}
               booking={booking}
               viewerRole="renter"

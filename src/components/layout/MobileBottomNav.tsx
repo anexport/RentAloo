@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Search,
@@ -74,6 +74,7 @@ const MobileBottomNav = () => {
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { activeMode } = useRoleMode();
 
   // Fetch unread/pending counts with real-time updates
@@ -81,8 +82,8 @@ const MobileBottomNav = () => {
     includeOwnerCounts: activeMode === "owner",
   });
 
-  // Only show on mobile for authenticated users
-  if (!isMobile || !user) return null;
+  // Only show on mobile
+  if (!isMobile) return null;
 
   // Don't show on specific pages that have their own navigation
   const hideOnPaths = ["/login", "/signup", "/auth", "/onboarding"];
@@ -91,11 +92,42 @@ const MobileBottomNav = () => {
   }
 
   // Select nav items based on active role mode
+  // For guests, we default to renter-style layout but will intercept clicks
   const navItems = activeMode === "owner" ? OWNER_NAV_ITEMS : RENTER_NAV_ITEMS;
+
+  const handleItemClick = (e: React.MouseEvent, item: NavItem) => {
+    // If user is logged in, let the link work as normal
+    if (user) return;
+
+    // For guests, allow public routes
+    // Home typically goes to /renter/dashboard in RENTER_NAV_ITEMS
+    // We'll handle the "Home" redirect in the effect or render logic below,
+    // but here we just need to gate the protected ones.
+
+    // Public paths for guests:
+    // - Explore (/explore)
+    // - Home (we'll remap /renter/dashboard to / visually, but if they click it we want to go home)
+
+    const isPublic = item.to === "/explore";
+    const isHome = item.label === "Home";
+
+    if (isPublic) return;
+
+    if (isHome) {
+      e.preventDefault();
+      navigate("/");
+      return;
+    }
+
+    // specific check for "Account" -> redirect to login with no special message needed
+    // others -> redirect to login
+    e.preventDefault();
+    navigate("/login");
+  };
 
   // Helper to get badge count for an item
   const getBadgeCount = (item: NavItem): number => {
-    if (!item.hasBadge) return 0;
+    if (!item.hasBadge || !user) return 0;
     if (item.to === "/messages") return unreadMessages;
     if (item.to === "/owner/bookings") return pendingBookings;
     return 0;
@@ -164,6 +196,7 @@ const MobileBottomNav = () => {
                 className="flex flex-col items-center z-10 pb-1"
                 style={{ marginTop: "-26px" }}
                 aria-label={item.label}
+                onClick={(e) => handleItemClick(e, item)}
               >
                 <div
                   className={cn(
@@ -201,6 +234,7 @@ const MobileBottomNav = () => {
                   : "text-muted-foreground hover:text-foreground"
               )}
               aria-label={item.label}
+              onClick={(e) => handleItemClick(e, item)}
             >
               <div
                 className={cn(
@@ -229,7 +263,9 @@ const MobileBottomNav = () => {
                   </span>
                 )}
               </div>
-              <span className="font-medium">{item.label}</span>
+              <span className="font-medium">
+                {!user && item.label === "Account" ? "Log in" : item.label}
+              </span>
             </NavLink>
           );
         })}

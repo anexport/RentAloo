@@ -40,31 +40,37 @@ export default function PhotoCapture({
 
   const photosRemaining = Math.max(0, minPhotos - photos.length);
   const hasMinPhotos = photos.length >= minPhotos;
+  const requiredPhotos = minPhotos;
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Header with progress */}
-      <div className="flex items-center justify-between">
+    <div className={cn("space-y-5", className)}>
+      <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h3 className="font-semibold text-lg">Equipment Photos</h3>
           <p className="text-sm text-muted-foreground">
             Capture the equipment from multiple angles
           </p>
         </div>
-        <div
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
-            hasMinPhotos
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-          )}
-        >
-          {hasMinPhotos ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <Camera className="h-4 w-4" />
-          )}
-          {photos.length}/{minPhotos}+
+        <div className="flex flex-col items-end gap-1">
+          <div
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium shadow-sm",
+              hasMinPhotos
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            )}
+            aria-label={`Photo progress ${photos.length} of ${requiredPhotos}`}
+          >
+            {hasMinPhotos ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            {photos.length}/{requiredPhotos}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {hasMinPhotos ? "Nice shots!" : `${photosRemaining} to go`}
+          </p>
         </div>
       </div>
 
@@ -74,7 +80,7 @@ export default function PhotoCapture({
         {previews.map((preview, index) => (
           <Card
             key={index}
-            className="relative aspect-square overflow-hidden group"
+            className="relative aspect-[4/3] overflow-hidden group"
           >
             <img
               src={preview}
@@ -86,7 +92,7 @@ export default function PhotoCapture({
             <Button
               variant="destructive"
               size="icon"
-              className="absolute top-2 right-2 h-9 w-9 opacity-100 shadow-lg"
+              className="absolute top-2 right-2 h-11 w-11 rounded-full opacity-100 shadow-lg border border-destructive/40 bg-destructive text-destructive-foreground"
               onClick={() => removePhoto(index)}
               aria-label={`Remove photo ${index + 1}`}
             >
@@ -106,8 +112,8 @@ export default function PhotoCapture({
             tabIndex={0}
             aria-label="Add a new equipment photo"
             className={cn(
-              "aspect-square flex flex-col items-center justify-center cursor-pointer transition-all duration-200 border-2 border-dashed",
-              "hover:bg-primary/5 hover:border-primary/50 active:scale-95",
+              "aspect-[4/3] flex flex-col items-center justify-center cursor-pointer transition-all duration-200 border-2 border-dashed",
+              "hover:bg-primary/5 hover:border-primary/50 active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
               !hasMinPhotos && "border-primary/50 bg-primary/5"
             )}

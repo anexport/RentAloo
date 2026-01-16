@@ -19,8 +19,7 @@ import { useActiveRentals } from "@/hooks/useActiveRental";
 import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
 import CompactStats from "@/components/dashboard/CompactStats";
 import CollapsibleSection from "@/components/dashboard/CollapsibleSection";
-import RentalListItem from "@/components/rental/RentalListItem";
-import BookingListItem from "@/components/booking/BookingListItem";
+import BookingCard from "@/components/booking/BookingCard";
 import { useToast } from "@/hooks/useToast";
 
 const OwnerDashboard = () => {
@@ -93,18 +92,6 @@ const OwnerDashboard = () => {
     navigate("/owner/equipment?action=create");
   }, [navigate]);
 
-  const handleBookingStatusChange = useCallback(async () => {
-    try {
-      await fetchBookingRequests();
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Failed to refresh",
-        description: err instanceof Error ? err.message : "An error occurred.",
-      });
-    }
-  }, [fetchBookingRequests, toast]);
-
   // Show loading state while checking owner status
   if (isCheckingOwner || !isAlsoOwner) {
     return (
@@ -147,7 +134,7 @@ const OwnerDashboard = () => {
             activeRentals
               .slice(0, 5)
               .map((rental) => (
-                <RentalListItem
+                <BookingCard
                   key={rental.id}
                   booking={rental}
                   viewerRole="owner"
@@ -184,11 +171,10 @@ const OwnerDashboard = () => {
             </div>
           )}
           {pendingRequests.map((booking) => (
-            <BookingListItem
+            <BookingCard
               key={booking.id}
               booking={booking}
               viewerRole="owner"
-              onCancel={() => void handleBookingStatusChange()}
             />
           ))}
         </CollapsibleSection>
@@ -208,12 +194,11 @@ const OwnerDashboard = () => {
           }
         >
           {upcomingRentals.slice(0, 5).map((booking) => (
-            <BookingListItem
+            <BookingCard
               key={booking.id}
               booking={booking}
               viewerRole="owner"
               showInspectionStatus
-              onCancel={() => void handleBookingStatusChange()}
             />
           ))}
         </CollapsibleSection>
@@ -233,7 +218,7 @@ const OwnerDashboard = () => {
           }
         >
           {historyBookings.slice(0, 5).map((booking) => (
-            <BookingListItem
+            <BookingCard
               key={booking.id}
               booking={booking}
               viewerRole="owner"

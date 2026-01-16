@@ -124,22 +124,20 @@ export default function InspectionChecklistStep({
   }
 
   return (
-    <div className={cn("flex flex-col min-h-0", className)}>
+    <div className={cn("flex min-h-[100dvh] flex-col", className)}>
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="space-y-6">
-          {/* Header */}
+      <div className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
+        <div className="max-w-2xl mx-auto py-6 space-y-6">
           <div className="space-y-2">
             <h2 className="text-headline-lg font-bold tracking-tight">
               Condition Checklist
             </h2>
             <p className="text-muted-foreground">
-              Rate each item&apos;s condition. Add notes for anything not in
-              good condition.
+              Rate each item&apos;s condition. Add notes for anything not in good
+              condition.
             </p>
           </div>
 
-          {/* Legend */}
           <div className="flex flex-wrap gap-3">
             {(Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]).map(
               (status) => {
@@ -161,7 +159,6 @@ export default function InspectionChecklistStep({
             )}
           </div>
 
-          {/* Checklist items */}
           <div className="space-y-3">
             {items.map((item, index) => {
               const config = STATUS_CONFIG[item.status];
@@ -179,7 +176,6 @@ export default function InspectionChecklistStep({
                   )}
                 >
                   <CardContent className="p-4 space-y-4">
-                    {/* Item header */}
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div
@@ -211,8 +207,7 @@ export default function InspectionChecklistStep({
                       </Button>
                     </div>
 
-                    {/* Status buttons */}
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
                       {(
                         Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]
                       ).map((status) => {
@@ -227,7 +222,7 @@ export default function InspectionChecklistStep({
                             size="sm"
                             onClick={() => handleStatusChange(index, status)}
                             className={cn(
-                              "flex-1 h-12 transition-all",
+                              "h-14 w-full justify-center text-base transition-all active:scale-[0.98]",
                               isSelected && [
                                 statusConfig.bgColor,
                                 statusConfig.borderColor,
@@ -250,9 +245,15 @@ export default function InspectionChecklistStep({
                       })}
                     </div>
 
-                    {/* Notes section */}
-                    {showNotes && (
-                      <div className="space-y-2">
+                    <div
+                      className={cn(
+                        "grid transition-all duration-300",
+                        showNotes
+                          ? "grid-rows-[1fr] opacity-100"
+                          : "grid-rows-[0fr] opacity-0"
+                      )}
+                    >
+                      <div className="overflow-hidden space-y-2">
                         <label
                           htmlFor={`notes-${index}`}
                           className="text-sm font-medium text-muted-foreground"
@@ -272,11 +273,11 @@ export default function InspectionChecklistStep({
                               ? "Describe the condition or damage..."
                               : "Any additional observations..."
                           }
-                          rows={2}
+                          rows={3}
                           className="resize-none"
                         />
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               );

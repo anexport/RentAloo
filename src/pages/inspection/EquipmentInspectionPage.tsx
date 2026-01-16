@@ -21,6 +21,11 @@ interface BookingDetails {
     title: string;
     owner_id: string;
     deposit_refund_timeline_hours: number | null;
+    photos?: {
+      photo_url: string | null;
+      is_primary: boolean | null;
+      order_index: number | null;
+    }[];
     category: {
       sport_type: string;
     } | null;
@@ -69,6 +74,7 @@ export default function EquipmentInspectionPage() {
               title,
               owner_id,
               deposit_refund_timeline_hours,
+              photos:equipment_photos (photo_url, is_primary, order_index),
               category:categories(sport_type)
             )
           `
@@ -234,6 +240,13 @@ export default function EquipmentInspectionPage() {
   }
 
   const isOwner = booking.equipment?.owner_id === user?.id;
+  const primaryPhoto =
+    booking.equipment?.photos?.find((p) => p.is_primary) ||
+    booking.equipment?.photos
+      ?.slice()
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ||
+    booking.equipment?.photos?.[0];
+  const equipmentImageUrl = primaryPhoto?.photo_url ?? undefined;
 
   // Prepare booking info for the wizard
   const bookingInfo = {
@@ -247,6 +260,7 @@ export default function EquipmentInspectionPage() {
     <InspectionWizard
       bookingId={booking.id}
       equipmentTitle={booking.equipment?.title || "Equipment"}
+      equipmentImageUrl={equipmentImageUrl || undefined}
       categorySlug={booking.equipment?.category?.sport_type}
       inspectionType={inspectionType}
       isOwner={isOwner}

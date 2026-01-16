@@ -14,7 +14,10 @@ import { useAuth } from "@/hooks/useAuth";
 import SEOHead from "@/components/seo/SEOHead";
 import StructuredData from "@/components/seo/StructuredData";
 import { generateExplorePageMeta } from "@/lib/seo/meta";
-import { generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo/schema";
+import {
+  generateBreadcrumbSchema,
+  generateItemListSchema,
+} from "@/lib/seo/schema";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
 import CategoryBar from "@/components/explore/CategoryBar";
@@ -69,7 +72,6 @@ const CONDITION_VALUES: Array<Listing["condition"]> = [
 const ExplorePage = () => {
   const { t } = useTranslation("equipment");
   const { t: tNav } = useTranslation("navigation");
-  const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
@@ -646,22 +648,27 @@ const ExplorePage = () => {
   };
 
   // SEO data
-  const exploreMeta = generateExplorePageMeta(categoryId !== "all" ? categoryId : undefined);
+  const exploreMeta = generateExplorePageMeta(
+    categoryId !== "all" ? categoryId : undefined
+  );
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: "Home", url: "/" },
     { name: "Explore", url: "/explore" },
-    ...(categoryId !== "all" ? [{ name: categoryId, url: `/explore?category=${categoryId}` }] : []),
+    ...(categoryId !== "all"
+      ? [{ name: categoryId, url: `/explore?category=${categoryId}` }]
+      : []),
   ]);
-  const itemListSchema = sortedListings.length > 0
-    ? generateItemListSchema(
-        sortedListings.slice(0, 10).map((listing) => ({
-          id: listing.id,
-          title: listing.title,
-          dailyRate: listing.daily_rate,
-          imageUrl: listing.photos?.[0]?.photo_url,
-        }))
-      )
-    : null;
+  const itemListSchema =
+    sortedListings.length > 0
+      ? generateItemListSchema(
+          sortedListings.slice(0, 10).map((listing) => ({
+            id: listing.id,
+            title: listing.title,
+            dailyRate: listing.daily_rate,
+            imageUrl: listing.photos?.[0]?.photo_url,
+          }))
+        )
+      : null;
 
   // Mobile: Full-screen map-first layout
   if (isMobile) {
@@ -751,13 +758,11 @@ const ExplorePage = () => {
       <StructuredData data={breadcrumbSchema} />
       {itemListSchema && <StructuredData data={itemListSchema} />}
 
-      {/* Header with navbar when logged in */}
-      {user && (
-        <ExploreHeader
-          onLoginClick={() => handleLoginOpenChange(true)}
-          onSignupClick={() => handleSignupOpenChange(true)}
-        />
-      )}
+      {/* Header with navbar */}
+      <ExploreHeader
+        onLoginClick={() => handleLoginOpenChange(true)}
+        onSignupClick={() => handleSignupOpenChange(true)}
+      />
 
       {/* Sticky Header with Search */}
       <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
