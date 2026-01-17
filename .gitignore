@@ -17,6 +17,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Git worktrees
+.worktrees/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
