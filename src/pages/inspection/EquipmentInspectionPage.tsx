@@ -179,11 +179,12 @@ export default function EquipmentInspectionPage() {
 
   const handleReviewClick = () => {
     // Navigate to review flow after rental completion
-    // For now, navigate back to dashboard where review prompt will appear
     const isOwner = booking?.equipment?.owner_id === user?.id;
-    navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard", {
-      state: { showReviewPrompt: true, bookingId: booking?.id },
-    });
+    if (!booking?.id) {
+      navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
+      return;
+    }
+    navigate(`/reviews/${booking.id}`);
   };
 
   if (loading) {

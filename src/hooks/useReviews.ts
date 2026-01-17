@@ -38,11 +38,9 @@ const fetchReviews = async (
       *,
       reviewer:profiles!reviews_reviewer_id_fkey(id, email),
       reviewee:profiles!reviews_reviewee_id_fkey(id, email),
-      booking:bookings(
+      booking:booking_requests(
         id,
-        booking_request:booking_requests(
-          equipment:equipment(id, title)
-        )
+        equipment:equipment(id, title)
       )
     `
     )
@@ -70,8 +68,8 @@ const fetchReviews = async (
     booking: {
       id: review.booking?.id || "",
       equipment: {
-        id: review.booking?.booking_request?.equipment?.id || "",
-        title: review.booking?.booking_request?.equipment?.title || "",
+        id: review.booking?.equipment?.id || "",
+        title: review.booking?.equipment?.title || "",
       },
     },
   })) as ReviewWithDetails[];

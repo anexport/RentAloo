@@ -68,6 +68,7 @@ const RenterSavedPage = lazy(() => import("@/pages/renter/RenterSavedPage"));
 const RenterBookingsPage = lazy(
   () => import("@/pages/renter/RenterBookingsPage")
 );
+const LeaveReviewPage = lazy(() => import("@/pages/reviews/LeaveReviewPage"));
 
 /**
  * PageLoader - Minimal loading indicator for lazy-loaded pages
@@ -216,6 +217,10 @@ function App() {
                             <Route
                               path="/owner/payments"
                               element={<OwnerPaymentsPage />}
+                            />
+                            <Route
+                              path="/reviews/:bookingId"
+                              element={<LeaveReviewPage />}
                             />
                             <Route
                               path="/messages"

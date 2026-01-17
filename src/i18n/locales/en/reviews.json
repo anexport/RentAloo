@@ -83,10 +83,13 @@
   "errors": {
     "not_logged_in": "You must be logged in to submit a review",
     "submit_failed": "Failed to submit review. Please try again.",
-    "auth_required": "Authentication required"
+    "auth_required": "Authentication required",
+    "review_update_failed_title": "Booking status update failed",
+    "review_update_failed_description": "Your review was submitted, but we couldn't update the booking status."
   },
   "success": {
     "review_submitted": "Review submitted successfully",
+    "review_submitted_description": "Thanks for sharing your experience.",
     "review_updated": "Review updated successfully",
     "review_deleted": "Review deleted successfully"
   },

@@ -86,10 +86,13 @@
   "errors": {
     "not_logged_in": "Sie müssen angemeldet sein, um eine Bewertung abzugeben",
     "submit_failed": "Fehler beim Absenden der Bewertung. Bitte versuchen Sie es erneut.",
-    "auth_required": "Authentifizierung erforderlich"
+    "auth_required": "Authentifizierung erforderlich",
+    "review_update_failed_title": "Aktualisierung des Buchungsstatus fehlgeschlagen",
+    "review_update_failed_description": "Deine Bewertung wurde eingereicht, aber der Buchungsstatus konnte nicht aktualisiert werden."
   },
   "success": {
     "review_submitted": "Bewertung erfolgreich abgesendet",
+    "review_submitted_description": "Danke, dass du deine Erfahrung geteilt hast.",
     "review_updated": "Bewertung erfolgreich aktualisiert",
     "review_deleted": "Bewertung erfolgreich gelöscht"
   },

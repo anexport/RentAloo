@@ -3,8 +3,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  AlertCircle,
+  Camera,
+  ArrowRight,
+  CheckCircle2,
+  PartyPopper,
+} from "lucide-react";
 import { InspectionStepIndicator } from "@/components/inspection/steps/InspectionStepIndicator";
+import InspectionActionBar from "@/components/inspection/InspectionActionBar";
 import InspectionIntroStep from "@/components/inspection/steps/InspectionIntroStep";
 import InspectionPhotoStep from "@/components/inspection/steps/InspectionPhotoStep";
 import InspectionChecklistStep from "@/components/inspection/steps/InspectionChecklistStep";
@@ -80,6 +87,7 @@ export default function InspectionWizard({
     lat: number;
     lng: number;
   } | null>(null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
 
   // For return inspections, fetch pickup inspection data for comparison using React Query
   const {
@@ -159,7 +167,9 @@ export default function InspectionWizard({
     }
 
     if (inspectionType === "return" && isOwner) {
-      setError("Owners can't submit return inspections. Please review the renter's return inspection instead.");
+      setError(
+        "Owners can't submit return inspections. Please review the renter's return inspection instead."
+      );
       return;
     }
 
@@ -188,7 +198,9 @@ export default function InspectionWizard({
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
-          throw new Error(`Failed to upload photo ${i + 1}: ${uploadError.message}`);
+          throw new Error(
+            `Failed to upload photo ${i + 1}: ${uploadError.message}`
+          );
         }
 
         const {
@@ -316,6 +328,79 @@ export default function InspectionWizard({
     };
   }, [bookingInfo]);
 
+  // Determine if user can proceed to next step
+  const canContinue = useMemo(() => {
+    switch (currentStep) {
+      case 0: // Intro
+        return true;
+      case 1: // Photos
+        return photos.length >= 3;
+      case 2: // Checklist
+        return checklistItems.length > 0;
+      case 3: // Review
+        return reviewConfirmed && !isSubmitting;
+      case 4: // Confirmation
+        return inspectionSubmitted;
+      default:
+        return false;
+    }
+  }, [
+    currentStep,
+    photos.length,
+    checklistItems.length,
+    reviewConfirmed,
+    isSubmitting,
+    inspectionSubmitted,
+  ]);
+
+  // Get action bar config based on current step
+  const getActionBarConfig = () => {
+    switch (currentStep) {
+      case 0: // Intro
+        return {
+          showBack: false,
+          primaryLabel: "Begin Inspection",
+          primaryIcon: <Camera className="h-5 w-5" />,
+          onPrimary: handleNext,
+        };
+      case 1: // Photos
+        return {
+          showBack: true,
+          backLabel: "Back",
+          primaryLabel: "Continue",
+          primaryIcon: <ArrowRight className="h-4 w-4" />,
+          onPrimary: handleNext,
+          primaryDisabled: !canContinue,
+        };
+      case 2: // Checklist
+        return {
+          showBack: true,
+          backLabel: "Back",
+          primaryLabel: "Continue",
+          primaryIcon: <ArrowRight className="h-4 w-4" />,
+          onPrimary: handleNext,
+          primaryDisabled: !canContinue,
+        };
+      case 3: // Review
+        return {
+          showBack: true,
+          backLabel: "Back",
+          primaryLabel: "Complete Inspection",
+          primaryIcon: <CheckCircle2 className="h-5 w-5" />,
+          onPrimary: handleSubmit,
+          primaryDisabled: !canContinue,
+          isLoading: isSubmitting,
+          loadingLabel: "Submitting...",
+        };
+      case 4: // Confirmation - handled by step component
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  const actionBarConfig = getActionBarConfig();
+
   // Determine which step to render
   const renderStep = () => {
     switch (currentStep) {
@@ -325,8 +410,6 @@ export default function InspectionWizard({
             equipmentTitle={equipmentTitle}
             equipmentImageUrl={equipmentImageUrl}
             inspectionType={inspectionType}
-            isOwner={isOwner}
-            onContinue={handleNext}
           />
         );
       case 1:
@@ -336,8 +419,6 @@ export default function InspectionWizard({
             onPhotosChange={setPhotos}
             minPhotos={3}
             maxPhotos={10}
-            onBack={handleBack}
-            onContinue={handleNext}
           />
         );
       case 2:
@@ -346,8 +427,6 @@ export default function InspectionWizard({
             categorySlug={categorySlug}
             items={checklistItems}
             onItemsChange={setChecklistItems}
-            onBack={handleBack}
-            onContinue={handleNext}
           />
         );
       case 3:
@@ -360,9 +439,8 @@ export default function InspectionWizard({
             onConditionNotesChange={setConditionNotes}
             inspectionType={inspectionType}
             isOwner={isOwner}
-            isSubmitting={isSubmitting}
-            onBack={handleBack}
-            onSubmit={handleSubmit}
+            confirmed={reviewConfirmed}
+            onConfirmChange={setReviewConfirmed}
           />
         );
       case 4:
@@ -376,7 +454,6 @@ export default function InspectionWizard({
               inspectionSummary={inspectionSummary}
               checklistItems={checklistItems}
               onSuccess={onSuccess}
-              onBack={handleBack}
             />
           );
         } else {
@@ -388,7 +465,6 @@ export default function InspectionWizard({
               depositInfo={depositInfo}
               onSuccess={onSuccess}
               onReviewClick={onReviewClick}
-              onBack={handleBack}
             />
           );
         }
@@ -400,11 +476,15 @@ export default function InspectionWizard({
   // Show loading state for return inspections while fetching pickup data
   if (inspectionType === "return" && isLoadingPickupInspection) {
     return (
-      <div className={cn("flex flex-col min-h-screen bg-background", className)}>
+      <div
+        className={cn("flex flex-col min-h-screen bg-background", className)}
+      >
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            <p className="text-sm text-muted-foreground">Loading pickup inspection data...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading pickup inspection data...
+            </p>
           </div>
         </div>
       </div>
@@ -414,7 +494,7 @@ export default function InspectionWizard({
   return (
     <div className={cn("flex flex-col min-h-screen bg-background", className)}>
       {/* Sticky header with step indicator */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b px-4 py-4">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b px-4 py-3">
         <div className="max-w-2xl mx-auto">
           <InspectionStepIndicator
             steps={WIZARD_STEPS}
@@ -433,10 +513,32 @@ export default function InspectionWizard({
         </div>
       )}
 
-      {/* Step content */}
-      <div className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
+      {/* Step content - padding accounts for fixed bottom bar + mobile nav */}
+      <div
+        className={cn(
+          "flex-1 px-4 py-4 max-w-2xl mx-auto w-full",
+          // Add bottom padding for action bar (~70px) + mobile nav (64px) + safe area
+          actionBarConfig &&
+            "pb-[calc(70px+64px+env(safe-area-inset-bottom))] md:pb-[calc(70px+env(safe-area-inset-bottom))]"
+        )}
+      >
         {renderStep()}
       </div>
+
+      {/* Action bar - rendered by wizard for steps 0-3 */}
+      {actionBarConfig && (
+        <InspectionActionBar
+          showBack={actionBarConfig.showBack}
+          backLabel={actionBarConfig.backLabel}
+          primaryLabel={actionBarConfig.primaryLabel}
+          primaryIcon={actionBarConfig.primaryIcon}
+          onBack={handleBack}
+          onPrimary={actionBarConfig.onPrimary}
+          primaryDisabled={actionBarConfig.primaryDisabled}
+          isLoading={actionBarConfig.isLoading}
+          loadingLabel={actionBarConfig.loadingLabel}
+        />
+      )}
     </div>
   );
 }
