@@ -1,4 +1,5 @@
 import { Camera, ClipboardCheck, FileCheck, ShieldCheck, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ interface InspectionIntroStepProps {
   equipmentTitle: string;
   equipmentImageUrl?: string;
   inspectionType: InspectionType;
+  onBegin?: () => void;
   className?: string;
 }
 
@@ -33,6 +35,7 @@ export default function InspectionIntroStep({
   equipmentTitle,
   equipmentImageUrl,
   inspectionType,
+  onBegin,
   className,
 }: InspectionIntroStepProps) {
   const isPickup = inspectionType === "pickup";
@@ -123,9 +126,17 @@ export default function InspectionIntroStep({
       </Alert>
 
       {/* Estimated time */}
-      <p className="text-[11px] text-muted-foreground text-center">
-        ~3 minutes
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-[11px] text-muted-foreground text-center">
+          ~3 minutes
+        </p>
+        {onBegin && (
+          <Button onClick={onBegin} className="hidden md:inline-flex h-11 px-6">
+            <Camera className="h-4 w-4 mr-2" />
+            Begin Inspection
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

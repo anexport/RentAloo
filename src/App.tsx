@@ -52,6 +52,8 @@ const FileClaimPage = lazy(() => import("@/pages/claims/FileClaimPage"));
 const ReviewClaimPage = lazy(() => import("@/pages/claims/ReviewClaimPage"));
 const ManageClaimPage = lazy(() => import("@/pages/claims/ManageClaimPage"));
 const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
+const RenterRentalPage = lazy(() => import("@/pages/renter/RenterRentalPage"));
+const OwnerRentalPage = lazy(() => import("@/pages/owner/OwnerRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const OnboardingPage = lazy(() => import("@/pages/auth/OnboardingPage"));
@@ -67,6 +69,12 @@ const OwnerPaymentsPage = lazy(() => import("@/pages/owner/OwnerPaymentsPage"));
 const RenterSavedPage = lazy(() => import("@/pages/renter/RenterSavedPage"));
 const RenterBookingsPage = lazy(
   () => import("@/pages/renter/RenterBookingsPage")
+);
+const RenterInspectionsPage = lazy(
+  () => import("@/pages/renter/RenterInspectionsPage")
+);
+const OwnerInspectionsPage = lazy(
+  () => import("@/pages/owner/OwnerInspectionsPage")
 );
 const LeaveReviewPage = lazy(() => import("@/pages/reviews/LeaveReviewPage"));
 
@@ -190,6 +198,14 @@ function App() {
                               element={<RenterBookingsPage />}
                             />
                             <Route
+                              path="/renter/inspections"
+                              element={<RenterInspectionsPage />}
+                            />
+                            <Route
+                              path="/renter/rental/:bookingId"
+                              element={<RenterRentalPage />}
+                            />
+                            <Route
                               path="/rental/:bookingId"
                               element={<ActiveRentalPage />}
                             />
@@ -209,6 +225,14 @@ function App() {
                             <Route
                               path="/owner/bookings"
                               element={<OwnerBookingsPage />}
+                            />
+                            <Route
+                              path="/owner/inspections"
+                              element={<OwnerInspectionsPage />}
+                            />
+                            <Route
+                              path="/owner/rental/:bookingId"
+                              element={<OwnerRentalPage />}
                             />
                             <Route
                               path="/owner/reviews"
@@ -249,6 +273,22 @@ function App() {
                             />
                             <Route
                               path="/inspection/:bookingId/view/:inspectionType"
+                              element={<InspectionView />}
+                            />
+                            <Route
+                              path="/renter/inspections/:bookingId/:type"
+                              element={<EquipmentInspectionPage />}
+                            />
+                            <Route
+                              path="/owner/inspections/:bookingId/:type"
+                              element={<EquipmentInspectionPage />}
+                            />
+                            <Route
+                              path="/renter/inspections/:bookingId/view/:inspectionType"
+                              element={<InspectionView />}
+                            />
+                            <Route
+                              path="/owner/inspections/:bookingId/view/:inspectionType"
                               element={<InspectionView />}
                             />
                             <Route

@@ -16,6 +16,7 @@ import {
   Sun,
   Globe,
   Check,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ import { useRoleMode } from "@/contexts/RoleModeContext";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 import { useTheme } from "@/contexts/useTheme";
 import { useToast } from "@/hooks/useToast";
-import { getUserInitials, getDashboardPath } from "@/lib/user-utils";
+import { getUserInitials, getDashboardPath, getInspectionsPath } from "@/lib/user-utils";
 import { supabase } from "@/lib/supabase";
 
 // Trust score ring component (simplified from Sidebar)
@@ -309,6 +310,11 @@ const MobileMenuSheet = ({
               to={getDashboardPath(activeMode)}
               icon={Home}
               label={t("sidebar.dashboard", "Dashboard")}
+            />
+            <NavLink
+              to={getInspectionsPath(activeMode)}
+              icon={ClipboardCheck}
+              label={t("sidebar.inspections", "Inspections")}
             />
             <NavLink
               to="/explore"

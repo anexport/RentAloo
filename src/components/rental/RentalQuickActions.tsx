@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getInspectionPath } from "@/lib/user-utils";
 
 interface RentalQuickActionsProps {
   bookingId: string;
@@ -17,6 +18,7 @@ interface RentalQuickActionsProps {
   showReturnAction?: boolean;
   className?: string;
   variant?: "grid" | "inline";
+  viewerRole?: "owner" | "renter";
 }
 
 export default function RentalQuickActions({
@@ -27,7 +29,9 @@ export default function RentalQuickActions({
   showReturnAction = false,
   className,
   variant = "grid",
+  viewerRole = "renter",
 }: RentalQuickActionsProps) {
+  const inspectionRole = viewerRole;
   const actions = [
     {
       id: "message",
@@ -40,7 +44,12 @@ export default function RentalQuickActions({
       id: "inspection",
       label: "View Inspection",
       icon: ClipboardCheck,
-      href: `/inspection/${bookingId}/view/pickup`,
+      href: getInspectionPath({
+        role: inspectionRole,
+        bookingId,
+        type: "pickup",
+        view: true,
+      }),
       variant: "outline" as const,
       disabled: !hasPickupInspection,
     },
@@ -70,7 +79,11 @@ export default function RentalQuickActions({
       id: "return",
       label: "Start Return",
       icon: Camera,
-      href: `/inspection/${bookingId}/return`,
+      href: getInspectionPath({
+        role: inspectionRole,
+        bookingId,
+        type: "return",
+      }),
       variant: "default" as const,
     });
   }
@@ -167,4 +180,3 @@ export default function RentalQuickActions({
     </div>
   );
 }
-

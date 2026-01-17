@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatBookingDuration } from "@/lib/booking";
+import { getRentalPath } from "@/lib/user-utils";
 import InspectionStatusBadge from "./InspectionStatusBadge";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
@@ -146,6 +147,7 @@ export default function BookingCard({
 
   const timeIndicator = getTimeIndicator();
   const isOwner = viewerRole === "owner";
+  const rentalPath = getRentalPath({ role: viewerRole, bookingId: booking.id });
 
   // Should show inspection status for approved/active bookings
   const shouldShowInspections =
@@ -156,7 +158,7 @@ export default function BookingCard({
 
   return (
     <Link
-      to={`/rental/${booking.id}`}
+      to={rentalPath}
       className={cn(
         "block rounded-xl border border-border/60 bg-card overflow-hidden",
         "hover:border-border hover:shadow-md transition-all duration-200",

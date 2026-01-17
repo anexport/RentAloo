@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getInspectionPath } from "@/lib/user-utils";
 import {
   Tooltip,
   TooltipContent,
@@ -59,10 +60,14 @@ export default function InspectionStatusBadge({
 
     if (!isClickable) return;
 
+    const role = isOwner ? "owner" : "renter";
+
     if (completed) {
-      navigate(`/inspection/${bookingId}/view/${type}`);
+      navigate(
+        getInspectionPath({ role, bookingId, type, view: true })
+      );
     } else {
-      navigate(`/inspection/${bookingId}/${type}`);
+      navigate(getInspectionPath({ role, bookingId, type }));
     }
   };
 

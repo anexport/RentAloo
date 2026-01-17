@@ -18,6 +18,7 @@ import {
   ListChecks,
   Star,
   Sparkles,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -329,6 +330,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             href: "/renter/bookings",
           },
           {
+            label: t("sidebar.inspections"),
+            icon: ClipboardCheck,
+            href: "/renter/inspections",
+          },
+          {
             label: t("sidebar.messages"),
             icon: MessageSquare,
             href: "/messages",
@@ -377,6 +383,11 @@ const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             icon: ListChecks,
             href: "/owner/bookings",
             ...(activeOwnerBookings > 0 && { badge: activeOwnerBookings }),
+          },
+          {
+            label: t("sidebar.inspections"),
+            icon: ClipboardCheck,
+            href: "/owner/inspections",
           },
           {
             label: t("sidebar.messages"),

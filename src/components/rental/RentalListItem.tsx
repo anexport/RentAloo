@@ -8,6 +8,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getRentalPath } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -76,6 +77,7 @@ export default function RentalListItem({
   const counterparty =
     viewerRole === "owner" ? booking.renter : equipment.owner;
   const counterpartyLabel = viewerRole === "owner" ? "Rented by" : "From";
+  const rentalPath = getRentalPath({ role: viewerRole, bookingId: booking.id });
 
   // Urgency styling based on countdown
   const getUrgencyConfig = () => {
@@ -219,7 +221,7 @@ export default function RentalListItem({
           className="px-2"
           asChild
         >
-          <Link to={`/rental/${booking.id}`}>
+          <Link to={rentalPath}>
             <ArrowRight className="h-4 w-4" />
             <span className="sr-only">View rental details</span>
           </Link>

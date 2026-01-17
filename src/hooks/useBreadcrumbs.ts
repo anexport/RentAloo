@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import {
   Calendar,
+  ClipboardCheck,
   DollarSign,
   Heart,
   Home,
@@ -103,6 +104,24 @@ export const useBreadcrumbs = (): BreadcrumbItem[] => {
       breadcrumbs.push(crumb);
       return breadcrumbs;
     }
+  }
+
+  if (normalizedPath.startsWith("/renter/inspections")) {
+    breadcrumbs.push({
+      label: "Inspections",
+      href: "/renter/inspections",
+      icon: ClipboardCheck,
+    });
+    return breadcrumbs;
+  }
+
+  if (normalizedPath.startsWith("/owner/inspections")) {
+    breadcrumbs.push({
+      label: "Inspections",
+      href: "/owner/inspections",
+      icon: ClipboardCheck,
+    });
+    return breadcrumbs;
   }
 
   // Route mapping (non-dashboard pages rendered inside DashboardLayout)

@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Camera,
   AlertTriangle,
   ArrowRight,
-  Clock,
+  Camera,
   ChevronUp,
+  Clock,
   MapPin,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { differenceInDays, isPast, isToday, isFuture } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import MobileInspectionSheet from "@/components/booking/inspection-flow/MobileInspectionSheet";
+import { cn } from "@/lib/utils";
+import { getInspectionPath } from "@/lib/user-utils";
 
 interface MobileInspectionCTAProps {
   bookingId: string;
@@ -37,6 +38,7 @@ export default function MobileInspectionCTA({
 }: MobileInspectionCTAProps) {
   const navigate = useNavigate();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const inspectionRole = isOwner ? "owner" : "renter";
   if (
     !startDate ||
     Number.isNaN(startDate.getTime()) ||
@@ -102,9 +104,21 @@ export default function MobileInspectionCTA({
 
   const handlePrimaryAction = () => {
     if (isPickupNeeded) {
-      navigate(`/inspection/${bookingId}/pickup`);
+      navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "pickup",
+        })
+      );
     } else if (isReturnNeeded) {
-      navigate(`/inspection/${bookingId}/return`);
+      navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "return",
+        })
+      );
     }
   };
 

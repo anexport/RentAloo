@@ -1,8 +1,3 @@
-import { useState, useMemo, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
-import { usePhotoUpload } from "@/hooks/usePhotoUpload";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertCircle,
   Camera,
@@ -10,6 +5,9 @@ import {
   CheckCircle2,
   PartyPopper,
 } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { InspectionStepIndicator } from "@/components/inspection/steps/InspectionStepIndicator";
 import InspectionActionBar from "@/components/inspection/InspectionActionBar";
 import InspectionIntroStep from "@/components/inspection/steps/InspectionIntroStep";
@@ -18,10 +16,12 @@ import InspectionChecklistStep from "@/components/inspection/steps/InspectionChe
 import InspectionReviewStep from "@/components/inspection/steps/InspectionReviewStep";
 import PickupConfirmationStep from "@/components/inspection/steps/PickupConfirmationStep";
 import ReturnConfirmationStep from "@/components/inspection/steps/ReturnConfirmationStep";
-import type { InspectionType, ChecklistItem } from "@/types/inspection";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { usePhotoUpload } from "@/hooks/usePhotoUpload";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import type { InspectionType, ChecklistItem } from "@/types/inspection";
 
 interface BookingInfo {
   startDate: string;
@@ -400,6 +400,7 @@ export default function InspectionWizard({
   };
 
   const actionBarConfig = getActionBarConfig();
+  const isIntroStep = currentStep === 0;
 
   // Determine which step to render
   const renderStep = () => {
@@ -410,6 +411,7 @@ export default function InspectionWizard({
             equipmentTitle={equipmentTitle}
             equipmentImageUrl={equipmentImageUrl}
             inspectionType={inspectionType}
+            onBegin={handleNext}
           />
         );
       case 1:
@@ -519,7 +521,9 @@ export default function InspectionWizard({
           "flex-1 px-4 py-4 max-w-2xl mx-auto w-full",
           // Add bottom padding for action bar (~70px) + mobile nav (64px) + safe area
           actionBarConfig &&
-            "pb-[calc(70px+64px+env(safe-area-inset-bottom))] md:pb-[calc(70px+env(safe-area-inset-bottom))]"
+            (isIntroStep
+              ? "pb-[calc(70px+64px+env(safe-area-inset-bottom))] md:pb-4"
+              : "pb-[calc(70px+64px+env(safe-area-inset-bottom))] md:pb-[calc(70px+env(safe-area-inset-bottom))]")
         )}
       >
         {renderStep()}
@@ -537,6 +541,7 @@ export default function InspectionWizard({
           primaryDisabled={actionBarConfig.primaryDisabled}
           isLoading={actionBarConfig.isLoading}
           loadingLabel={actionBarConfig.loadingLabel}
+          className={isIntroStep ? "md:hidden" : undefined}
         />
       )}
     </div>

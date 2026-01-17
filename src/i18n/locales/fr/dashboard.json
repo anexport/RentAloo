@@ -34,6 +34,10 @@
         "button": "Parcourir les Équipements"
       }
     },
+    "inspections": {
+      "title": "Inspections",
+      "description": "Gérez vos inspections de prise en charge et de retour."
+    },
     "reviews": {
       "card_title": "Mes Avis",
       "card_description": "Avis que vous avez écrits pour les propriétaires d'équipements"
@@ -146,6 +150,10 @@
     "active_rentals": {
       "title": "Locations Actives",
       "description": "Locations actuellement en cours pour vos annonces."
+    },
+    "inspections": {
+      "title": "Inspections",
+      "description": "Suivez les inspections de prise en charge et de retour pour vos locations."
     }
   }
 }

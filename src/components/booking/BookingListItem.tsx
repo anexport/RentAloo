@@ -22,6 +22,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { formatBookingDuration } from "@/lib/booking";
+import { getRentalPath } from "@/lib/user-utils";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
 type BookingListItemProps = {
@@ -333,7 +334,9 @@ export default function BookingListItem({
                   if (onViewDetails) {
                     onViewDetails();
                   } else {
-                    navigate(`/rental/${booking.id}`);
+                    navigate(
+                      getRentalPath({ role: viewerRole, bookingId: booking.id })
+                    );
                   }
                 }}
                 className="flex-1 sm:flex-none"
