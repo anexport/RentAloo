@@ -14,6 +14,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
+import { RentalProvider } from "@/contexts/RentalContext";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -132,7 +133,8 @@ function App() {
       <Router>
         <TooltipProvider delayDuration={300}>
           <RoleModeProvider>
-            <NuqsAdapter>
+            <RentalProvider>
+              <NuqsAdapter>
               <ErrorBoundary>
                 <div className="min-h-screen bg-background">
                   <Suspense fallback={<PageLoader />}>
@@ -319,6 +321,7 @@ function App() {
                 </div>
               </ErrorBoundary>
             </NuqsAdapter>
+            </RentalProvider>
           </RoleModeProvider>
         </TooltipProvider>
       </Router>
