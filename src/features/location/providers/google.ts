@@ -200,7 +200,7 @@ export async function searchGooglePlaces(
     }
 
     // Import Places library using new API - destructure classes directly
-    const { AutocompleteSuggestion, Place, AutocompleteSessionToken } = await importPlacesLibrary();
+    const { AutocompleteSuggestion, AutocompleteSessionToken } = await importPlacesLibrary();
 
     if (signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
@@ -387,4 +387,3 @@ export async function searchGooglePlaces(
     throw error;
   }
 }
-

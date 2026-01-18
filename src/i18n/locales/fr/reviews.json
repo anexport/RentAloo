@@ -86,10 +86,13 @@
   "errors": {
     "not_logged_in": "Vous devez être connecté pour soumettre un avis",
     "submit_failed": "Erreur lors de la soumission de l'avis. Veuillez réessayer.",
-    "auth_required": "Authentification requise"
+    "auth_required": "Authentification requise",
+    "review_update_failed_title": "La mise à jour du statut de la réservation a échoué",
+    "review_update_failed_description": "Votre avis a été envoyé, mais nous n'avons pas pu mettre à jour le statut de la réservation."
   },
   "success": {
     "review_submitted": "Avis soumis avec succès",
+    "review_submitted_description": "Merci d'avoir partagé votre expérience.",
     "review_updated": "Avis mis à jour avec succès",
     "review_deleted": "Avis supprimé avec succès"
   },

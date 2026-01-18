@@ -180,7 +180,7 @@ const PaymentCheckoutFormInner = ({
 
         <CardContent className={cn(isMobile ? "p-0" : "p-6")}>
           <form
-            onSubmit={handleSubmit}
+            onSubmit={(event) => void handleSubmit(event)}
             className={cn(isMobile ? "space-y-4" : "space-y-6")}
           >
             {/* Error Alert */}

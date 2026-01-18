@@ -10,9 +10,9 @@ export interface BookingRequestWithDetails extends BookingRequest {
   equipment: Database["public"]["Tables"]["equipment"]["Row"] & {
     category: Database["public"]["Tables"]["categories"]["Row"];
     photos?: Database["public"]["Tables"]["equipment_photos"]["Row"][];
+    owner: Database["public"]["Tables"]["profiles"]["Row"];
   };
   renter: Database["public"]["Tables"]["profiles"]["Row"];
-  owner: Database["public"]["Tables"]["profiles"]["Row"];
 }
 
 export interface BookingFormData {

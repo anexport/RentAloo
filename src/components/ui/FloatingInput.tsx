@@ -15,7 +15,12 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false);
     const [hasValue, setHasValue] = React.useState(false);
-    const inputId = id || `floating-input-${React.useId()}`;
+    const generatedId = React.useId();
+    if (import.meta.env.DEV && id === "") {
+      // Empty ids break label associations; fall back to generated id instead.
+      console.warn("FloatingInput received an empty id; using generated id.");
+    }
+    const inputId = id && id.length > 0 ? id : `floating-input-${generatedId}`;
     const internalRef = React.useRef<HTMLInputElement>(null);
 
     // Merge refs to support both forwarded ref and internal ref

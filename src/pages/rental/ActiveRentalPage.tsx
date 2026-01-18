@@ -1,26 +1,50 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
-  Package,
   AlertTriangle,
-  Camera,
+  ArrowLeft,
   Calendar,
-  MapPin,
+  Camera,
+  Check,
+  ChevronRight,
+  Clock,
   DollarSign,
+  HelpCircle,
+  MapPin,
+  MessageCircle,
+  Package,
+  ShieldCheck,
+  TriangleAlert,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { differenceInHours, format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useActiveRental } from "@/hooks/useActiveRental";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import BookingLifecycleStepper from "@/components/booking/inspection-flow/BookingLifecycleStepper";
+import { useRental } from "@/contexts/RentalContext";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import RentalCountdown from "@/components/rental/RentalCountdown";
-import RentalQuickActions from "@/components/rental/RentalQuickActions";
+import { getInspectionPath } from "@/lib/user-utils";
 import { calculateRentalCountdown } from "@/types/rental";
-import { format, differenceInHours } from "date-fns";
+
+interface ActiveRentalPageProps {
+  embedded?: boolean;
+}
 
 // Helper to get display name from profile
 const getDisplayName = (
@@ -51,21 +75,114 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
-export default function ActiveRentalPage() {
+export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageProps) {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { booking, pickupInspection, returnInspection, isLoading, error } =
-    useActiveRental(bookingId);
+  const {
+    currentRental: booking,
+    pickupInspection,
+    returnInspection,
+    isLoading,
+    error,
+    loadRental,
+    canInitiateReturn,
+    initiateReturn,
+    canOwnerConfirm,
+    ownerConfirm,
+    ownerReportDamage,
+    isOwner,
+  } = useRental();
+
+  // State for damage report dialog
+  const [showDamageDialog, setShowDamageDialog] = useState(false);
+  const [damageDescription, setDamageDescription] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEmbedded = embedded;
+
+  // Load rental data when bookingId changes
+  useEffect(() => {
+    if (bookingId) {
+      void loadRental(bookingId);
+    }
+  }, [bookingId, loadRental]);
+
+  // Handler for owner confirming no issues
+  const handleOwnerConfirm = async () => {
+    setIsSubmitting(true);
+    try {
+      await ownerConfirm();
+      // Navigate to dashboard after successful confirmation
+      navigate("/owner/dashboard");
+    } catch (err) {
+      console.error("Failed to confirm rental:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler for owner reporting damage
+  const handleReportDamage = async () => {
+    if (!damageDescription.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const cost = estimatedCost ? parseFloat(estimatedCost) : undefined;
+      await ownerReportDamage(damageDescription, cost);
+      setShowDamageDialog(false);
+      setDamageDescription("");
+      setEstimatedCost("");
+      // Navigate to claims page after filing
+      navigate(`/claims/file/${booking?.id}`);
+    } catch (err) {
+      console.error("Failed to report damage:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background animate-page-enter">
-        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-          <Skeleton className="h-8 w-48" shimmer />
-          <Skeleton className="h-64 w-full rounded-2xl" shimmer />
-          <Skeleton className="h-32 w-full rounded-2xl" shimmer />
-          <Skeleton className="h-24 w-full rounded-2xl" shimmer />
+      <div
+        className={cn(
+          "bg-background animate-page-enter",
+          !isEmbedded && "min-h-screen"
+        )}
+      >
+        <div
+          className={cn(
+            "mx-auto w-full",
+            isEmbedded ? "max-w-6xl" : "pb-24"
+          )}
+        >
+          {isEmbedded ? (
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-6">
+                <Skeleton className="h-80 w-full rounded-2xl" />
+                <Skeleton className="h-32 w-full rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-xl" />
+              </div>
+              <div className="space-y-6">
+                <Skeleton className="h-72 w-full rounded-2xl" />
+                <Skeleton className="h-52 w-full rounded-2xl" />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Skeleton matching mobile layout */}
+              <div className="h-64 w-full bg-muted animate-pulse" />
+              <div className="p-4 space-y-6">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <div className="space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -73,9 +190,7 @@ export default function ActiveRentalPage() {
 
   if (error || !booking) {
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : error || "This rental doesn't exist or you don't have access to it.";
+      error || "This rental doesn't exist or you don't have access to it.";
     const dashboardPath =
       user?.user_metadata?.role === "owner"
         ? "/owner/dashboard"
@@ -83,14 +198,19 @@ export default function ActiveRentalPage() {
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center animate-page-enter">
-        <Card className="max-w-md w-full mx-4 rounded-2xl">
+        <Card
+          className={cn(
+            "w-full mx-4 rounded-2xl",
+            isEmbedded ? "max-w-2xl" : ""
+          )}
+        >
           <CardContent className="text-center py-12">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-title-lg font-semibold mb-2">
               Rental Not Found
             </h2>
             <p className="text-muted-foreground mb-6">{errorMessage}</p>
-            <Button onClick={() => navigate(dashboardPath)}>
+            <Button onClick={() => void navigate(dashboardPath)}>
               Back to Dashboard
             </Button>
           </CardContent>
@@ -101,320 +221,679 @@ export default function ActiveRentalPage() {
 
   const equipment = booking.equipment;
   const primaryPhoto = equipment.equipment_photos?.find((p) => p.is_primary);
-  const photoUrl =
-    primaryPhoto?.photo_url || equipment.equipment_photos?.[0]?.photo_url;
+  const photoUrl = primaryPhoto?.photo_url || equipment.equipment_photos?.[0]?.photo_url;
 
   const isRenter = booking.renter_id === user?.id;
-  const isOwner = equipment.owner_id === user?.id;
+  const inspectionRole = isRenter ? "renter" : "owner";
+
   const countdown = calculateRentalCountdown(
     booking.start_date,
     booking.end_date
   );
+
   const hoursUntilEnd = differenceInHours(
     new Date(booking.end_date),
     new Date()
   );
+
   const isEndingSoon = hoursUntilEnd <= 24 && hoursUntilEnd > 0;
   const isOverdue = countdown.isOverdue;
+  // With new statuses: awaiting_pickup_inspection is when renter needs to do pickup
+  const isAwaitingPickupInspection = booking.status === "awaiting_pickup_inspection";
+  const isActiveStatus = booking.status === "active";
+  const isAwaitingReturnInspection = booking.status === "awaiting_return_inspection";
+
+  // Determine sticky bar state
+  let ctaConfig = {
+    label: "",
+    action: () => {},
+    variant: "default" as
+      | "default"
+      | "destructive"
+      | "outline"
+      | "secondary"
+      | "ghost"
+      | "link",
+    show: false,
+    icon: null as React.ReactNode,
+  };
+
+  if (isRenter) {
+    if (isAwaitingPickupInspection && !pickupInspection) {
+      ctaConfig = {
+        label: "Start Pickup Inspection",
+        action: () =>
+          void navigate(
+            getInspectionPath({
+              role: inspectionRole,
+              bookingId: booking.id,
+              type: "pickup",
+            })
+          ),
+        variant: "default",
+        show: true,
+        icon: <Camera className="h-4 w-4 mr-2" />,
+      };
+    } else if ((isActiveStatus || isAwaitingReturnInspection) && !returnInspection) {
+      if (isOverdue) {
+        ctaConfig = {
+          label: "Return Required - Start Inspection",
+          action: () =>
+            void navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "return",
+              })
+            ),
+          variant: "destructive",
+          show: true,
+          icon: <AlertTriangle className="h-4 w-4 mr-2" />,
+        };
+      } else if (isEndingSoon) {
+        ctaConfig = {
+          label: "Start Return Inspection",
+          action: () =>
+            void navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "return",
+              })
+            ),
+          variant: "default",
+          show: true,
+          icon: <Camera className="h-4 w-4 mr-2" />,
+        };
+      } else {
+        // Standard active state
+        ctaConfig = {
+          label: "Message Owner",
+          action: () => void navigate(`/messages/${equipment.owner.id}`), // Assuming message route
+          variant: "secondary",
+          show: true,
+          icon: <MessageCircle className="h-4 w-4 mr-2" />,
+        };
+      }
+    }
+  } else {
+    // Owner View
+    if (canOwnerConfirm) {
+      // Owner needs to review return inspection - show in section, not CTA
+      ctaConfig = {
+        label: "",
+        action: () => {},
+        variant: "default",
+        show: false,
+        icon: null,
+      };
+    } else {
+      ctaConfig = {
+        label: "Message Renter",
+        action: () => navigate(`/messages/${booking.renter.id}`),
+        variant: "secondary",
+        show: true,
+        icon: <MessageCircle className="h-4 w-4 mr-2" />,
+      };
+    }
+  }
+
+  // Count down text logic
+  const getCountdownText = () => {
+    if (isOverdue) return "Rental overdue";
+    if (isEndingSoon) return `${hoursUntilEnd} hours remaining`;
+    if (countdown.daysRemaining > 0)
+      return `${countdown.daysRemaining} days, ${countdown.hoursRemaining} hours remaining`;
+    return `${countdown.hoursRemaining} hours remaining`;
+  };
+
+  const countdownColor = isOverdue
+    ? "text-destructive"
+    : isEndingSoon
+    ? "text-orange-500"
+    : "text-emerald-600";
+
+  const heroSection = (
+    <div
+      className={cn(
+        "relative w-full bg-muted",
+        isEmbedded
+          ? "h-80 rounded-2xl border overflow-hidden"
+          : "h-72 mb-6"
+      )}
+    >
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt={equipment.title}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="h-full w-full flex items-center justify-center bg-muted">
+          <Package className="h-16 w-16 text-muted-foreground" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+
+      {/* Title Overlay */}
+      <div className="absolute bottom-4 left-4 right-4">
+        <h1
+          className={cn(
+            "font-bold tracking-tight text-foreground mb-2 shadow-sm",
+            isEmbedded ? "text-3xl" : "text-2xl"
+          )}
+        >
+          {equipment.title}
+        </h1>
+
+        <div className="flex items-center gap-2">
+          <Avatar className="h-6 w-6 border border-border bg-background">
+            <AvatarImage
+              src={
+                isRenter
+                  ? equipment.owner?.avatar_url || undefined
+                  : booking.renter?.avatar_url || undefined
+              }
+            />
+            <AvatarFallback className="text-[10px]">
+              {getInitials(
+                getDisplayName(isRenter ? equipment.owner : booking.renter)
+              )}
+            </AvatarFallback>
+          </Avatar>
+          <p className="text-sm font-medium text-foreground/90 mix-blend-difference">
+            {isRenter
+              ? `Owner: ${getDisplayName(equipment.owner)}`
+              : `Renter: ${getDisplayName(booking.renter)}`}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const progressSection = (
+    <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+        Rental Progress
+      </h3>
+      <BookingLifecycleStepper
+        hasPayment={true}
+        hasPickupInspection={!!pickupInspection}
+        hasReturnInspection={!!returnInspection}
+        startDate={new Date(booking.start_date)}
+        endDate={new Date(booking.end_date)}
+        bookingStatus={booking.status || "active"}
+        compact={!isEmbedded}
+      />
+    </div>
+  );
+
+  const countdownSection = isActiveStatus ? (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+      <Clock className={cn("h-5 w-5", countdownColor)} />
+      <div>
+        <p className={cn("font-medium", countdownColor)}>
+          {getCountdownText()}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Ends {format(new Date(booking.end_date), "MMM d, h:mm a")}
+        </p>
+      </div>
+    </div>
+  ) : null;
+
+  const warningSection =
+    isRenter && isEndingSoon && !returnInspection ? (
+      <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <AlertTitle className="text-orange-700 dark:text-orange-400">
+          Return Soon
+        </AlertTitle>
+        <AlertDescription className="text-orange-600 dark:text-orange-300 text-xs">
+          Please prepare to return the equipment.
+        </AlertDescription>
+      </Alert>
+    ) : null;
+
+  // Owner review section when pending_owner_review
+  const ownerReviewSection = canOwnerConfirm ? (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="py-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Review Return Inspection</h3>
+            <p className="text-sm text-muted-foreground">
+              The renter has completed the return inspection. Please review the equipment condition.
+            </p>
+          </div>
+        </div>
+
+        {/* Link to view return inspection */}
+        {returnInspection && (
+          <Button
+            variant="outline"
+            className="w-full justify-between h-10"
+            onClick={() =>
+              navigate(
+                getInspectionPath({
+                  role: "owner",
+                  bookingId: booking.id,
+                  type: "return",
+                  view: true,
+                })
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              View Return Inspection Photos
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        )}
+
+        <Separator />
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            className="flex-1 gap-2"
+            onClick={handleOwnerConfirm}
+            disabled={isSubmitting}
+          >
+            <Check className="h-4 w-4" />
+            Confirm - No Issues
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1 gap-2"
+            onClick={() => setShowDamageDialog(true)}
+            disabled={isSubmitting}
+          >
+            <TriangleAlert className="h-4 w-4" />
+            Report Damage
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          By confirming, the deposit will be released to the renter.
+        </p>
+      </CardContent>
+    </Card>
+  ) : null;
+
+  const detailsSection = (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Rental Details</h3>
+
+      <div className="space-y-0 divide-y">
+        {/* Dates */}
+        <div className="flex items-center gap-4 py-4">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <Calendar className="h-5 w-5 text-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-muted-foreground">Dates</p>
+            <p className="font-medium">
+              {format(new Date(booking.start_date), "MMM d")} -{" "}
+              {format(new Date(booking.end_date), "MMM d, yyyy")}
+            </p>
+          </div>
+        </div>
+
+        {/* Cost */}
+        <div className="flex items-center gap-4 py-4">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <DollarSign className="h-5 w-5 text-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-muted-foreground">Total Cost</p>
+            <p className="font-medium">
+              ${(booking.total_amount ?? 0).toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        {/* Location */}
+        {equipment.location && (
+          <div className="flex items-center gap-4 py-4">
+            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <MapPin className="h-5 w-5 text-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">
+                Pick up / Return
+              </p>
+              <p className="font-medium text-sm line-clamp-1">
+                {equipment.location}
+              </p>
+            </div>
+            <a
+              href={`https://maps.google.com/maps?q=${encodeURIComponent(
+                equipment.location
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="h-8">
+                Directions
+              </Button>
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const actionsSection = (
+    <div className={cn("space-y-3", !isEmbedded && "pb-8")}>
+      <Button
+        variant="outline"
+        className="w-full justify-between h-12"
+        onClick={() => void navigate("/support")}
+      >
+        <span className="flex items-center gap-2">
+          <HelpCircle className="h-4 w-4" />
+          Get Help
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Button>
+
+      <Button
+        variant="outline"
+        className="w-full justify-between h-12"
+        onClick={() => {
+          // Placeholder for inspection view logic
+          if (pickupInspection) {
+            void navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "pickup",
+                view: true,
+              })
+            );
+          } else if (isRenter && isAwaitingPickupInspection) {
+            navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "pickup",
+              })
+            );
+          }
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <ShieldCheck
+            className={cn(
+              "h-4 w-4",
+              pickupInspection ? "text-emerald-500" : "text-muted-foreground"
+            )}
+          />
+          Pickup Inspection
+        </span>
+        {pickupInspection ? (
+          <Badge
+            variant="secondary"
+            className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+          >
+            Completed
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">Pending</span>
+        )}
+      </Button>
+
+      <Button
+        variant="outline"
+        className="w-full justify-between h-12"
+        onClick={() => {
+          if (returnInspection) {
+            void navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "return",
+                view: true,
+              })
+            );
+          } else if (isRenter && isActiveStatus) {
+            void navigate(
+              getInspectionPath({
+                role: inspectionRole,
+                bookingId: booking.id,
+                type: "return",
+              })
+            );
+          }
+        }}
+      >
+        <span className="flex items-center gap-2">
+          <ShieldCheck
+            className={cn(
+              "h-4 w-4",
+              returnInspection ? "text-emerald-500" : "text-muted-foreground"
+            )}
+          />
+          Return Inspection
+        </span>
+        {returnInspection ? (
+          <Badge
+            variant="secondary"
+            className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+          >
+            Completed
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">Pending</span>
+        )}
+      </Button>
+    </div>
+  );
+
+  const ctaButton = ctaConfig.show ? (
+    <Button
+      size="lg"
+      className="w-full shadow-lg text-base font-semibold h-12"
+      variant={ctaConfig.variant}
+      onClick={ctaConfig.action}
+    >
+      {ctaConfig.icon}
+      {ctaConfig.label}
+    </Button>
+  ) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className={cn(
+        "bg-background relative",
+        isEmbedded ? "pb-10" : "min-h-screen pb-24"
+      )}
+    >
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+      <header
+        className={cn(
+          "bg-transparent",
+          isEmbedded
+            ? "relative mb-6"
+            : "fixed top-0 left-0 right-0 z-50 pointer-events-none"
+        )}
+      >
+        <div
+          className={cn(
+            "mx-auto py-3 flex items-center",
+            isEmbedded
+              ? "max-w-6xl justify-end"
+              : "px-4 justify-between",
+            !isEmbedded && "pointer-events-auto"
+          )}
+        >
+          {!isEmbedded && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 bg-background/80 backdrop-blur-md shadow-sm rounded-full"
+              onClick={() => void navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <Badge
-            variant={booking.status === "active" ? "default" : "secondary"}
+            variant={isActiveStatus ? "default" : "secondary"}
+            className={cn(
+              !isEmbedded &&
+                "bg-background/80 backdrop-blur-md shadow-sm backdrop-saturate-150"
+            )}
           >
-            {booking.status === "active" ? "Active Rental" : booking.status}
+            {booking.status === "active"
+              ? "Active"
+              : booking.status === "awaiting_pickup_inspection"
+              ? "Awaiting Pickup"
+              : booking.status === "awaiting_start_date"
+              ? "Ready to Start"
+              : booking.status === "awaiting_return_inspection"
+              ? "Awaiting Return"
+              : booking.status === "pending_owner_review"
+              ? "Pending Review"
+              : booking.status === "disputed"
+              ? "Disputed"
+              : booking.status}
           </Badge>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6 animate-page-enter">
-        {/* Return Reminder Banner */}
-        {isRenter && isEndingSoon && !returnInspection && (
-          <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-            <AlertTitle className="text-orange-700 dark:text-orange-400">
-              Return Reminder
-            </AlertTitle>
-            <AlertDescription className="text-orange-600 dark:text-orange-300">
-              Your rental ends in less than 24 hours. Please prepare to return
-              the equipment and complete the return inspection.
-            </AlertDescription>
-          </Alert>
+      <main
+        className={cn(
+          "mx-auto w-full",
+          isEmbedded
+            ? "max-w-6xl"
+            : "bg-background overflow-hidden shadow-2xl shadow-black/5 min-h-screen"
         )}
-
-        {/* Overdue Alert */}
-        {isRenter && isOverdue && !returnInspection && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Rental Overdue</AlertTitle>
-            <AlertDescription>
-              Your rental period has ended. Please return the equipment
-              immediately and complete the return inspection to avoid additional
-              charges.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Equipment Hero */}
-        <Card className="overflow-hidden rounded-2xl">
-          <div className="relative h-48 sm:h-64 bg-muted">
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={equipment.title}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center">
-                <Package className="h-16 w-16 text-muted-foreground" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h1 className="text-headline-lg font-bold">{equipment.title}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Avatar className="h-6 w-6 border border-white/30">
-                  <AvatarImage
-                    src={
-                      isRenter
-                        ? equipment.owner?.avatar_url || undefined
-                        : booking.renter?.avatar_url || undefined
-                    }
-                  />
-                  <AvatarFallback className="text-[10px] bg-white/20">
-                    {getInitials(
-                      getDisplayName(
-                        isRenter ? equipment.owner : booking.renter
-                      )
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <p className="text-white/90">
-                  {isRenter
-                    ? `Renting from ${getDisplayName(equipment.owner)}`
-                    : `Rented by ${getDisplayName(booking.renter)}`}
-                </p>
+      >
+        {isEmbedded ? (
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="space-y-6">
+              {heroSection}
+              {progressSection}
+              {countdownSection}
+              {warningSection}
+              {ownerReviewSection}
+            </div>
+            <div className="space-y-6">
+              {detailsSection}
+              <div className="space-y-3">
+                {ctaButton}
+                {actionsSection}
               </div>
             </div>
           </div>
-        </Card>
-
-        {/* Countdown Timer */}
-        <RentalCountdown
-          startDate={booking.start_date}
-          endDate={booking.end_date}
-        />
-
-        {/* Rental Details */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rental Period</p>
-                  <p className="font-medium">
-                    {format(new Date(booking.start_date), "MMM d")} -{" "}
-                    {format(new Date(booking.end_date), "MMM d, yyyy")}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="font-medium">
-                    ${(booking.total_amount ?? 0).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {equipment.location && (
-            <Card className="sm:col-span-2 rounded-2xl">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">
-                      Equipment Location
-                    </p>
-                    <p className="font-medium">{equipment.location}</p>
-                  </div>
-                  <a
-                    href={`https://maps.google.com/maps?q=${encodeURIComponent(
-                      equipment.location
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" size="sm">
-                      Directions
-                    </Button>
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RentalQuickActions
-              bookingId={booking.id}
-              ownerId={equipment.owner?.id}
-              equipmentLocation={equipment.location}
-              hasPickupInspection={!!pickupInspection}
-              showReturnAction={isRenter && (isEndingSoon || isOverdue)}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Inspection Summary */}
-        <Card className="rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Inspection Status</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Camera className="h-5 w-5 text-emerald-500" />
-                <div>
-                  <p className="font-medium">Pickup Inspection</p>
-                  <p className="text-sm text-muted-foreground">
-                    {pickupInspection?.completed_at
-                      ? `Completed ${format(
-                          new Date(pickupInspection.completed_at),
-                          "MMM d, h:mm a"
-                        )}`
-                      : "Not completed"}
-                  </p>
-                </div>
-              </div>
-              {pickupInspection ? (
-                <Link to={`/inspection/${booking.id}/view/pickup`}>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                </Link>
-              ) : (
-                <Badge variant="secondary">Pending</Badge>
-              )}
+        ) : (
+          <>
+            {heroSection}
+            <div className="px-4 space-y-6">
+              {progressSection}
+              {countdownSection}
+              {warningSection}
+              {ownerReviewSection}
+              {detailsSection}
+              <Separator className="my-6" />
+              {actionsSection}
             </div>
-
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <Camera
-                  className={cn(
-                    "h-5 w-5",
-                    returnInspection
-                      ? "text-emerald-500"
-                      : "text-muted-foreground"
-                  )}
-                />
-                <div>
-                  <p className="font-medium">Return Inspection</p>
-                  <p className="text-sm text-muted-foreground">
-                    {returnInspection?.completed_at
-                      ? `Completed ${format(
-                          new Date(returnInspection.completed_at),
-                          "MMM d, h:mm a"
-                        )}`
-                      : "Not started"}
-                  </p>
-                </div>
-              </div>
-              {returnInspection ? (
-                <Link to={`/inspection/${booking.id}/view/return`}>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  {isRenter && (
-                    <Link to={`/inspection/${booking.id}/return`}>
-                      <Button
-                        variant={
-                          isEndingSoon || isOverdue ? "default" : "outline"
-                        }
-                        size="sm"
-                      >
-                        Start
-                      </Button>
-                    </Link>
-                  )}
-                  {isOwner && (
-                    <Badge variant="secondary">Awaiting renter</Badge>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Return CTA */}
-        {isRenter && !returnInspection && (
-          <Card className="border-primary/30 bg-primary/5 rounded-2xl">
-            <CardContent className="p-6 text-center">
-              <Camera className="h-10 w-10 text-primary mx-auto mb-3" />
-              <h3 className="text-lg font-semibold mb-2">
-                {isOverdue
-                  ? "Return Required"
-                  : isEndingSoon
-                  ? "Rental Ending Soon"
-                  : "Ready to Return?"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {isOverdue
-                  ? "Your rental has ended. Complete the return inspection to finalize."
-                  : isEndingSoon
-                  ? "Your rental ends soon. Complete the return inspection when ready."
-                  : "When you're done with the equipment, start the return inspection."}
-              </p>
-              <Link to={`/inspection/${booking.id}/return`}>
-                <Button size="lg" className="gap-2">
-                  <Camera className="h-5 w-5" />
-                  Start Return Inspection
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          </>
         )}
-
-        {/* Help Link */}
-        <div className="text-center">
-          <Link
-            to="/support"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Need help with your rental? Contact Support
-          </Link>
-        </div>
       </main>
+
+      {/* Sticky Bottom Action Bar */}
+      {!isEmbedded && ctaConfig.show && (
+          <div
+            className={cn(
+              "p-4 bg-background border-t safe-area-bottom z-40",
+              "fixed bottom-0 left-0 right-0"
+            )}
+          >
+          <div className="mx-auto">
+            <Button
+              size="lg"
+              className="w-full shadow-lg text-base font-semibold"
+              variant={ctaConfig.variant}
+              onClick={ctaConfig.action}
+            >
+              {ctaConfig.icon}
+              {ctaConfig.label}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Damage Report Dialog */}
+      <Dialog open={showDamageDialog} onOpenChange={setShowDamageDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TriangleAlert className="h-5 w-5 text-destructive" />
+              Report Equipment Damage
+            </DialogTitle>
+            <DialogDescription>
+              Describe the damage you found and provide an estimated repair cost.
+              This will initiate a claim against the renter's deposit.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="damage-description">Damage Description</Label>
+              <Textarea
+                id="damage-description"
+                placeholder="Describe the damage in detail..."
+                value={damageDescription}
+                onChange={(e) => setDamageDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="estimated-cost">Estimated Repair Cost (Optional)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="estimated-cost"
+                  type="number"
+                  placeholder="0.00"
+                  value={estimatedCost}
+                  onChange={(e) => setEstimatedCost(e.target.value)}
+                  className="pl-9"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You can provide quotes and additional evidence in the next step.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setShowDamageDialog(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReportDamage}
+              disabled={isSubmitting || !damageDescription.trim()}
+            >
+              {isSubmitting ? "Submitting..." : "Report Damage"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

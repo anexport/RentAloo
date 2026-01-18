@@ -321,7 +321,11 @@ export default function CompactStats({
           <button
             type="button"
             key={stat.key}
-            onClick={() => stat.href && navigate(stat.href)}
+            onClick={() => {
+              if (stat.href) {
+                void navigate(stat.href);
+              }
+            }}
             className={cn(
               "flex items-center gap-3 p-3 rounded-xl text-left",
               "bg-card border border-border/50",

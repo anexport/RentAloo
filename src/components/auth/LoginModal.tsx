@@ -251,7 +251,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
             type="button"
             variant="outline"
             className="w-full"
-            onClick={handleGoogleSignIn}
+            onClick={() => void handleGoogleSignIn()}
             disabled={isOAuthLoading || isLoading}
           >
             {isOAuthLoading ? (

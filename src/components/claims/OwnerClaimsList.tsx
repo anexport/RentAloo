@@ -41,7 +41,7 @@ export default function OwnerClaimsList() {
           <ClaimReviewCard
             key={claim.id}
             claim={claim}
-            onReview={() => navigate(`/claims/manage/${claim.id}`)}
+            onReview={() => void navigate(`/claims/manage/${claim.id}`)}
             pendingActionLabel="View Details"
           />
         ))}

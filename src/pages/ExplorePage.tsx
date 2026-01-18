@@ -10,11 +10,13 @@ import {
   parseAsBoolean,
 } from "nuqs";
 import { format } from "date-fns";
-import { useAuth } from "@/hooks/useAuth";
 import SEOHead from "@/components/seo/SEOHead";
 import StructuredData from "@/components/seo/StructuredData";
 import { generateExplorePageMeta } from "@/lib/seo/meta";
-import { generateBreadcrumbSchema, generateItemListSchema } from "@/lib/seo/schema";
+import {
+  generateBreadcrumbSchema,
+  generateItemListSchema,
+} from "@/lib/seo/schema";
 import SearchBarPopover from "@/components/explore/SearchBarPopover";
 import type { SearchBarFilters } from "@/types/search";
 import CategoryBar from "@/components/explore/CategoryBar";
@@ -52,7 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronRight, ArrowUpDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -69,27 +71,10 @@ const CONDITION_VALUES: Array<Listing["condition"]> = [
 const ExplorePage = () => {
   const { t } = useTranslation("equipment");
   const { t: tNav } = useTranslation("navigation");
-  const { user } = useAuth();
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
-  const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const virtualListingGridRef = useRef<VirtualListingGridHandle>(null);
-
-  // Track scroll position for collapsing header on mobile
-  useEffect(() => {
-    if (!isMobile) {
-      setIsScrolled(false);
-      return;
-    }
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isMobile]);
 
   // Filter params managed via nuqs
   const [searchQuery, setSearchQuery] = useQueryState("search", {
@@ -382,7 +367,7 @@ const ExplorePage = () => {
     filterValues.verified,
   ]);
 
-  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["listings", effectiveFilters],
     queryFn: ({ signal }) => fetchListings(effectiveFilters, signal),
     staleTime: 1000 * 60 * 5,
@@ -646,22 +631,27 @@ const ExplorePage = () => {
   };
 
   // SEO data
-  const exploreMeta = generateExplorePageMeta(categoryId !== "all" ? categoryId : undefined);
+  const exploreMeta = generateExplorePageMeta(
+    categoryId !== "all" ? categoryId : undefined
+  );
   const breadcrumbSchema = generateBreadcrumbSchema([
     { name: "Home", url: "/" },
     { name: "Explore", url: "/explore" },
-    ...(categoryId !== "all" ? [{ name: categoryId, url: `/explore?category=${categoryId}` }] : []),
+    ...(categoryId !== "all"
+      ? [{ name: categoryId, url: `/explore?category=${categoryId}` }]
+      : []),
   ]);
-  const itemListSchema = sortedListings.length > 0
-    ? generateItemListSchema(
-        sortedListings.slice(0, 10).map((listing) => ({
-          id: listing.id,
-          title: listing.title,
-          dailyRate: listing.daily_rate,
-          imageUrl: listing.photos?.[0]?.photo_url,
-        }))
-      )
-    : null;
+  const itemListSchema =
+    sortedListings.length > 0
+      ? generateItemListSchema(
+          sortedListings.slice(0, 10).map((listing) => ({
+            id: listing.id,
+            title: listing.title,
+            dailyRate: listing.daily_rate,
+            imageUrl: listing.photos?.[0]?.photo_url,
+          }))
+        )
+      : null;
 
   // Mobile: Full-screen map-first layout
   if (isMobile) {
@@ -688,7 +678,7 @@ const ExplorePage = () => {
           location={searchFilters.location}
           onLocationChange={handleLocationChange}
           categoryId={categoryId}
-          onCategoryChange={setCategoryId}
+          onCategoryChange={(value) => void setCategoryId(value)}
           filterValues={filterValues}
           onFilterChange={handleFilterChange}
           sortBy={sortBy}
@@ -751,13 +741,11 @@ const ExplorePage = () => {
       <StructuredData data={breadcrumbSchema} />
       {itemListSchema && <StructuredData data={itemListSchema} />}
 
-      {/* Header with navbar when logged in */}
-      {user && (
-        <ExploreHeader
-          onLoginClick={() => handleLoginOpenChange(true)}
-          onSignupClick={() => handleSignupOpenChange(true)}
-        />
-      )}
+      {/* Header with navbar */}
+      <ExploreHeader
+        onLoginClick={() => handleLoginOpenChange(true)}
+        onSignupClick={() => handleSignupOpenChange(true)}
+      />
 
       {/* Sticky Header with Search */}
       <div className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
@@ -796,7 +784,7 @@ const ExplorePage = () => {
             ) : (
               <CategoryBar
                 activeCategoryId={categoryId}
-                onCategoryChange={setCategoryId}
+                onCategoryChange={(value) => void setCategoryId(value)}
               />
             )}
           </div>

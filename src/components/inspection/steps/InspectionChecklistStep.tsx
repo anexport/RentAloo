@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   AlertTriangle,
   AlertCircle,
@@ -17,8 +15,6 @@ interface InspectionChecklistStepProps {
   categorySlug?: string;
   items: ChecklistItem[];
   onItemsChange: (items: ChecklistItem[]) => void;
-  onBack: () => void;
-  onContinue: () => void;
   className?: string;
 }
 
@@ -80,8 +76,6 @@ export default function InspectionChecklistStep({
   categorySlug,
   items,
   onItemsChange,
-  onBack,
-  onContinue,
   className,
 }: InspectionChecklistStepProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -124,188 +118,161 @@ export default function InspectionChecklistStep({
   }
 
   return (
-    <div className={cn("flex flex-col min-h-0", className)}>
-      {/* Step content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="space-y-2">
-            <h2 className="text-headline-lg font-bold tracking-tight">
-              Condition Checklist
-            </h2>
-            <p className="text-muted-foreground">
-              Rate each item&apos;s condition. Add notes for anything not in
-              good condition.
-            </p>
-          </div>
-
-          {/* Legend */}
-          <div className="flex flex-wrap gap-3">
-            {(Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]).map(
-              (status) => {
-                const config = STATUS_CONFIG[status];
-                const Icon = config.icon;
-                return (
-                  <div
-                    key={status}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm",
-                      config.bgColor
-                    )}
-                  >
-                    <Icon className={cn("h-4 w-4", config.color)} />
-                    <span className={config.color}>{config.label}</span>
-                  </div>
-                );
-              }
-            )}
-          </div>
-
-          {/* Checklist items */}
-          <div className="space-y-3">
-            {items.map((item, index) => {
-              const config = STATUS_CONFIG[item.status];
-              const Icon = config.icon;
-              const isExpanded = expandedIndex === index;
-              const showNotes = item.status !== "good" || isExpanded;
-
-              return (
-                <Card
-                  key={index}
-                  className={cn(
-                    "transition-all duration-200",
-                    config.borderColor,
-                    "border-2"
-                  )}
-                >
-                  <CardContent className="p-4 space-y-4">
-                    {/* Item header */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={cn(
-                            "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                            config.bgColor
-                          )}
-                        >
-                          <Icon className={cn("h-5 w-5", config.color)} />
-                        </div>
-                        <span className="font-medium truncate">
-                          {item.item}
-                        </span>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExpand(index)}
-                        className="shrink-0"
-                        aria-label={isExpanded ? "Collapse" : "Expand"}
-                      >
-                        <ChevronDown
-                          className={cn(
-                            "h-4 w-4 transition-transform",
-                            isExpanded && "rotate-180"
-                          )}
-                        />
-                      </Button>
-                    </div>
-
-                    {/* Status buttons */}
-                    <div className="flex gap-2">
-                      {(
-                        Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]
-                      ).map((status) => {
-                        const statusConfig = STATUS_CONFIG[status];
-                        const StatusIcon = statusConfig.icon;
-                        const isSelected = item.status === status;
-
-                        return (
-                          <Button
-                            key={status}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange(index, status)}
-                            className={cn(
-                              "flex-1 h-12 transition-all",
-                              isSelected && [
-                                statusConfig.bgColor,
-                                statusConfig.borderColor,
-                                statusConfig.color,
-                              ]
-                            )}
-                            aria-pressed={isSelected}
-                          >
-                            <StatusIcon
-                              className={cn(
-                                "h-4 w-4 mr-1.5",
-                                isSelected
-                                  ? statusConfig.color
-                                  : "text-muted-foreground"
-                              )}
-                            />
-                            {statusConfig.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Notes section */}
-                    {showNotes && (
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={`notes-${index}`}
-                          className="text-sm font-medium text-muted-foreground"
-                        >
-                          {item.status !== "good"
-                            ? "Please describe the issue"
-                            : "Additional notes (optional)"}
-                        </label>
-                        <Textarea
-                          id={`notes-${index}`}
-                          value={item.notes || ""}
-                          onChange={(e) =>
-                            updateItem(index, { notes: e.target.value })
-                          }
-                          placeholder={
-                            item.status !== "good"
-                              ? "Describe the condition or damage..."
-                              : "Any additional observations..."
-                          }
-                          rows={2}
-                          className="resize-none"
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+    <div className={cn("space-y-4", className)}>
+      {/* Header - centered on mobile */}
+      <div className="text-center space-y-1">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Condition Checklist
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Rate each item. Add notes for anything not in good condition.
+        </p>
       </div>
 
-      {/* Fixed bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t safe-area-bottom">
-        <div className="max-w-2xl mx-auto flex gap-3">
-          <Button
-            variant="outline"
-            onClick={onBack}
-            className="h-12"
-            aria-label="Go back to photos"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <Button
-            onClick={onContinue}
-            className="flex-1 h-12 font-semibold"
-            aria-label="Continue to review"
-          >
-            Continue
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
+      {/* Legend - centered */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {(Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]).map((status) => {
+          const config = STATUS_CONFIG[status];
+          const Icon = config.icon;
+          return (
+            <div
+              key={status}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+                config.bgColor
+              )}
+            >
+              <Icon className={cn("h-3 w-3", config.color)} />
+              <span className={config.color}>{config.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Checklist items */}
+      <div className="space-y-2">
+        {items.map((item, index) => {
+          const config = STATUS_CONFIG[item.status];
+          const Icon = config.icon;
+          const isExpanded = expandedIndex === index;
+          const showNotes = item.status !== "good" || isExpanded;
+
+          return (
+            <Card
+              key={index}
+              className={cn(
+                "transition-all duration-200",
+                config.borderColor,
+                "border"
+              )}
+            >
+              <CardContent className="p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className={cn(
+                        "h-7 w-7 rounded-full flex items-center justify-center shrink-0",
+                        config.bgColor
+                      )}
+                    >
+                      <Icon className={cn("h-3.5 w-3.5", config.color)} />
+                    </div>
+                    <span className="text-sm font-medium truncate">{item.item}</span>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleExpand(index)}
+                    className="shrink-0 h-7 w-7 p-0"
+                    aria-label={isExpanded ? "Collapse" : "Expand"}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        isExpanded && "rotate-180"
+                      )}
+                    />
+                  </Button>
+                </div>
+
+                {/* Status buttons */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(Object.keys(STATUS_CONFIG) as ChecklistItemStatus[]).map(
+                    (status) => {
+                      const statusConfig = STATUS_CONFIG[status];
+                      const StatusIcon = statusConfig.icon;
+                      const isSelected = item.status === status;
+
+                      return (
+                        <Button
+                          key={status}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusChange(index, status)}
+                          className={cn(
+                            "h-10 w-full justify-center text-xs transition-all active:scale-[0.98]",
+                            isSelected && [
+                              statusConfig.bgColor,
+                              statusConfig.borderColor,
+                              statusConfig.color,
+                            ]
+                          )}
+                          aria-pressed={isSelected}
+                        >
+                          <StatusIcon
+                            className={cn(
+                              "h-3.5 w-3.5 mr-1",
+                              isSelected
+                                ? statusConfig.color
+                                : "text-muted-foreground"
+                            )}
+                          />
+                          {statusConfig.label}
+                        </Button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {/* Notes section */}
+                <div
+                  className={cn(
+                    "grid transition-all duration-300",
+                    showNotes
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
+                  )}
+                >
+                  <div className="overflow-hidden space-y-1.5">
+                    <label
+                      htmlFor={`notes-${index}`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      {item.status !== "good"
+                        ? "Describe the issue"
+                        : "Notes (optional)"}
+                    </label>
+                    <Textarea
+                      id={`notes-${index}`}
+                      value={item.notes || ""}
+                      onChange={(e) =>
+                        updateItem(index, { notes: e.target.value })
+                      }
+                      placeholder={
+                        item.status !== "good"
+                          ? "Describe the condition..."
+                          : "Any observations..."
+                      }
+                      rows={2}
+                      className="resize-none text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

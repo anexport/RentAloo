@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, isFuture, isPast } from "date-fns";
+import { format, differenceInDays, isPast } from "date-fns";
 import {
   ChevronDown,
   MapPin,
   MessageSquare,
   XCircle,
-  User,
   ExternalLink,
   CheckCircle2,
   AlertCircle,
@@ -22,6 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { formatBookingDuration } from "@/lib/booking";
+import { getRentalPath } from "@/lib/user-utils";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
 type BookingListItemProps = {
@@ -333,7 +333,9 @@ export default function BookingListItem({
                   if (onViewDetails) {
                     onViewDetails();
                   } else {
-                    navigate(`/rental/${booking.id}`);
+                    void navigate(
+                      getRentalPath({ role: viewerRole, bookingId: booking.id })
+                    );
                   }
                 }}
                 className="flex-1 sm:flex-none"

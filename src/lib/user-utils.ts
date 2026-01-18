@@ -26,3 +26,34 @@ export const getUserInitials = (email?: string | null): string => {
 export const getDashboardPath = (activeMode: "owner" | "renter"): string => {
   return activeMode === "owner" ? "/owner/dashboard" : "/renter/dashboard";
 };
+
+export const getInspectionsPath = (activeMode: "owner" | "renter"): string => {
+  return activeMode === "owner" ? "/owner/inspections" : "/renter/inspections";
+};
+
+export const getInspectionPath = ({
+  role,
+  bookingId,
+  type,
+  view = false,
+}: {
+  role: "owner" | "renter";
+  bookingId: string;
+  type: "pickup" | "return";
+  view?: boolean;
+}): string => {
+  const basePath = getInspectionsPath(role);
+  return view
+    ? `${basePath}/${bookingId}/view/${type}`
+    : `${basePath}/${bookingId}/${type}`;
+};
+
+export const getRentalPath = ({
+  role,
+  bookingId,
+}: {
+  role: "owner" | "renter";
+  bookingId: string;
+}): string => {
+  return `/${role}/rental/${bookingId}`;
+};

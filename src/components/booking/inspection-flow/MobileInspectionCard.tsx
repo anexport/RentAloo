@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
-  Camera,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
-  Clock,
+  Camera,
+  CheckCircle2,
   ChevronRight,
+  Clock,
 } from "lucide-react";
+import { differenceInDays, isPast, isToday } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { differenceInDays, isPast, isToday, isFuture } from "date-fns";
+import { getInspectionPath } from "@/lib/user-utils";
 import MobileInspectionSheet from "./MobileInspectionSheet";
 import type { InspectionPhase, ReturnInspectionSummary } from "./InspectionFlowBanner";
 
@@ -44,6 +45,7 @@ export default function MobileInspectionCard({
   const navigate = useNavigate();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const today = new Date();
+  const inspectionRole = isOwner ? "owner" : "renter";
 
   const windowHours = claimWindowHours ?? 48;
   const submittedAt = returnInspection?.timestamp || returnInspection?.created_at;
@@ -197,15 +199,34 @@ export default function MobileInspectionCard({
 
   const handlePrimaryAction = () => {
     if (ownerNeedsReturnReview) {
-      navigate(`/inspection/${bookingId}/view/return`);
+      void navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "return",
+          view: true,
+        })
+      );
       return;
     }
     if (!isOwner && phase === "awaiting_pickup_inspection") {
-      navigate(`/inspection/${bookingId}/pickup`);
+      void navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "pickup",
+        })
+      );
       return;
     }
     if (!isOwner && phase === "awaiting_return_inspection") {
-      navigate(`/inspection/${bookingId}/return`);
+      void navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "return",
+        })
+      );
       return;
     }
     setIsSheetOpen(true);

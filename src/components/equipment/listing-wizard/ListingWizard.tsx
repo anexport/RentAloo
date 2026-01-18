@@ -110,6 +110,12 @@ export default function ListingWizard({
     }
   }, [wizard.currentStep, prevStep]);
 
+  useEffect(() => {
+    if (showSuccess) {
+      fireSuccessConfetti();
+    }
+  }, [showSuccess]);
+
   const slideDirection = wizard.currentStep > prevStep ? "left" : "right";
 
   // Fetch categories
@@ -430,11 +436,6 @@ export default function ListingWizard({
 
   // Success overlay
   if (showSuccess) {
-    // Fire confetti on success
-    useEffect(() => {
-      fireSuccessConfetti();
-    }, []);
-
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background">
         <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
@@ -589,7 +590,7 @@ export default function ListingWizard({
             isEditMode={wizard.isEditMode}
             onBack={wizard.prevStep}
             onNext={wizard.nextStep}
-            onSubmit={handleSubmit}
+            onSubmit={() => void handleSubmit()}
             onCancel={handleCancelClick}
           />
         </div>

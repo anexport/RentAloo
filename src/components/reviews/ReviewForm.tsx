@@ -178,11 +178,11 @@ const ReviewForm = ({
           </div>
 
           {/* Guidelines */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 text-sm mb-2">
+          <div className="bg-muted/50 border border-border rounded-lg p-4">
+            <h4 className="font-medium text-foreground text-sm mb-2">
               {t("form.guidelines_title")}
             </h4>
-            <ul className="text-xs text-blue-700 space-y-1">
+            <ul className="text-xs text-muted-foreground space-y-1">
               <li>• {t("form.guideline_specific")}</li>
               <li>• {t("form.guideline_respectful")}</li>
               <li>• {t("form.guideline_facts")}</li>

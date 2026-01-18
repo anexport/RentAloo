@@ -34,6 +34,10 @@
         "button": "Browse Equipment"
       }
     },
+    "inspections": {
+      "title": "Inspections",
+      "description": "Manage your pickup and return inspections."
+    },
     "reviews": {
       "card_title": "My Reviews",
       "card_description": "Reviews you've written for equipment owners"
@@ -150,6 +154,10 @@
     "active_rentals": {
       "title": "Active Rentals",
       "description": "Rentals currently in progress for your listings."
+    },
+    "inspections": {
+      "title": "Inspections",
+      "description": "Track pickup and return inspections for your rentals."
     }
   }
 }

@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { AlertCircle, ArrowLeft, Camera } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import InspectionWizard from "@/components/inspection/InspectionWizard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-import InspectionWizard from "@/components/inspection/InspectionWizard";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, AlertCircle, Camera } from "lucide-react";
+import { getInspectionPath, getInspectionsPath } from "@/lib/user-utils";
 import type { InspectionType } from "@/types/inspection";
 
 interface BookingDetails {
@@ -21,6 +23,11 @@ interface BookingDetails {
     title: string;
     owner_id: string;
     deposit_refund_timeline_hours: number | null;
+    photos?: {
+      photo_url: string | null;
+      is_primary: boolean | null;
+      order_index: number | null;
+    }[];
     category: {
       sport_type: string;
     } | null;
@@ -69,6 +76,7 @@ export default function EquipmentInspectionPage() {
               title,
               owner_id,
               deposit_refund_timeline_hours,
+              photos:equipment_photos (photo_url, is_primary, order_index),
               category:categories(sport_type)
             )
           `
@@ -97,7 +105,7 @@ export default function EquipmentInspectionPage() {
 
         // Only the renter should complete the pickup inspection; redirect owners away
         if (inspectionType === "pickup" && isOwner) {
-          navigate("/owner/dashboard", { replace: true });
+          void navigate(getInspectionsPath("owner"), { replace: true });
           setLoading(false);
           return;
         }
@@ -119,9 +127,17 @@ export default function EquipmentInspectionPage() {
           }
 
           if (existingReturnInspection?.id) {
-            navigate(`/inspection/${bookingId}/view/return`, { replace: true });
+            void navigate(
+              getInspectionPath({
+                role: "owner",
+                bookingId,
+                type: "return",
+                view: true,
+              }),
+              { replace: true }
+            );
           } else {
-            navigate("/owner/dashboard", { replace: true });
+            void navigate(getInspectionsPath("owner"), { replace: true });
           }
 
           setLoading(false);
@@ -129,13 +145,13 @@ export default function EquipmentInspectionPage() {
         }
 
         // Check booking status based on inspection type
-        // Pickup inspection: booking must be 'approved'
-        // Return inspection: booking must be 'active'
-        const validPickupStatuses = ["approved"];
-        const validReturnStatuses = ["active"];
+        // Pickup inspection: booking must be 'awaiting_pickup_inspection' (new status)
+        // Return inspection: booking must be 'active' or 'awaiting_return_inspection'
+        const validPickupStatuses = ["awaiting_pickup_inspection", "approved"]; // approved for legacy
+        const validReturnStatuses = ["active", "awaiting_return_inspection"];
 
         if (inspectionType === "pickup" && !validPickupStatuses.includes(data.status)) {
-          setError("Booking must be approved before pickup inspection");
+          setError("Booking must be awaiting pickup inspection");
           setLoading(false);
           return;
         }
@@ -158,82 +174,94 @@ export default function EquipmentInspectionPage() {
       }
     };
 
-    fetchBooking();
+    void fetchBooking();
   }, [bookingId, inspectionType, navigate, user]);
 
   const handleSuccess = () => {
     // Navigate back to appropriate dashboard
     const isOwner = booking?.equipment?.owner_id === user?.id;
-    navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
+    void navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
   };
 
   const handleCancel = () => {
-    navigate(-1);
+    void navigate(-1);
   };
 
   const handleReviewClick = () => {
     // Navigate to review flow after rental completion
-    // For now, navigate back to dashboard where review prompt will appear
     const isOwner = booking?.equipment?.owner_id === user?.id;
-    navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard", {
-      state: { showReviewPrompt: true, bookingId: booking?.id },
-    });
+    if (!booking?.id) {
+      void navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
+      return;
+    }
+    void navigate(`/reviews/${booking.id}`);
   };
 
   if (loading) {
     return (
-      <div 
-        className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 animate-page-enter"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-      >
-        <span className="sr-only">Loading inspection...</span>
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
-            <Camera className="h-8 w-8 text-primary animate-pulse" aria-hidden="true" />
+      <DashboardLayout>
+        <div 
+          className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 animate-page-enter"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <span className="sr-only">Loading inspection...</span>
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10">
+              <Camera className="h-8 w-8 text-primary animate-pulse" aria-hidden="true" />
+            </div>
+            <div className="flex gap-1.5 justify-center" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground" aria-hidden="true">Loading inspection...</p>
           </div>
-          <div className="flex gap-1.5 justify-center" aria-hidden="true">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-primary/60 animate-pulse"
-                style={{ animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </div>
-          <p className="text-sm text-muted-foreground" aria-hidden="true">Loading inspection...</p>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (error || !booking) {
     return (
-      <div 
-        className="min-h-screen flex items-center justify-center p-4 animate-page-enter"
-        role="alert"
-        aria-live="assertive"
-      >
-        <div className="max-w-md w-full space-y-4">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" aria-hidden="true" />
-            <AlertDescription>{error || "Something went wrong"}</AlertDescription>
-          </Alert>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleCancel}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
-            Go Back
-          </Button>
+      <DashboardLayout>
+        <div 
+          className="min-h-screen flex items-center justify-center p-4 animate-page-enter"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="max-w-md w-full space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              <AlertDescription>{error || "Something went wrong"}</AlertDescription>
+            </Alert>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleCancel}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
+              Go Back
+            </Button>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   const isOwner = booking.equipment?.owner_id === user?.id;
+  const primaryPhoto =
+    booking.equipment?.photos?.find((p) => p.is_primary) ||
+    booking.equipment?.photos
+      ?.slice()
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))[0] ||
+    booking.equipment?.photos?.[0];
+  const equipmentImageUrl = primaryPhoto?.photo_url ?? undefined;
 
   // Prepare booking info for the wizard
   const bookingInfo = {
@@ -244,16 +272,19 @@ export default function EquipmentInspectionPage() {
   };
 
   return (
-    <InspectionWizard
-      bookingId={booking.id}
-      equipmentTitle={booking.equipment?.title || "Equipment"}
-      categorySlug={booking.equipment?.category?.sport_type}
-      inspectionType={inspectionType}
-      isOwner={isOwner}
-      bookingInfo={bookingInfo}
-      onSuccess={handleSuccess}
-      onCancel={handleCancel}
-      onReviewClick={inspectionType === "return" ? handleReviewClick : undefined}
-    />
+    <DashboardLayout>
+      <InspectionWizard
+        bookingId={booking.id}
+        equipmentTitle={booking.equipment?.title || "Equipment"}
+        equipmentImageUrl={equipmentImageUrl || undefined}
+        categorySlug={booking.equipment?.category?.sport_type}
+        inspectionType={inspectionType}
+        isOwner={isOwner}
+        bookingInfo={bookingInfo}
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+        onReviewClick={inspectionType === "return" ? handleReviewClick : undefined}
+      />
+    </DashboardLayout>
   );
 }

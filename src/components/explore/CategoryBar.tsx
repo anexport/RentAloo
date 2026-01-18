@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from "react";
+import { useEffect, useState, memo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
@@ -24,6 +24,13 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
   const { t } = useTranslation("equipment");
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
   const [countsLoading, setCountsLoading] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef({
+    isDragging: false,
+    startX: 0,
+    scrollLeft: 0,
+    hasDragged: false,
+  });
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -117,8 +124,50 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     };
   }, [t]);
 
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    // Only enable drag scroll for mouse/pen so touch devices keep native scrolling
+    if (event.pointerType !== "mouse" && event.pointerType !== "pen") return;
+    // Only act on primary button to avoid right-click or auxiliary buttons
+    if (event.button !== 0) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    dragStateRef.current.isDragging = true;
+    dragStateRef.current.startX = event.clientX;
+    dragStateRef.current.scrollLeft = container.scrollLeft;
+    dragStateRef.current.hasDragged = false;
+
+    container.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const container = scrollContainerRef.current;
+    if (!container || !dragStateRef.current.isDragging) return;
+
+    const deltaX = event.clientX - dragStateRef.current.startX;
+    if (Math.abs(deltaX) > 3) {
+      dragStateRef.current.hasDragged = true;
+    }
+
+    container.scrollLeft = dragStateRef.current.scrollLeft - deltaX;
+    event.preventDefault();
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current.isDragging) return;
+    dragStateRef.current.isDragging = false;
+    scrollContainerRef.current?.releasePointerCapture?.(event.pointerId);
+  };
+
+  const handleClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragStateRef.current.hasDragged) return;
+    // Prevent click on pills when the interaction was a drag scroll
+    event.preventDefault();
+    event.stopPropagation();
+    dragStateRef.current.hasDragged = false;
+  };
+
   const CategoryPill = ({
-    id,
     name,
     icon: Icon,
     count,
@@ -126,7 +175,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     onClick,
     loading = false,
   }: {
-    id: string;
     name: string;
     icon: React.ElementType;
     count?: number;
@@ -184,11 +232,19 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
       <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none md:hidden" />
       
       {/* Scrollable category list */}
-      <div className="w-full overflow-x-auto scrollbar-hide">
+      <div
+        ref={scrollContainerRef}
+        className="w-full overflow-x-auto scrollbar-hide cursor-grab active:cursor-grabbing select-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerLeave={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        onClickCapture={handleClickCapture}
+      >
         <div className="flex items-center gap-2 py-1 px-1">
           {/* All Categories */}
           <CategoryPill
-            id="all"
             name={t("category_bar.all")}
             icon={Package}
             isActive={activeCategoryId === "all"}
@@ -201,7 +257,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
             return (
               <CategoryPill
                 key={cat.id}
-                id={cat.id}
                 name={cat.name}
                 icon={Icon}
                 count={cat.item_count}

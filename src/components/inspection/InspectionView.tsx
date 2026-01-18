@@ -1,28 +1,29 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
   AlertCircle,
-  MapPin,
+  AlertTriangle,
+  ArrowLeft,
   Calendar,
   Camera,
+  CheckCircle2,
   ClipboardCheck,
+  ExternalLink,
+  FileText,
+  Loader2,
+  MapPin,
   ShieldCheck,
   User,
-  Loader2,
-  FileText,
-  ExternalLink,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/database.types";
 
 type InspectionData = Database["public"]["Tables"]["equipment_inspections"]["Row"];
@@ -281,34 +282,38 @@ export default function InspectionView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">Loading inspection...</p>
-      </div>
+      <DashboardLayout>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading inspection...</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (error || !inspection) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full space-y-4">
-          <Card className="border-destructive/50">
-            <CardContent className="pt-6 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <p className="text-destructive font-medium mb-2">
-                {error || "Inspection not found"}
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                The inspection record could not be loaded.
-              </p>
-              <Button variant="outline" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Go Back
-              </Button>
-            </CardContent>
-          </Card>
+      <DashboardLayout>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="max-w-md w-full space-y-4">
+            <Card className="border-destructive/50">
+              <CardContent className="pt-6 text-center">
+                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <p className="text-destructive font-medium mb-2">
+                  {error || "Inspection not found"}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  The inspection record could not be loaded.
+                </p>
+                <Button variant="outline" onClick={() => void navigate(-1)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Go Back
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -323,36 +328,37 @@ export default function InspectionView() {
   const hasIssues = (statusCounts.fair || 0) > 0 || (statusCounts.damaged || 0) > 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="shrink-0"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-semibold capitalize truncate">
-              {inspectionType} Inspection
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {formatShortDate(inspection.timestamp || inspection.created_at)}
-            </p>
+    <DashboardLayout>
+      <div className="min-h-screen bg-background">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void navigate(-1)}
+              className="shrink-0"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-semibold capitalize truncate">
+                {inspectionType} Inspection
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {formatShortDate(inspection.timestamp || inspection.created_at)}
+              </p>
+            </div>
+            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Complete
+            </Badge>
           </div>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Complete
-          </Badge>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Content */}
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Verification status */}
         <div className="grid grid-cols-2 gap-3">
           <Card
@@ -468,7 +474,7 @@ export default function InspectionView() {
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={handleOwnerConfirm}
+                  onClick={() => void handleOwnerConfirm()}
                   disabled={confirmingOwner || releasingDeposit}
                   className="flex-1"
                 >
@@ -735,9 +741,10 @@ export default function InspectionView() {
           </Card>
         )}
 
-        {/* Bottom spacing for mobile */}
-        <div className="h-4" />
+          {/* Bottom spacing for mobile */}
+          <div className="h-4" />
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

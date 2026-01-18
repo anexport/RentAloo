@@ -1,18 +1,19 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Camera,
-  Clock,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
   Calendar,
-  Package,
+  Camera,
+  CheckCircle2,
+  Clock,
   Eye,
+  Package,
 } from "lucide-react";
+import { differenceInDays, differenceInHours, isPast, isToday } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { differenceInDays, differenceInHours, isPast, isFuture, isToday } from "date-fns";
+import { getInspectionPath } from "@/lib/user-utils";
 import type { Database } from "@/lib/database.types";
 
 type InspectionRow = Database["public"]["Tables"]["equipment_inspections"]["Row"];
@@ -53,6 +54,7 @@ export default function InspectionFlowBanner({
 }: InspectionFlowBannerProps) {
   const navigate = useNavigate();
   const today = new Date();
+  const inspectionRole = isOwner ? "owner" : "renter";
 
   // Determine the current phase
   const getPhase = (): InspectionPhase => {
@@ -87,7 +89,6 @@ export default function InspectionFlowBanner({
   const hoursUntilEnd = differenceInHours(endDate, today);
   const isStartingSoon = daysUntilStart <= 2 && daysUntilStart >= 0;
   const isEndingSoon = daysUntilEnd <= 2 && daysUntilEnd >= 0;
-  const isActive = isPast(startDate) && isFuture(endDate);
   const isStartToday = isToday(startDate);
   const isEndToday = isToday(endDate);
 
@@ -189,7 +190,16 @@ export default function InspectionFlowBanner({
             </div>
 
             <Button
-              onClick={() => navigate(`/inspection/${bookingId}/view/return`)}
+              onClick={() =>
+                void navigate(
+                  getInspectionPath({
+                    role: inspectionRole,
+                    bookingId,
+                    type: "return",
+                    view: true,
+                  })
+                )
+              }
               className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white"
               size="sm"
             >
@@ -263,13 +273,25 @@ export default function InspectionFlowBanner({
 
   const handleInspectionClick = () => {
     if (phase === "awaiting_pickup_inspection") {
-      navigate(`/inspection/${bookingId}/pickup`);
+      void navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "pickup",
+        })
+      );
     } else if (
       phase === "awaiting_return_inspection" ||
       (phase === "pickup_inspection_complete" && isEndingSoon)
     ) {
       if (isOwner) return;
-      navigate(`/inspection/${bookingId}/return`);
+      void navigate(
+        getInspectionPath({
+          role: inspectionRole,
+          bookingId,
+          type: "return",
+        })
+      );
     }
   };
 

@@ -1,6 +1,25 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Camera,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Eye,
+  FileWarning,
+  Package,
+} from "lucide-react";
+import {
+  differenceInDays,
+  differenceInHours,
+  format,
+  isFuture,
+  isPast,
+  isToday,
+} from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   Sheet,
@@ -10,28 +29,8 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
-import {
-  Camera,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
-  Calendar,
-  Package,
-  Clock,
-  ChevronRight,
-  Eye,
-  FileWarning,
-  X,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  differenceInDays,
-  differenceInHours,
-  isPast,
-  isFuture,
-  isToday,
-  format,
-} from "date-fns";
+import { getInspectionPath } from "@/lib/user-utils";
 import type {
   InspectionPhase,
   ReturnInspectionSummary,
@@ -65,6 +64,7 @@ export default function MobileInspectionSheet({
   onOpenChange,
 }: MobileInspectionSheetProps) {
   const navigate = useNavigate();
+  const inspectionRole = isOwner ? "owner" : "renter";
   // Guard against invalid dates so date-fns helpers don't throw.
   if (
     !startDate ||
@@ -166,17 +166,30 @@ export default function MobileInspectionSheet({
 
   const handleInspectionAction = (type: "pickup" | "return") => {
     onOpenChange(false);
-    navigate(`/inspection/${bookingId}/${type}`);
+    void navigate(
+      getInspectionPath({
+        role: inspectionRole,
+        bookingId,
+        type,
+      })
+    );
   };
 
   const handleViewInspection = (type: "pickup" | "return") => {
     onOpenChange(false);
-    navigate(`/inspection/${bookingId}/view/${type}`);
+    void navigate(
+      getInspectionPath({
+        role: inspectionRole,
+        bookingId,
+        type,
+        view: true,
+      })
+    );
   };
 
   const handleFileClaim = () => {
     onOpenChange(false);
-    navigate(`/claims/file/${bookingId}`);
+    void navigate(`/claims/file/${bookingId}`);
   };
 
   // Step data for the visual stepper
@@ -307,7 +320,7 @@ export default function MobileInspectionSheet({
 
         {/* Steps */}
         <div className="px-4 space-y-2 overflow-y-auto max-h-[40dvh]">
-          {steps.map((step, index) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             const isComplete = step.status === "complete";
             const isCurrent = step.status === "current";

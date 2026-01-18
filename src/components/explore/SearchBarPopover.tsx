@@ -26,10 +26,9 @@ import {
   Clock,
   Wrench,
 } from "lucide-react";
-import { format, startOfDay, addDays } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { SearchBarFilters } from "@/types/search";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import { reverseGeocode } from "@/features/location/geocoding";
 import {
@@ -188,62 +187,6 @@ const SearchBarPopover = ({
       equipmentAutocomplete.suggestions.filter((s) => s.type === "equipment"),
     [equipmentAutocomplete.suggestions]
   );
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (value.location) count++;
-    if (value.dateRange?.from) count++;
-    if (value.equipmentType) count++;
-    return count;
-  }, [value.location, value.dateRange, value.equipmentType]);
-
-  const quickDateRanges = useMemo(() => {
-    // Current date normalized to start of day
-    const today = startOfDay(new Date());
-    // Day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-    const dayOfWeek = today.getDay();
-
-    // Compute days until next Saturday (including today if today is Saturday)
-    const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
-    // This weekend: Saturday and Sunday
-    const thisWeekendStart = addDays(today, daysUntilSaturday);
-    const thisWeekendEnd = addDays(thisWeekendStart, 1);
-
-    // Next weekend: exactly one week later (Saturday and Sunday)
-    const nextWeekendStart = addDays(thisWeekendStart, 7);
-    const nextWeekendEnd = addDays(nextWeekendStart, 1);
-
-    // Compute days until next Monday (if today is Monday, treat as "next" week)
-    const daysUntilMonday = (1 - dayOfWeek + 7) % 7;
-    // Next week: Monday through Friday (Monday-as-today counts as "next" week)
-    const nextWeekStart = addDays(
-      today,
-      daysUntilMonday === 0 ? 7 : daysUntilMonday
-    );
-    // End of next work week (Friday)
-    const nextWeekEnd = addDays(nextWeekStart, 4);
-
-    return [
-      {
-        label: "This weekend",
-        range: {
-          from: thisWeekendStart,
-          to: thisWeekendEnd,
-        } satisfies DateRange,
-      },
-      {
-        label: "Next weekend",
-        range: {
-          from: nextWeekendStart,
-          to: nextWeekendEnd,
-        } satisfies DateRange,
-      },
-      {
-        label: "Next week",
-        range: { from: nextWeekStart, to: nextWeekEnd } satisfies DateRange,
-      },
-    ];
-  }, []);
 
   const equipmentOptions = useMemo(() => {
     return categories.length > 0
@@ -487,11 +430,6 @@ const SearchBarPopover = ({
     onChange({ ...value, dateRange: range });
   };
 
-  const handlePresetDateSelect = (range: DateRange) => {
-    onChange({ ...value, dateRange: range });
-    setIsSelectingDates(false);
-  };
-
   const handleEquipmentSuggestionSelect = (suggestion: EquipmentSuggestion) => {
     if (suggestion.type === "category") {
       // Category selection: broad filter
@@ -523,20 +461,6 @@ const SearchBarPopover = ({
 
   const handleSearch = () => {
     onSubmit();
-  };
-
-  const handleClearAll = () => {
-    onChange({
-      ...value,
-      location: "",
-      dateRange: undefined,
-      equipmentType: undefined,
-      equipmentCategoryId: undefined,
-      search: "",
-    });
-    equipmentAutocomplete.setQuery("");
-    addressAutocomplete.setQuery("");
-    setIsSelectingDates(false);
   };
 
   const handleUseCurrentLocation = async () => {
@@ -641,25 +565,6 @@ const SearchBarPopover = ({
 
   const handleLocationClick = () => {
     void handleUseCurrentLocation();
-  };
-
-  const getSearchSummary = () => {
-    const parts: string[] = [];
-    if (value.location) parts.push(value.location);
-    if (value.dateRange?.from) {
-      if (value.dateRange.to) {
-        parts.push(
-          `${format(value.dateRange.from, "MMM d")} - ${format(
-            value.dateRange.to,
-            "MMM d"
-          )}`
-        );
-      } else {
-        parts.push(format(value.dateRange.from, "MMM d"));
-      }
-    }
-    if (value.equipmentType) parts.push(value.equipmentType);
-    return parts.length > 0 ? parts.join(" · ") : "Search equipment";
   };
 
   // Desktop version with Popover layout

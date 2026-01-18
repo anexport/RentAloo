@@ -188,7 +188,7 @@ const BookingRequestCard = ({
     void checkPayment();
   }, [bookingRequest.id]);
 
-  const handleStatusUpdate = async (_newStatus: "cancelled") => {
+  const handleStatusUpdate = async () => {
     if (!user) return;
 
     const confirmed = window.confirm(
@@ -492,7 +492,7 @@ const BookingRequestCard = ({
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => navigate(`/claims/file/${bookingRequest.id}`)}
+                onClick={() => void navigate(`/claims/file/${bookingRequest.id}`)}
                 className="mb-4"
               >
                 <AlertTriangle className="h-4 w-4 mr-1.5" />
@@ -579,7 +579,7 @@ const BookingRequestCard = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => void handleStatusUpdate("cancelled")}
+                  onClick={() => void handleStatusUpdate()}
                   disabled={isUpdating}
                   className="ml-auto text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                 >

@@ -96,15 +96,15 @@ export default function ReviewClaimPage() {
       }
     };
 
-    fetchClaim();
+    void fetchClaim();
   }, [claimId, user]);
 
   const handleSuccess = () => {
-    navigate("/renter/dashboard");
+    void navigate("/renter/dashboard");
   };
 
   const handleCancel = () => {
-    navigate(-1);
+    void navigate(-1);
   };
 
   if (loading) {
@@ -138,7 +138,7 @@ export default function ReviewClaimPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error || "Something went wrong"}</AlertDescription>
             </Alert>
-            <Button variant="outline" onClick={() => navigate(-1)}>
+            <Button variant="outline" onClick={() => void navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Back
             </Button>

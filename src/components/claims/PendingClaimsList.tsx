@@ -72,7 +72,7 @@ export default function PendingClaimsList() {
       }
     };
 
-    fetchClaims();
+    void fetchClaims();
 
     // Subscribe to real-time updates
     const channel = supabase
@@ -85,13 +85,13 @@ export default function PendingClaimsList() {
           table: "damage_claims",
         },
         () => {
-          fetchClaims();
+          void fetchClaims();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [user]);
 
@@ -128,7 +128,7 @@ export default function PendingClaimsList() {
           <ClaimReviewCard
             key={claim.id}
             claim={claim}
-            onReview={() => navigate(`/claims/review/${claim.id}`)}
+            onReview={() => void navigate(`/claims/review/${claim.id}`)}
           />
         ))}
       </div>

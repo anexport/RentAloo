@@ -162,7 +162,7 @@ const EmailVerification = () => {
               isSending ||
               (nextAllowedResend !== null && Date.now() < nextAllowedResend)
             }
-            onClick={handleResend}
+            onClick={() => void handleResend()}
           >
             {isSending ? (
               <>

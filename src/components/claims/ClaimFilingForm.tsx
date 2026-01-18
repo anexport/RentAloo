@@ -319,7 +319,7 @@ export default function ClaimFilingForm({
           </Button>
         )}
         <Button
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={isSubmitting}
           variant="destructive"
           className="flex-1"

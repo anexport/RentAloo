@@ -7,7 +7,7 @@ import type {
   MessageWithSender,
   NewMessage,
 } from "../types/messaging";
-import type { Database, ProfileSummary } from "../lib/database.types";
+import type { Database } from "../lib/database.types";
 
 // Types for better type safety
 interface ConversationSummary {

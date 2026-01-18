@@ -14,6 +14,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Analytics } from "@vercel/analytics/react";
 import { RoleModeProvider } from "@/contexts/RoleModeContext";
+import { RentalProvider } from "@/contexts/RentalContext";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -51,7 +52,9 @@ const InspectionView = lazy(
 const FileClaimPage = lazy(() => import("@/pages/claims/FileClaimPage"));
 const ReviewClaimPage = lazy(() => import("@/pages/claims/ReviewClaimPage"));
 const ManageClaimPage = lazy(() => import("@/pages/claims/ManageClaimPage"));
-const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
+const RentalPage = lazy(() => import("@/pages/rental/RentalPage"));
+const RenterRentalPage = lazy(() => import("@/pages/renter/RenterRentalPage"));
+const OwnerRentalPage = lazy(() => import("@/pages/owner/OwnerRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const OnboardingPage = lazy(() => import("@/pages/auth/OnboardingPage"));
@@ -68,6 +71,13 @@ const RenterSavedPage = lazy(() => import("@/pages/renter/RenterSavedPage"));
 const RenterBookingsPage = lazy(
   () => import("@/pages/renter/RenterBookingsPage")
 );
+const RenterInspectionsPage = lazy(
+  () => import("@/pages/renter/RenterInspectionsPage")
+);
+const OwnerInspectionsPage = lazy(
+  () => import("@/pages/owner/OwnerInspectionsPage")
+);
+const LeaveReviewPage = lazy(() => import("@/pages/reviews/LeaveReviewPage"));
 
 /**
  * PageLoader - Minimal loading indicator for lazy-loaded pages
@@ -109,9 +119,13 @@ function App() {
 
   // Initialize Marker.io feedback widget
   useEffect(() => {
-    markerSDK.loadWidget({
-      project: "69643cd3175800e4c150231c",
-    });
+    void markerSDK
+      .loadWidget({
+        project: "69643cd3175800e4c150231c",
+      })
+      .catch((error) => {
+        console.error("Failed to load Marker.io widget:", error);
+      });
   }, []);
 
   if (loading) {
@@ -123,7 +137,8 @@ function App() {
       <Router>
         <TooltipProvider delayDuration={300}>
           <RoleModeProvider>
-            <NuqsAdapter>
+            <RentalProvider>
+              <NuqsAdapter>
               <ErrorBoundary>
                 <div className="min-h-screen bg-background">
                   <Suspense fallback={<PageLoader />}>
@@ -189,8 +204,16 @@ function App() {
                               element={<RenterBookingsPage />}
                             />
                             <Route
+                              path="/renter/inspections"
+                              element={<RenterInspectionsPage />}
+                            />
+                            <Route
+                              path="/renter/rental/:bookingId"
+                              element={<RenterRentalPage />}
+                            />
+                            <Route
                               path="/rental/:bookingId"
-                              element={<ActiveRentalPage />}
+                              element={<RentalPage />}
                             />
                             <Route path="/owner" element={<OwnerDashboard />} />
                             <Route
@@ -210,12 +233,24 @@ function App() {
                               element={<OwnerBookingsPage />}
                             />
                             <Route
+                              path="/owner/inspections"
+                              element={<OwnerInspectionsPage />}
+                            />
+                            <Route
+                              path="/owner/rental/:bookingId"
+                              element={<OwnerRentalPage />}
+                            />
+                            <Route
                               path="/owner/reviews"
                               element={<OwnerReviewsPage />}
                             />
                             <Route
                               path="/owner/payments"
                               element={<OwnerPaymentsPage />}
+                            />
+                            <Route
+                              path="/reviews/:bookingId"
+                              element={<LeaveReviewPage />}
                             />
                             <Route
                               path="/messages"
@@ -247,6 +282,22 @@ function App() {
                               element={<InspectionView />}
                             />
                             <Route
+                              path="/renter/inspections/:bookingId/:type"
+                              element={<EquipmentInspectionPage />}
+                            />
+                            <Route
+                              path="/owner/inspections/:bookingId/:type"
+                              element={<EquipmentInspectionPage />}
+                            />
+                            <Route
+                              path="/renter/inspections/:bookingId/view/:inspectionType"
+                              element={<InspectionView />}
+                            />
+                            <Route
+                              path="/owner/inspections/:bookingId/view/:inspectionType"
+                              element={<InspectionView />}
+                            />
+                            <Route
                               path="/claims/file/:bookingId"
                               element={<FileClaimPage />}
                             />
@@ -274,6 +325,7 @@ function App() {
                 </div>
               </ErrorBoundary>
             </NuqsAdapter>
+            </RentalProvider>
           </RoleModeProvider>
         </TooltipProvider>
       </Router>

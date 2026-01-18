@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Package, User } from "lucide-react";
+import { ArrowRight, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { getRentalPath } from "@/lib/user-utils";
 import RentalCountdown from "@/components/rental/RentalCountdown";
 import type { BookingRequestWithDetails } from "@/types/booking";
 
@@ -48,6 +49,7 @@ export default function ActiveRentalCard({
     viewerRole === "owner" ? booking.renter : equipment.owner;
   const counterpartyLabel =
     viewerRole === "owner" ? "Rented by" : "Renting from";
+  const rentalPath = getRentalPath({ role: viewerRole, bookingId: booking.id });
 
   if (compact) {
     return (
@@ -81,7 +83,7 @@ export default function ActiveRentalCard({
             </div>
 
             {/* Action */}
-            <Link to={`/rental/${booking.id}`}>
+            <Link to={rentalPath}>
               <Button size="sm" variant="ghost" className="px-2" aria-label="View rental details">
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
@@ -144,7 +146,7 @@ export default function ActiveRentalCard({
           />
 
           {/* Action - pushed to bottom */}
-          <Link to={`/rental/${booking.id}`} className="block mt-auto pt-4">
+          <Link to={rentalPath} className="block mt-auto pt-4">
             <Button className="w-full gap-2">
               View Rental
               <ArrowRight className="h-4 w-4" />

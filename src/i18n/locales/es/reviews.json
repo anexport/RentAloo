@@ -85,10 +85,13 @@
   "errors": {
     "not_logged_in": "Debes iniciar sesión para enviar una reseña",
     "submit_failed": "Error al enviar la reseña. Por favor intenta de nuevo.",
-    "auth_required": "Se requiere autenticación"
+    "auth_required": "Se requiere autenticación",
+    "review_update_failed_title": "No se pudo actualizar el estado de la reserva",
+    "review_update_failed_description": "Tu reseña se envió, pero no pudimos actualizar el estado de la reserva."
   },
   "success": {
     "review_submitted": "Reseña enviada exitosamente",
+    "review_submitted_description": "Gracias por compartir tu experiencia.",
     "review_updated": "Reseña actualizada exitosamente",
     "review_deleted": "Reseña eliminada exitosamente"
   },

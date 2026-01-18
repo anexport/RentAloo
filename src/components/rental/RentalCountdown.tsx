@@ -22,12 +22,12 @@ export default function RentalCountdown({
   showProgress = true,
   compact = false,
 }: RentalCountdownProps) {
-  // Validate dates
-  if (!startDate || !endDate) {
-    return null;
-  }
+  const hasValidDates = Boolean(startDate && endDate);
 
   const [countdown, setCountdown] = useState<RentalCountdownData | null>(() => {
+    if (!hasValidDates) {
+      return null;
+    }
     try {
       return calculateRentalCountdown(startDate, endDate);
     } catch (error) {
@@ -38,6 +38,11 @@ export default function RentalCountdown({
 
   // Update countdown every minute
   useEffect(() => {
+    if (!hasValidDates) {
+      setCountdown(null);
+      return;
+    }
+
     // Update immediately when props change
     try {
       setCountdown(calculateRentalCountdown(startDate, endDate));
@@ -56,10 +61,10 @@ export default function RentalCountdown({
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
-  }, [startDate, endDate]);
+  }, [startDate, endDate, hasValidDates]);
 
   // Return null if countdown calculation failed
-  if (!countdown) {
+  if (!hasValidDates || !countdown) {
     return null;
   }
 

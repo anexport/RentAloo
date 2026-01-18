@@ -34,6 +34,10 @@
         "button": "Sfoglia Attrezzatura"
       }
     },
+    "inspections": {
+      "title": "Ispezioni",
+      "description": "Gestisci le ispezioni di ritiro e restituzione."
+    },
     "reviews": {
       "card_title": "Le Mie Recensioni",
       "card_description": "Recensioni che hai scritto per i proprietari di attrezzatura"
@@ -146,6 +150,10 @@
     "active_rentals": {
       "title": "Noleggi Attivi",
       "description": "Noleggi attualmente in corso per le tue inserzioni."
+    },
+    "inspections": {
+      "title": "Ispezioni",
+      "description": "Monitora le ispezioni di ritiro e restituzione per i tuoi noleggi."
     }
   }
 }

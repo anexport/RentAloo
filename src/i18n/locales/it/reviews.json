@@ -82,10 +82,13 @@
   "errors": {
     "not_logged_in": "Devi essere connesso per inviare una recensione",
     "submit_failed": "Impossibile inviare la recensione. Riprova.",
-    "auth_required": "Autenticazione richiesta"
+    "auth_required": "Autenticazione richiesta",
+    "review_update_failed_title": "Aggiornamento dello stato della prenotazione non riuscito",
+    "review_update_failed_description": "La tua recensione è stata inviata, ma non siamo riusciti ad aggiornare lo stato della prenotazione."
   },
   "success": {
     "review_submitted": "Recensione inviata con successo",
+    "review_submitted_description": "Grazie per aver condiviso la tua esperienza.",
     "review_updated": "Recensione aggiornata con successo",
     "review_deleted": "Recensione eliminata con successo"
   },

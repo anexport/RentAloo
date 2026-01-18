@@ -34,6 +34,10 @@
         "button": "Ausrüstung durchsuchen"
       }
     },
+    "inspections": {
+      "title": "Inspektionen",
+      "description": "Verwalte deine Abhol- und Rückgabeinspektionen."
+    },
     "reviews": {
       "card_title": "Meine Bewertungen",
       "card_description": "Bewertungen, die du für Ausrüstungseigentümer geschrieben hast"
@@ -146,6 +150,10 @@
     "active_rentals": {
       "title": "Aktive Vermietungen",
       "description": "Derzeit laufende Vermietungen für deine Angebote."
+    },
+    "inspections": {
+      "title": "Inspektionen",
+      "description": "Verfolge Abhol- und Rückgabeinspektionen für deine Vermietungen."
     }
   }
 }

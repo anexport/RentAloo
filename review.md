@@ -6,52 +6,22 @@ Analyzing
 Reviewing
 
 ============================================================================
-File: src/components/reviews/ReviewCard.tsx
-Line: 46 to 48
+File: src/hooks/useBreadcrumbs.ts
+Line: 134 to 137
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/components/reviews/ReviewCard.tsx around lines 46 - 48, Replace the hardcoded tooltip text inside TooltipContent with a translated string using the existing i18n function (call t('display.verified_badge_tooltip')) so the tooltip uses the translation pipeline; also add the key display.verified_badge_tooltip to the project's translation files with the appropriate localized values.
+In @src/hooks/useBreadcrumbs.ts around lines 134 - 137, The breadcrumbs creation for bookings (bookingsCrumb) uses hrefs /owner/bookings and /renter/bookings and the ListChecks icon which may be inconsistent with the rest of the file; verify whether standalone routes /owner/bookings and /renter/bookings exist in the router config, and if they do not, update bookingsCrumb to point to the dashboard tab routes (/owner/dashboard?tab=bookings and /renter/dashboard?tab=bookings) and change the icon to match the existing booking breadcrumb (use Calendar) so the destination and icon are consistent with the other breadcrumb entries (referencing the bookingsCrumb variable, role check, ListChecks and Calendar symbols).
 
 
 
 ============================================================================
-File: src/components/equipment/detail/OwnerInformationCard.tsx
-Line: 9 to 13
+File: src/components/ui/FloatingInput.tsx
+Line: 18 to 19
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/components/equipment/detail/OwnerInformationCard.tsx around lines 9 - 13, The component imports Tooltip, TooltipTrigger, and TooltipContent but doesn't include TooltipProvider, so Radix tooltips will not function; fix by importing TooltipProvider (from the same "@/components/ui/tooltip") and wrap the section that renders the tooltips (e.g., the grid inside OwnerInformationCard or the HoverCardContent area where TooltipTrigger/TooltipContent are used) with ..., or ensure a global TooltipProvider is present at a higher level such as the app root if you prefer a single provider for the app.
-
-
-
-============================================================================
-File: src/components/booking/sidebar/InsuranceSelector.tsx
-Line: 54 to 64
-Type: potential_issue
-
-Prompt for AI Agent:
-In @src/components/booking/sidebar/InsuranceSelector.tsx around lines 54 - 64, The Tooltip trigger (TooltipTrigger + HelpCircle) is not keyboard-focusable; make the trigger accessible by either wrapping the HelpCircle in a semantic focusable element (e.g., a  used as the child of TooltipTrigger) with an appropriate aria-label like "Protection plan information", or ensure the HelpCircle element has tabIndex={0} and keyboard handlers to open the tooltip on Enter/Space; update the TooltipTrigger usage and add the ARIA label and keyboard event handling so keyboard users can focus and activate the tooltip content (target symbols: Tooltip, TooltipTrigger, HelpCircle, TooltipContent).
-
-
-
-============================================================================
-File: src/components/booking/sidebar/InsuranceSelector.tsx
-Line: 117 to 131
-Type: potential_issue
-
-Prompt for AI Agent:
-In @src/components/booking/sidebar/InsuranceSelector.tsx around lines 117 - 131, The HelpCircle tooltip trigger inside InsuranceSelector.tsx is nested in a selectable button, so clicks bubble and select the insurance; prevent this by adding an onClick handler that calls event.stopPropagation() (and optionally event.preventDefault()) on the HelpCircle/TooltipTrigger element (the element passed asChild to TooltipTrigger) so tooltip interaction does not trigger the parent selection; ensure the handler is attached to the clickable element rendered by TooltipTrigger (the HelpCircle) and covers pointer and keyboard activation if needed.
-
-
-
-============================================================================
-File: src/components/verification/TrustScore.tsx
-Line: 120 to 121
-Type: potential_issue
-
-Prompt for AI Agent:
-In @src/components/verification/TrustScore.tsx around lines 120 - 121, getBadge fails for out-of-range inputs (score > 100 or < 0) and falls back to BADGES[0]; make it defensive by clamping the incoming score to the 0–100 range before badge lookup (e.g., compute a safeScore = Math.min(Math.max(score, 0), 100)) and use safeScore in the BADGES.find call (referencing getBadge and BADGES). This ensures values above 100 map to the highest badge and negatives to the lowest without changing the BADGES data.
+In @src/components/ui/FloatingInput.tsx around lines 18 - 19, The FloatingInput component change lets an explicit id of "" propagate because inputId is set using the nullish coalescing operator; fix by treating empty string as "no id" — change the assignment used to compute inputId (the inputId variable derived from React.useId()/generatedId) to fall back when id is falsy (e.g., use logical OR or an explicit check like id && id.length > 0 ? id : floating-input-${generatedId}) and optionally add a dev-only console.warn when an empty string is passed to help catch unintended usage.
 
 
 

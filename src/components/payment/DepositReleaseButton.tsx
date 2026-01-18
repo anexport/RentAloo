@@ -37,7 +37,7 @@ export default function DepositReleaseButton({
     setIsReleasing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("release-deposit", {
+      const { error } = await supabase.functions.invoke("release-deposit", {
         body: { bookingId },
       });
 

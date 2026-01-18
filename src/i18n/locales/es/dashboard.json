@@ -34,6 +34,10 @@
         "button": "Explorar Equipos"
       }
     },
+    "inspections": {
+      "title": "Inspecciones",
+      "description": "Gestiona tus inspecciones de recogida y devolución."
+    },
     "reviews": {
       "card_title": "Mis Reseñas",
       "card_description": "Reseñas que has escrito para los propietarios de equipos"
@@ -146,6 +150,10 @@
     "active_rentals": {
       "title": "Alquileres Activos",
       "description": "Alquileres actualmente en progreso para tus anuncios."
+    },
+    "inspections": {
+      "title": "Inspecciones",
+      "description": "Supervisa las inspecciones de recogida y devolución de tus alquileres."
     }
   }
 }
