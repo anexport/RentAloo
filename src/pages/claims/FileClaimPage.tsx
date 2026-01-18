@@ -179,15 +179,15 @@ export default function FileClaimPage() {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [bookingId, user]);
 
   const handleSuccess = () => {
-    navigate("/owner/dashboard");
+    void navigate("/owner/dashboard");
   };
 
   const handleCancel = () => {
-    navigate(-1);
+    void navigate(-1);
   };
 
   // Calculate insurance coverage based on type
@@ -235,7 +235,7 @@ export default function FileClaimPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error || "Something went wrong"}</AlertDescription>
             </Alert>
-            <Button variant="outline" onClick={() => navigate(-1)}>
+            <Button variant="outline" onClick={() => void navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Back
             </Button>

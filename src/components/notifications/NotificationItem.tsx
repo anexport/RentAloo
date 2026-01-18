@@ -108,7 +108,7 @@ const NotificationItem = ({
     // Navigate to related entity
     const path = getNotificationPath(notification);
     if (path) {
-      navigate(path);
+      void navigate(path);
     }
   };
 

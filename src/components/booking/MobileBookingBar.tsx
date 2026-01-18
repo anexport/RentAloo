@@ -49,8 +49,6 @@ interface MobileBookingBarProps {
   bookingData?: PaymentBookingData | null;
   onPaymentSuccess?: () => void;
   onPaymentCancel?: () => void;
-  isVerified?: boolean;
-  verificationLoading?: boolean;
 }
 
 export const MobileBookingBar = ({
@@ -79,8 +77,6 @@ export const MobileBookingBar = ({
   bookingData,
   onPaymentSuccess,
   onPaymentCancel,
-  isVerified = true,
-  verificationLoading = false,
 }: MobileBookingBarProps) => {
   const { t } = useTranslation("booking");
 

@@ -264,7 +264,7 @@ export default function PickupConfirmationStep({
       <div className="fixed left-0 right-0 z-40 bottom-16 md:bottom-0 p-3 bg-background/95 backdrop-blur-lg border-t">
         <div className="max-w-2xl mx-auto">
           <Button
-            onClick={handleStartRental}
+            onClick={() => void handleStartRental()}
             disabled={isActivating}
             className="w-full h-11 font-medium text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
           >

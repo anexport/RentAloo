@@ -103,7 +103,7 @@ export const usePresence = () => {
           } catch (error) {
             console.error("Error untracking presence:", error);
           } finally {
-            supabase.removeChannel(capturedChannel);
+            void supabase.removeChannel(capturedChannel);
           }
         })();
       }
@@ -222,7 +222,7 @@ export const usePresence = () => {
     });
 
     // Handle page visibility changes
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChangeAsync = async () => {
       if (document.hidden) {
         // Page is hidden, stop tracking
         if (heartbeatIntervalRef.current) {
@@ -251,6 +251,10 @@ export const usePresence = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      void handleVisibilityChangeAsync();
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Cleanup function
@@ -271,7 +275,7 @@ export const usePresence = () => {
           } catch (error) {
             console.error("Error untracking presence:", error);
           } finally {
-            supabase.removeChannel(capturedChannel);
+            void supabase.removeChannel(capturedChannel);
           }
         })();
       }

@@ -60,10 +60,7 @@ const NotificationBell = ({ className }: NotificationBellProps) => {
         sideOffset={8}
         className="w-auto p-0 shadow-lg border rounded-xl overflow-hidden"
       >
-        <NotificationPanel
-          notifications={notifications}
-          onClose={() => setIsOpen(false)}
-        />
+        <NotificationPanel notifications={notifications} />
       </PopoverContent>
     </Popover>
   );

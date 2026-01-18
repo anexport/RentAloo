@@ -80,7 +80,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         <div
           className={cn(
             "mx-auto w-full",
-            isEmbedded ? "max-w-6xl" : "max-w-md pb-24"
+            isEmbedded ? "max-w-6xl" : "pb-24"
           )}
         >
           {isEmbedded ? (
@@ -128,7 +128,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         <Card
           className={cn(
             "w-full mx-4 rounded-2xl",
-            isEmbedded ? "max-w-2xl" : "max-w-md"
+            isEmbedded ? "max-w-2xl" : ""
           )}
         >
           <CardContent className="text-center py-12">
@@ -137,7 +137,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
               Rental Not Found
             </h2>
             <p className="text-muted-foreground mb-6">{errorMessage}</p>
-            <Button onClick={() => navigate(dashboardPath)}>
+            <Button onClick={() => void navigate(dashboardPath)}>
               Back to Dashboard
             </Button>
           </CardContent>
@@ -188,7 +188,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
       ctaConfig = {
         label: "Start Pickup Inspection",
         action: () =>
-          navigate(
+          void navigate(
             getInspectionPath({
               role: inspectionRole,
               bookingId: booking.id,
@@ -204,7 +204,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         ctaConfig = {
           label: "Return Required - Start Inspection",
           action: () =>
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -219,7 +219,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         ctaConfig = {
           label: "Start Return Inspection",
           action: () =>
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -234,7 +234,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         // Standard active state
         ctaConfig = {
           label: "Message Owner",
-          action: () => navigate(`/messages/${equipment.owner.id}`), // Assuming message route
+          action: () => void navigate(`/messages/${equipment.owner.id}`), // Assuming message route
           variant: "secondary",
           show: true,
           icon: <MessageCircle className="h-4 w-4 mr-2" />,
@@ -245,7 +245,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
     // Owner View
     ctaConfig = {
       label: "Message Renter",
-      action: () => navigate(`/messages/${booking.renter.id}`),
+      action: () => void navigate(`/messages/${booking.renter.id}`),
       variant: "secondary",
       show: true,
       icon: <MessageCircle className="h-4 w-4 mr-2" />,
@@ -437,7 +437,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
       <Button
         variant="outline"
         className="w-full justify-between h-12"
-        onClick={() => navigate("/support")}
+        onClick={() => void navigate("/support")}
       >
         <span className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4" />
@@ -452,7 +452,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         onClick={() => {
           // Placeholder for inspection view logic
           if (pickupInspection) {
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -461,7 +461,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
               })
             );
           } else if (isRenter && isApproved) {
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -497,7 +497,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         className="w-full justify-between h-12"
         onClick={() => {
           if (returnInspection) {
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -506,7 +506,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
               })
             );
           } else if (isRenter && isActiveStatus) {
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -569,24 +569,23 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
       >
         <div
           className={cn(
-            "mx-auto py-3 flex items-center justify-between",
-            isEmbedded ? "max-w-6xl" : "max-w-md px-4",
+            "mx-auto py-3 flex items-center",
+            isEmbedded
+              ? "max-w-6xl justify-end"
+              : "px-4 justify-between",
             !isEmbedded && "pointer-events-auto"
           )}
         >
-          <Button
-            variant={isEmbedded ? "outline" : "secondary"}
-            size={isEmbedded ? "sm" : "icon"}
-            className={cn(
-              isEmbedded
-                ? "gap-2"
-                : "h-9 w-9 bg-background/80 backdrop-blur-md shadow-sm rounded-full"
-            )}
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {isEmbedded && <span>Back</span>}
-          </Button>
+          {!isEmbedded && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 bg-background/80 backdrop-blur-md shadow-sm rounded-full"
+              onClick={() => void navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <Badge
             variant={isActiveStatus ? "default" : "secondary"}
             className={cn(
@@ -608,7 +607,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
           "mx-auto w-full",
           isEmbedded
             ? "max-w-6xl"
-            : "max-w-md bg-background overflow-hidden shadow-2xl shadow-black/5 min-h-screen"
+            : "bg-background overflow-hidden shadow-2xl shadow-black/5 min-h-screen"
         )}
       >
         {isEmbedded ? (
@@ -644,13 +643,13 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
 
       {/* Sticky Bottom Action Bar */}
       {!isEmbedded && ctaConfig.show && (
-        <div
-          className={cn(
-            "p-4 bg-background border-t safe-area-bottom z-40",
-            "fixed bottom-0 left-0 right-0"
-          )}
-        >
-          <div className="max-w-md mx-auto">
+          <div
+            className={cn(
+              "p-4 bg-background border-t safe-area-bottom z-40",
+              "fixed bottom-0 left-0 right-0"
+            )}
+          >
+          <div className="mx-auto">
             <Button
               size="lg"
               className="w-full shadow-lg text-base font-semibold"

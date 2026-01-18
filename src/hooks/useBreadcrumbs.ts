@@ -7,6 +7,7 @@ import {
   Home,
   LayoutDashboard,
   LifeBuoy,
+  ListChecks,
   MessageSquare,
   Package,
   Settings,
@@ -120,6 +121,26 @@ export const useBreadcrumbs = (): BreadcrumbItem[] => {
       label: "Inspections",
       href: "/owner/inspections",
       icon: ClipboardCheck,
+    });
+    return breadcrumbs;
+  }
+
+  const isRenterRental = normalizedPath.startsWith("/renter/rental/");
+  const isOwnerRental = normalizedPath.startsWith("/owner/rental/");
+  const isGenericRental = normalizedPath.startsWith("/rental/");
+
+  if (isRenterRental || isOwnerRental || isGenericRental) {
+    const role = isOwnerRental ? "owner" : isRenterRental ? "renter" : activeMode;
+    const bookingsCrumb =
+      role === "owner"
+        ? { label: "Booking Requests", href: "/owner/bookings", icon: ListChecks }
+        : { label: "My Bookings", href: "/renter/bookings", icon: Calendar };
+
+    breadcrumbs.push(bookingsCrumb);
+    breadcrumbs.push({
+      label: "Rental Details",
+      href: normalizedPath,
+      icon: Package,
     });
     return breadcrumbs;
   }

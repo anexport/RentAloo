@@ -375,7 +375,7 @@ const StatsOverview = () => {
 
   const handleCardClick = (href?: string) => {
     if (href) {
-      navigate(href);
+      void navigate(href);
     }
   };
 

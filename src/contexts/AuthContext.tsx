@@ -91,11 +91,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         syncLanguagePreference(session);
 
-        try {
-          supabase.realtime.setAuth(session?.access_token ?? null);
-        } catch (realtimeError) {
-          console.error("Failed to set realtime auth:", realtimeError);
-        }
+        void supabase.realtime
+          .setAuth(session?.access_token ?? null)
+          .catch((realtimeError) => {
+            console.error("Failed to set realtime auth:", realtimeError);
+          });
       } catch (error) {
         console.error("Error getting session:", error);
         setSession(null);
@@ -116,11 +116,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       syncLanguagePreference(session);
 
-      try {
-        supabase.realtime.setAuth(session?.access_token ?? null);
-      } catch (error) {
-        console.error("Failed to set realtime auth:", error);
-      }
+      void supabase.realtime
+        .setAuth(session?.access_token ?? null)
+        .catch((error) => {
+          console.error("Failed to set realtime auth:", error);
+        });
 
       // Profile creation is now handled by database trigger
     });

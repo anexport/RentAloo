@@ -9,7 +9,7 @@ import {
   Eye,
   Package,
 } from "lucide-react";
-import { differenceInDays, differenceInHours, isFuture, isPast, isToday } from "date-fns";
+import { differenceInDays, differenceInHours, isPast, isToday } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
@@ -89,7 +89,6 @@ export default function InspectionFlowBanner({
   const hoursUntilEnd = differenceInHours(endDate, today);
   const isStartingSoon = daysUntilStart <= 2 && daysUntilStart >= 0;
   const isEndingSoon = daysUntilEnd <= 2 && daysUntilEnd >= 0;
-  const isActive = isPast(startDate) && isFuture(endDate);
   const isStartToday = isToday(startDate);
   const isEndToday = isToday(endDate);
 
@@ -192,7 +191,7 @@ export default function InspectionFlowBanner({
 
             <Button
               onClick={() =>
-                navigate(
+                void navigate(
                   getInspectionPath({
                     role: inspectionRole,
                     bookingId,
@@ -274,7 +273,7 @@ export default function InspectionFlowBanner({
 
   const handleInspectionClick = () => {
     if (phase === "awaiting_pickup_inspection") {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,
@@ -286,7 +285,7 @@ export default function InspectionFlowBanner({
       (phase === "pickup_inspection_complete" && isEndingSoon)
     ) {
       if (isOwner) return;
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,

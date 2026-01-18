@@ -213,7 +213,11 @@ export default function InspectionForm({
             Cancel
           </Button>
         )}
-        <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1">
+        <Button
+          onClick={() => void handleSubmit()}
+          disabled={!canSubmit}
+          className="flex-1"
+        >
           {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {isSubmitting ? "Submitting..." : "Complete Inspection"}
         </Button>

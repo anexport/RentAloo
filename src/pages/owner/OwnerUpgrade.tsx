@@ -200,7 +200,7 @@ const OwnerUpgrade = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login?redirect=/owner/become-owner");
+      void navigate("/login?redirect=/owner/become-owner");
     }
   }, [loading, user, navigate]);
 
@@ -303,7 +303,7 @@ const OwnerUpgrade = () => {
       setSuccess(true);
       timeoutRef.current = setTimeout(() => {
         try {
-          navigate("/owner/dashboard?tab=equipment");
+          void navigate("/owner/dashboard?tab=equipment");
         } catch (navError) {
           console.error("Navigation failed after owner upgrade:", navError);
         }
@@ -486,7 +486,7 @@ const OwnerUpgrade = () => {
                 <Button
                   type="button"
                   size="lg"
-                  onClick={handleNextStep}
+                  onClick={() => void handleNextStep()}
                   className="gap-2 px-8"
                 >
                   Get Started
@@ -784,7 +784,7 @@ const OwnerUpgrade = () => {
             {currentStep < STEPS.length ? (
               <Button
                 type="button"
-                onClick={handleNextStep}
+                onClick={() => void handleNextStep()}
                 className="gap-2 ml-auto"
               >
                 Continue

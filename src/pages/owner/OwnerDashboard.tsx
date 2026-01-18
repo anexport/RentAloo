@@ -33,7 +33,6 @@ const OwnerDashboard = () => {
     bookingRequests,
     loading: bookingsLoading,
     error: bookingsError,
-    fetchBookingRequests,
   } = useBookingRequests("owner");
 
   const {
@@ -48,7 +47,7 @@ const OwnerDashboard = () => {
   // Redirect non-owners to become-owner page
   useEffect(() => {
     if (!isCheckingOwner && !isAlsoOwner) {
-      navigate("/owner/become-owner", { replace: true });
+      void navigate("/owner/become-owner", { replace: true });
     }
   }, [isAlsoOwner, isCheckingOwner, navigate]);
 
@@ -89,7 +88,7 @@ const OwnerDashboard = () => {
 
   // Memoized handlers
   const handleCreateEquipment = useCallback(() => {
-    navigate("/owner/equipment?action=create");
+    void navigate("/owner/equipment?action=create");
   }, [navigate]);
 
   // Show loading state while checking owner status

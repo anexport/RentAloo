@@ -192,7 +192,7 @@ export default function LeaveReviewPage() {
         title: t("errors.review_update_failed_title"),
         description: t("errors.review_update_failed_description"),
       });
-      navigate(dashboardPath);
+      void navigate(dashboardPath);
       return;
     }
 
@@ -201,7 +201,7 @@ export default function LeaveReviewPage() {
       description: t("success.review_submitted_description"),
     });
 
-    navigate(dashboardPath);
+    void navigate(dashboardPath);
   };
 
   if (loading) {
@@ -227,7 +227,7 @@ export default function LeaveReviewPage() {
           <Button
             variant="outline"
             className="mt-4"
-            onClick={() => navigate(hasReliableDashboard ? dashboardPath : -1)}
+            onClick={() => void navigate(hasReliableDashboard ? dashboardPath : -1)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             {hasReliableDashboard ? "Back to Dashboard" : "Go Back"}
@@ -254,7 +254,7 @@ export default function LeaveReviewPage() {
           <Button
             variant="outline"
             className="mt-4"
-            onClick={() => navigate(dashboardPath)}
+            onClick={() => void navigate(dashboardPath)}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
@@ -275,7 +275,7 @@ export default function LeaveReviewPage() {
         icon={Star}
         iconColor="text-amber-500"
         action={
-          <Button variant="outline" onClick={() => navigate(dashboardPath)}>
+          <Button variant="outline" onClick={() => void navigate(dashboardPath)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -286,8 +286,8 @@ export default function LeaveReviewPage() {
           revieweeId={reviewee.id}
           revieweeName={revieweeName}
           equipmentTitle={equipmentTitle}
-          onSuccess={handleSuccess}
-          onCancel={() => navigate(dashboardPath)}
+          onSuccess={() => void handleSuccess()}
+          onCancel={() => void navigate(dashboardPath)}
         />
       </PageShell>
     </DashboardLayout>

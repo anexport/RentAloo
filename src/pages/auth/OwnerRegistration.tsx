@@ -684,7 +684,7 @@ const OwnerRegistration = () => {
                 {currentStep < STEPS.length ? (
                   <Button
                     type="button"
-                    onClick={handleNextStep}
+                    onClick={() => void handleNextStep()}
                     className="flex-1"
                   >
                     Continue

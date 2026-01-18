@@ -11,7 +11,6 @@ interface BookingButtonProps {
   isLoading: boolean;
   hasCalculation: boolean;
   isVerified?: boolean;
-  verificationLoading?: boolean;
   onBook: () => void;
 }
 
@@ -24,7 +23,7 @@ const getButtonText = ({
   // isVerified, // TODO: Re-enable verification requirement
 }: Omit<
   BookingButtonProps,
-  "hasCalculation" | "onBook" | "verificationLoading"
+  "hasCalculation" | "onBook"
 >): string => {
   if (!user) return "Login to Book";
   if (isOwner) return "Your Equipment";
@@ -44,7 +43,6 @@ const BookingButton = ({
   isLoading,
   hasCalculation,
   isVerified = true,
-  verificationLoading = false,
   onBook,
 }: BookingButtonProps) => {
   const buttonText = getButtonText({
@@ -59,7 +57,7 @@ const BookingButton = ({
   // TODO: Re-enable verification requirement
   // Show verification nudge when user is logged in but not verified
   // const showVerificationNudge =
-  //   user && !isOwner && !isVerified && !verificationLoading;
+  //   user && !isOwner && !isVerified;
   const showVerificationNudge = false;
 
   return (

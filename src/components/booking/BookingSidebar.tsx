@@ -36,7 +36,6 @@ interface BookingSidebarProps {
   user: User | null;
   equipmentId?: string;
   isVerified?: boolean;
-  verificationLoading?: boolean;
 }
 
 const BookingSidebar = ({
@@ -59,7 +58,6 @@ const BookingSidebar = ({
   user,
   equipmentId,
   isVerified,
-  verificationLoading,
 }: BookingSidebarProps) => {
   const { t } = useTranslation("booking");
   const isOwner = listing.owner?.id === user?.id;
@@ -149,7 +147,6 @@ const BookingSidebar = ({
           isLoading={isLoading}
           hasCalculation={!!calculation}
           isVerified={isVerified}
-          verificationLoading={verificationLoading}
           onBook={onBooking}
         />
       </Card>

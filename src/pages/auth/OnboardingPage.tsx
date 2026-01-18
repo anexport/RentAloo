@@ -523,7 +523,7 @@ const OnboardingPage = () => {
                 {currentStep < STEPS.length ? (
                   <Button
                     type="button"
-                    onClick={handleNextStep}
+                    onClick={() => void handleNextStep()}
                     className="flex-1"
                   >
                     {t("signup.common.continue_button")}

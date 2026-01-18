@@ -197,7 +197,7 @@ const RenterDashboard = () => {
   // Centralized real-time subscriptions
   useBookingSubscriptions({
     bookingIds,
-    onUpdate: handleBookingStatusChange,
+    onUpdate: () => void handleBookingStatusChange(),
     enabled: bookingIds.length > 0,
   });
 
@@ -377,7 +377,6 @@ const RenterDashboard = () => {
         <MobileInspectionCTA
           bookingId={urgentInspectionBooking.id}
           equipmentTitle={urgentInspectionBooking.equipment.title}
-          equipmentLocation={urgentInspectionBooking.equipment.location}
           startDate={new Date(urgentInspectionBooking.start_date)}
           endDate={new Date(urgentInspectionBooking.end_date)}
           hasPickupInspection={urgentBookingStatus?.hasPickup || false}

@@ -71,14 +71,14 @@ const SignupModal = ({ open, onOpenChange, initialRole }: SignupModalProps) => {
     // Close signup modal
     onOpenChange(false);
     // Navigate to verify page
-    navigate("/verify", { state: { email } });
+    void navigate("/verify", { state: { email } });
   };
 
   const handleShowLogin = () => {
     // Close signup modal and open login modal
     onOpenChange(false);
     // Navigate to login modal
-    navigate("/?login=true", { replace: true });
+    void navigate("/?login=true", { replace: true });
   };
 
   return (

@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowRight,
-  Calendar,
   Camera,
   CheckCircle2,
   ChevronRight,
@@ -10,7 +9,6 @@ import {
   Eye,
   FileWarning,
   Package,
-  X,
 } from "lucide-react";
 import {
   differenceInDays,
@@ -168,7 +166,7 @@ export default function MobileInspectionSheet({
 
   const handleInspectionAction = (type: "pickup" | "return") => {
     onOpenChange(false);
-    navigate(
+    void navigate(
       getInspectionPath({
         role: inspectionRole,
         bookingId,
@@ -179,7 +177,7 @@ export default function MobileInspectionSheet({
 
   const handleViewInspection = (type: "pickup" | "return") => {
     onOpenChange(false);
-    navigate(
+    void navigate(
       getInspectionPath({
         role: inspectionRole,
         bookingId,
@@ -191,7 +189,7 @@ export default function MobileInspectionSheet({
 
   const handleFileClaim = () => {
     onOpenChange(false);
-    navigate(`/claims/file/${bookingId}`);
+    void navigate(`/claims/file/${bookingId}`);
   };
 
   // Step data for the visual stepper
@@ -322,7 +320,7 @@ export default function MobileInspectionSheet({
 
         {/* Steps */}
         <div className="px-4 space-y-2 overflow-y-auto max-h-[40dvh]">
-          {steps.map((step, index) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             const isComplete = step.status === "complete";
             const isCurrent = step.status === "current";

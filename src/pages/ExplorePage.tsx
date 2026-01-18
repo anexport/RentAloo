@@ -10,7 +10,6 @@ import {
   parseAsBoolean,
 } from "nuqs";
 import { format } from "date-fns";
-import { useAuth } from "@/hooks/useAuth";
 import SEOHead from "@/components/seo/SEOHead";
 import StructuredData from "@/components/seo/StructuredData";
 import { generateExplorePageMeta } from "@/lib/seo/meta";
@@ -55,7 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronRight, ArrowUpDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { SortOption } from "@/components/explore/ListingsGridHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -73,25 +72,9 @@ const ExplorePage = () => {
   const { t } = useTranslation("equipment");
   const { t: tNav } = useTranslation("navigation");
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
-  const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const listItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const virtualListingGridRef = useRef<VirtualListingGridHandle>(null);
-
-  // Track scroll position for collapsing header on mobile
-  useEffect(() => {
-    if (!isMobile) {
-      setIsScrolled(false);
-      return;
-    }
-
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isMobile]);
 
   // Filter params managed via nuqs
   const [searchQuery, setSearchQuery] = useQueryState("search", {
@@ -384,7 +367,7 @@ const ExplorePage = () => {
     filterValues.verified,
   ]);
 
-  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["listings", effectiveFilters],
     queryFn: ({ signal }) => fetchListings(effectiveFilters, signal),
     staleTime: 1000 * 60 * 5,
@@ -695,7 +678,7 @@ const ExplorePage = () => {
           location={searchFilters.location}
           onLocationChange={handleLocationChange}
           categoryId={categoryId}
-          onCategoryChange={setCategoryId}
+          onCategoryChange={(value) => void setCategoryId(value)}
           filterValues={filterValues}
           onFilterChange={handleFilterChange}
           sortBy={sortBy}
@@ -801,7 +784,7 @@ const ExplorePage = () => {
             ) : (
               <CategoryBar
                 activeCategoryId={categoryId}
-                onCategoryChange={setCategoryId}
+                onCategoryChange={(value) => void setCategoryId(value)}
               />
             )}
           </div>

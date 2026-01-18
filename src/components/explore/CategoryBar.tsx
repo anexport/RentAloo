@@ -168,7 +168,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
   };
 
   const CategoryPill = ({
-    id,
     name,
     icon: Icon,
     count,
@@ -176,7 +175,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
     onClick,
     loading = false,
   }: {
-    id: string;
     name: string;
     icon: React.ElementType;
     count?: number;
@@ -247,7 +245,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
         <div className="flex items-center gap-2 py-1 px-1">
           {/* All Categories */}
           <CategoryPill
-            id="all"
             name={t("category_bar.all")}
             icon={Package}
             isActive={activeCategoryId === "all"}
@@ -260,7 +257,6 @@ const CategoryBar = ({ activeCategoryId, onCategoryChange }: Props) => {
             return (
               <CategoryPill
                 key={cat.id}
-                id={cat.id}
                 name={cat.name}
                 icon={Icon}
                 count={cat.item_count}

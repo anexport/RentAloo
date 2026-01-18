@@ -51,7 +51,7 @@ const InspectionView = lazy(
 const FileClaimPage = lazy(() => import("@/pages/claims/FileClaimPage"));
 const ReviewClaimPage = lazy(() => import("@/pages/claims/ReviewClaimPage"));
 const ManageClaimPage = lazy(() => import("@/pages/claims/ManageClaimPage"));
-const ActiveRentalPage = lazy(() => import("@/pages/rental/ActiveRentalPage"));
+const RentalPage = lazy(() => import("@/pages/rental/RentalPage"));
 const RenterRentalPage = lazy(() => import("@/pages/renter/RenterRentalPage"));
 const OwnerRentalPage = lazy(() => import("@/pages/owner/OwnerRentalPage"));
 const OwnerUpgrade = lazy(() => import("@/pages/owner/OwnerUpgrade"));
@@ -118,9 +118,13 @@ function App() {
 
   // Initialize Marker.io feedback widget
   useEffect(() => {
-    markerSDK.loadWidget({
-      project: "69643cd3175800e4c150231c",
-    });
+    void markerSDK
+      .loadWidget({
+        project: "69643cd3175800e4c150231c",
+      })
+      .catch((error) => {
+        console.error("Failed to load Marker.io widget:", error);
+      });
   }, []);
 
   if (loading) {
@@ -207,7 +211,7 @@ function App() {
                             />
                             <Route
                               path="/rental/:bookingId"
-                              element={<ActiveRentalPage />}
+                              element={<RentalPage />}
                             />
                             <Route path="/owner" element={<OwnerDashboard />} />
                             <Route

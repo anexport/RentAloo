@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
-import { differenceInDays, isPast, isToday, isFuture } from "date-fns";
+import { differenceInDays, isPast, isToday } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -199,7 +199,7 @@ export default function MobileInspectionCard({
 
   const handlePrimaryAction = () => {
     if (ownerNeedsReturnReview) {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,
@@ -210,7 +210,7 @@ export default function MobileInspectionCard({
       return;
     }
     if (!isOwner && phase === "awaiting_pickup_inspection") {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,
@@ -220,7 +220,7 @@ export default function MobileInspectionCard({
       return;
     }
     if (!isOwner && phase === "awaiting_return_inspection") {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,

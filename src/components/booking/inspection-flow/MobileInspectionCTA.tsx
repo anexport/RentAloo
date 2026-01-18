@@ -6,9 +6,8 @@ import {
   Camera,
   ChevronUp,
   Clock,
-  MapPin,
 } from "lucide-react";
-import { differenceInDays, isPast, isToday, isFuture } from "date-fns";
+import { differenceInDays, isPast, isToday } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MobileInspectionSheet from "@/components/booking/inspection-flow/MobileInspectionSheet";
@@ -18,7 +17,6 @@ import { getInspectionPath } from "@/lib/user-utils";
 interface MobileInspectionCTAProps {
   bookingId: string;
   equipmentTitle: string;
-  equipmentLocation?: string;
   startDate: Date;
   endDate: Date;
   hasPickupInspection: boolean;
@@ -29,7 +27,6 @@ interface MobileInspectionCTAProps {
 export default function MobileInspectionCTA({
   bookingId,
   equipmentTitle,
-  equipmentLocation,
   startDate,
   endDate,
   hasPickupInspection,
@@ -104,7 +101,7 @@ export default function MobileInspectionCTA({
 
   const handlePrimaryAction = () => {
     if (isPickupNeeded) {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,
@@ -112,7 +109,7 @@ export default function MobileInspectionCTA({
         })
       );
     } else if (isReturnNeeded) {
-      navigate(
+      void navigate(
         getInspectionPath({
           role: inspectionRole,
           bookingId,
