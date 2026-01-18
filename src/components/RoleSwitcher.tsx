@@ -22,7 +22,9 @@ const RoleSwitcher = ({ collapsed = false, variant = "sidebar" }: RoleSwitcherPr
 
   const handleModeChange = (mode: "renter" | "owner") => {
     if (mode !== activeMode) {
-      setActiveMode(mode, navigate);
+      setActiveMode(mode, (path) => {
+        void navigate(path);
+      });
     }
   };
 
@@ -105,4 +107,3 @@ const RoleSwitcher = ({ collapsed = false, variant = "sidebar" }: RoleSwitcherPr
 };
 
 export default RoleSwitcher;
-

@@ -140,7 +140,7 @@ const NotificationsSettings = () => {
                 id="booking_notifications"
                 checked={preferences?.booking_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("booking_notifications", checked)
+                  void handleToggle("booking_notifications", checked)
                 }
               />
             </div>
@@ -160,7 +160,7 @@ const NotificationsSettings = () => {
                 id="message_notifications"
                 checked={preferences?.message_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("message_notifications", checked)
+                  void handleToggle("message_notifications", checked)
                 }
               />
             </div>
@@ -180,7 +180,7 @@ const NotificationsSettings = () => {
                 id="payment_notifications"
                 checked={preferences?.payment_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("payment_notifications", checked)
+                  void handleToggle("payment_notifications", checked)
                 }
               />
             </div>
@@ -200,7 +200,7 @@ const NotificationsSettings = () => {
                 id="review_notifications"
                 checked={preferences?.review_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("review_notifications", checked)
+                  void handleToggle("review_notifications", checked)
                 }
               />
             </div>
@@ -223,7 +223,7 @@ const NotificationsSettings = () => {
                 id="verification_notifications"
                 checked={preferences?.verification_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("verification_notifications", checked)
+                  void handleToggle("verification_notifications", checked)
                 }
               />
             </div>
@@ -243,7 +243,7 @@ const NotificationsSettings = () => {
                 id="equipment_notifications"
                 checked={preferences?.equipment_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("equipment_notifications", checked)
+                  void handleToggle("equipment_notifications", checked)
                 }
               />
             </div>
@@ -263,7 +263,7 @@ const NotificationsSettings = () => {
                 id="promotion_notifications"
                 checked={preferences?.promotion_notifications ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("promotion_notifications", checked)
+                  void handleToggle("promotion_notifications", checked)
                 }
               />
             </div>
@@ -295,7 +295,7 @@ const NotificationsSettings = () => {
                 id="toast_critical"
                 checked={preferences?.toast_critical ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("toast_critical", checked)
+                  void handleToggle("toast_critical", checked)
                 }
               />
             </div>
@@ -315,7 +315,7 @@ const NotificationsSettings = () => {
                 id="toast_high"
                 checked={preferences?.toast_high ?? true}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("toast_high", checked)
+                  void handleToggle("toast_high", checked)
                 }
               />
             </div>
@@ -335,7 +335,7 @@ const NotificationsSettings = () => {
                 id="toast_medium"
                 checked={preferences?.toast_medium ?? false}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("toast_medium", checked)
+                  void handleToggle("toast_medium", checked)
                 }
               />
             </div>
@@ -355,7 +355,7 @@ const NotificationsSettings = () => {
                 id="toast_low"
                 checked={preferences?.toast_low ?? false}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("toast_low", checked)
+                  void handleToggle("toast_low", checked)
                 }
               />
             </div>
@@ -387,7 +387,7 @@ const NotificationsSettings = () => {
                 id="quiet_hours_enabled"
                 checked={preferences?.quiet_hours_enabled ?? false}
                 onCheckedChange={(checked: boolean) =>
-                  handleToggle("quiet_hours_enabled", checked)
+                  void handleToggle("quiet_hours_enabled", checked)
                 }
               />
             </div>

@@ -65,11 +65,11 @@ export default function InspectionStatusBadge({
     const role = isOwner ? "owner" : "renter";
 
     if (completed) {
-      navigate(
+      void navigate(
         getInspectionPath({ role, bookingId, type, view: true })
       );
     } else {
-      navigate(getInspectionPath({ role, bookingId, type }));
+      void navigate(getInspectionPath({ role, bookingId, type }));
     }
   };
 

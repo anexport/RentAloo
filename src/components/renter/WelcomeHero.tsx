@@ -104,7 +104,7 @@ const WelcomeHero = () => {
                             addSuffix: true,
                             locale: dateLocale,
                           });
-                        } catch (error) {
+                        } catch {
                           // Fallback to empty string if date parsing/formatting fails
                           formattedTime = "";
                         }

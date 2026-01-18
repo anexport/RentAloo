@@ -8,8 +8,8 @@ const TermsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <ExploreHeader
-        onLoginClick={() => navigate("/?login=true")}
-        onSignupClick={() => navigate("/?signup=true&role=renter")}
+        onLoginClick={() => void navigate("/?login=true")}
+        onSignupClick={() => void navigate("/?signup=true&role=renter")}
       />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, differenceInDays, isFuture, isPast } from "date-fns";
+import { format, differenceInDays, isPast } from "date-fns";
 import {
   ChevronDown,
   MapPin,
   MessageSquare,
   XCircle,
-  User,
   ExternalLink,
   CheckCircle2,
   AlertCircle,
@@ -334,7 +333,7 @@ export default function BookingListItem({
                   if (onViewDetails) {
                     onViewDetails();
                   } else {
-                    navigate(
+                    void navigate(
                       getRentalPath({ role: viewerRole, bookingId: booking.id })
                     );
                   }

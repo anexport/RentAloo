@@ -152,7 +152,6 @@ const CategorySheet = ({
   };
 
   const CategoryPill = ({
-    id,
     name,
     icon: Icon,
     count,
@@ -160,7 +159,6 @@ const CategorySheet = ({
     onClick,
     loading = false,
   }: {
-    id: string;
     name: string;
     icon: React.ElementType;
     count?: number;
@@ -279,7 +277,6 @@ const CategorySheet = ({
               <div className="flex items-center gap-2 py-0.5 px-0.5 w-max">
                 {/* All Categories */}
                 <CategoryPill
-                  id="all"
                   name={t("category_bar.all")}
                   icon={Package}
                   isActive={activeCategoryId === "all"}
@@ -292,7 +289,6 @@ const CategorySheet = ({
                   return (
                     <CategoryPill
                       key={cat.id}
-                      id={cat.id}
                       name={cat.name}
                       icon={Icon}
                       count={cat.item_count}

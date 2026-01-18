@@ -6,32 +6,22 @@ Analyzing
 Reviewing
 
 ============================================================================
-File: src/pages/rental/ActiveRentalPage.tsx
-Line: 495 to 538
+File: src/hooks/useBreadcrumbs.ts
+Line: 134 to 137
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/pages/rental/ActiveRentalPage.tsx around lines 495 - 538, The Return Inspection Button currently performs a no-op for users who can't act (e.g., owners or when conditions aren't met); update the Button around "Return Inspection" so it uses the same pattern as the pickup fix: set the Button's disabled prop when the action is not allowed (disabled when !returnInspection && !(isRenter && isActiveStatus)), adjust className/aria-disabled for proper styling/accessibility, and simplify onClick to only call navigate(getInspectionPath(...)) when the action is allowed (check returnInspection or (isRenter && isActiveStatus) before calling navigate using inspectionRole and booking.id). Ensure you reference the existing variables and functions: returnInspection, isRenter, isActiveStatus, inspectionRole, booking.id, getInspectionPath, and navigate.
+In @src/hooks/useBreadcrumbs.ts around lines 134 - 137, The breadcrumbs creation for bookings (bookingsCrumb) uses hrefs /owner/bookings and /renter/bookings and the ListChecks icon which may be inconsistent with the rest of the file; verify whether standalone routes /owner/bookings and /renter/bookings exist in the router config, and if they do not, update bookingsCrumb to point to the dashboard tab routes (/owner/dashboard?tab=bookings and /renter/dashboard?tab=bookings) and change the icon to match the existing booking breadcrumb (use Calendar) so the destination and icon are consistent with the other breadcrumb entries (referencing the bookingsCrumb variable, role check, ListChecks and Calendar symbols).
 
 
 
 ============================================================================
-File: src/pages/rental/ActiveRentalPage.tsx
-Line: 449 to 493
+File: src/components/ui/FloatingInput.tsx
+Line: 18 to 19
 Type: potential_issue
 
 Prompt for AI Agent:
-In @src/pages/rental/ActiveRentalPage.tsx around lines 449 - 493, The Pickup Inspection Button currently has a click handler that becomes a silent no-op when pickupInspection is falsy and either isRenter is false or isApproved is false; update the Button (rendered in ActiveRentalPage) so it is disabled when there is no actionable navigation (i.e., when !pickupInspection && !(isRenter && isApproved)), and adjust the UI to communicate state (e.g., change aria-disabled/class and replace the clickable behaviour that calls navigate(getInspectionPath(...)) with a disabled state or wrap it with a Tooltip explaining why action is unavailable for owners), keeping existing behavior when pickupInspection is true or when isRenter && isApproved so navigate(getInspectionPath({ role: inspectionRole, bookingId: booking.id, type: "pickup", view: true })) still runs.
-
-
-
-============================================================================
-File: src/components/inspection/InspectionsOverview.tsx
-Line: 289 to 290
-Type: potential_issue
-
-Prompt for AI Agent:
-In @src/components/inspection/InspectionsOverview.tsx around lines 289 - 290, The error combines bookingsError and inspectionsError inconsistently which can render an Error object as "[object Object]"; normalize both to strings before rendering by updating the errorMessage computation (the bookingsError and inspectionsError checks) to use a consistent helper or inline logic (e.g., convert Error instances to .message and fallback to String(...) or null), so create/modify the logic that sets errorMessage to always produce a human-readable string from bookingsError and inspectionsError.
+In @src/components/ui/FloatingInput.tsx around lines 18 - 19, The FloatingInput component change lets an explicit id of "" propagate because inputId is set using the nullish coalescing operator; fix by treating empty string as "no id" — change the assignment used to compute inputId (the inputId variable derived from React.useId()/generatedId) to fall back when id is falsy (e.g., use logical OR or an explicit check like id && id.length > 0 ? id : floating-input-${generatedId}) and optionally add a dev-only console.warn when an empty string is passed to help catch unintended usage.
 
 
 

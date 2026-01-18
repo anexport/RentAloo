@@ -47,7 +47,7 @@ const FeaturedListingsSection = ({ onOpenListing }: Props) => {
   }, [emblaApi]);
 
   const handleViewAll = () => {
-    navigate("/explore");
+    void navigate("/explore");
   };
 
   // Resume autoplay after manual navigation

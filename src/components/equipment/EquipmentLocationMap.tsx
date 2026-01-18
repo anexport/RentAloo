@@ -61,7 +61,7 @@ const EquipmentLocationMap = ({
       }
     };
 
-    fetchCoordinates();
+    void fetchCoordinates();
   }, [location, coordinates, apiKey]);
 
   // Initialize the map
@@ -151,7 +151,7 @@ const EquipmentLocationMap = ({
   // Initialize map when coordinates are available
   useEffect(() => {
     if (coordinates && mapState === "loading") {
-      initializeMap();
+      void initializeMap();
     }
   }, [coordinates, mapState, initializeMap]);
 

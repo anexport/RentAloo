@@ -3,7 +3,6 @@ import {
   Camera,
   ArrowRight,
   CheckCircle2,
-  PartyPopper,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -537,7 +536,7 @@ export default function InspectionWizard({
           primaryLabel={actionBarConfig.primaryLabel}
           primaryIcon={actionBarConfig.primaryIcon}
           onBack={handleBack}
-          onPrimary={actionBarConfig.onPrimary}
+          onPrimary={() => void actionBarConfig.onPrimary()}
           primaryDisabled={actionBarConfig.primaryDisabled}
           isLoading={actionBarConfig.isLoading}
           loadingLabel={actionBarConfig.loadingLabel}

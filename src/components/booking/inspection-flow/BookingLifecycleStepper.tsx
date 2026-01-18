@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, Camera, Package, CreditCard } from "lucide-react";
+import { CheckCircle2, Circle, Camera, Package, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isPast, isFuture, differenceInHours } from "date-fns";
 
@@ -260,9 +260,8 @@ export default function BookingLifecycleStepper({
       
       {/* Steps */}
       <div className="relative space-y-4">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
           const styles = getStepStyles(step);
-          const isLast = index === steps.length - 1;
           
           return (
             <div key={step.id} className="flex items-start gap-3">

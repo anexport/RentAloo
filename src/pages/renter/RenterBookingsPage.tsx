@@ -48,7 +48,7 @@ const RenterBookingsPage = () => {
   // Centralized real-time subscriptions for all booking cards
   useBookingSubscriptions({
     bookingIds,
-    onUpdate: handleBookingStatusChange,
+    onUpdate: () => void handleBookingStatusChange(),
     enabled: bookingIds.length > 0,
   });
 
@@ -117,7 +117,7 @@ const RenterBookingsPage = () => {
               >
                 <BookingRequestCard
                   bookingRequest={booking}
-                  onStatusChange={handleBookingStatusChange}
+                  onStatusChange={() => void handleBookingStatusChange()}
                   showActions={true}
                 />
               </div>

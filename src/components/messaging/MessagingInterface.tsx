@@ -7,7 +7,7 @@ import { useProfileLookup } from "../../hooks/useProfileLookup";
 import type { ConversationWithDetails } from "../../types/messaging";
 import { MessageSquare, ArrowLeft, Search, ChevronDown } from "lucide-react";
 import { Button } from "../ui/button";
-import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import ConversationList from "./ConversationList";
 import ConversationSearch from "./ConversationSearch";
 import { supabase } from "@/lib/supabase";
@@ -457,6 +457,12 @@ const MessagingInterface = ({
 
             <div className="relative flex shrink-0 items-center">
               <Avatar className={isMobile ? "h-9 w-9" : "h-11 w-11"}>
+                {otherParticipant?.avatar_url && (
+                  <AvatarImage
+                    src={otherParticipant.avatar_url}
+                    alt={otherParticipant?.email || "User"}
+                  />
+                )}
                 <AvatarFallback>
                   {otherParticipant?.email?.charAt(0).toUpperCase() || "?"}
                 </AvatarFallback>

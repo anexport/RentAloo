@@ -231,7 +231,7 @@ export default function LocationStep({
         <Button
           type="button"
           variant="outline"
-          onClick={handleUseCurrentLocation}
+          onClick={() => void handleUseCurrentLocation()}
           disabled={geoLoading}
           className="w-full sm:w-auto"
         >

@@ -1,6 +1,5 @@
 import { Calendar as CalendarIcon, AlertCircle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Popover,
@@ -154,4 +153,3 @@ const DateSelector = ({
 };
 
 export default DateSelector;
-

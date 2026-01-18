@@ -305,7 +305,7 @@ export default function InspectionView() {
                 <p className="text-sm text-muted-foreground mb-4">
                   The inspection record could not be loaded.
                 </p>
-                <Button variant="outline" onClick={() => navigate(-1)}>
+                <Button variant="outline" onClick={() => void navigate(-1)}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Go Back
                 </Button>
@@ -336,7 +336,7 @@ export default function InspectionView() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => void navigate(-1)}
               className="shrink-0"
               aria-label="Go back"
             >
@@ -474,7 +474,7 @@ export default function InspectionView() {
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={handleOwnerConfirm}
+                  onClick={() => void handleOwnerConfirm()}
                   disabled={confirmingOwner || releasingDeposit}
                   className="flex-1"
                 >

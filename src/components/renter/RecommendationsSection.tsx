@@ -90,7 +90,7 @@ const RecommendationsSection = ({
   }, [recentApi]);
 
   const handleViewAll = () => {
-    navigate("/explore");
+    void navigate("/explore");
   };
 
   // Resume autoplay after manual navigation

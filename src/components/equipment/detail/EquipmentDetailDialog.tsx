@@ -37,7 +37,6 @@ import { supabase } from "@/lib/supabase";
 import { toast as sonnerToast } from "sonner";
 import { fireHeartConfetti } from "@/lib/celebrations";
 import type { PaymentBookingData } from "@/lib/stripe";
-import type { Listing } from "@/components/equipment/services/listings";
 import type {
   BookingCalculation,
   BookingConflict,
@@ -65,8 +64,7 @@ const EquipmentDetailDialog = ({
   const isMobile = useMediaQuery(createMaxWidthQuery("md"));
   const { user } = useAuth();
   const { toast } = useToast();
-  const { profile: verificationProfile, loading: verificationLoading } =
-    useVerification();
+  const { profile: verificationProfile } = useVerification();
   const { t } = useTranslation("equipment");
   const [activeTab, setActiveTab] = useState("overview");
   const [calculation, setCalculation] = useState<BookingCalculation | null>(
@@ -719,7 +717,6 @@ const EquipmentDetailDialog = ({
                 user={user}
                 equipmentId={listingId}
                 isVerified={verificationProfile?.identityVerified}
-                verificationLoading={verificationLoading}
               />
             )}
           </div>
@@ -835,7 +832,7 @@ const EquipmentDetailDialog = ({
             isVisible={stickyHeaderVisible}
             onClose={() => onOpenChange(false)}
             isFavorited={isFavorited(data.id)}
-            onToggleFavorite={handleToggleFavorite}
+            onToggleFavorite={() => void handleToggleFavorite()}
           />
 
           {/* Content sections with better spacing */}
@@ -998,8 +995,6 @@ const EquipmentDetailDialog = ({
           bookingData={bookingData}
           onPaymentSuccess={handlePaymentSuccess}
           onPaymentCancel={handlePaymentCancel}
-          isVerified={verificationProfile?.identityVerified}
-          verificationLoading={verificationLoading}
         />
       </>
     );

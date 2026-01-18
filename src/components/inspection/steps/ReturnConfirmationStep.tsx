@@ -480,7 +480,7 @@ export default function ReturnConfirmationStep({
       <div className="fixed left-0 right-0 z-40 bottom-16 md:bottom-0 p-3 bg-background/95 backdrop-blur-lg border-t">
         <div className="max-w-2xl mx-auto">
           <Button
-            onClick={handleSubmitForOwnerReview}
+            onClick={() => void handleCompleteRental()}
             disabled={isCompleting}
             className="w-full h-11 font-medium text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
           >

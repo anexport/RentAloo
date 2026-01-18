@@ -396,7 +396,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Role updated",
         description: "User role updated successfully.",
@@ -461,7 +461,7 @@ const AdminDashboard = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "User deleted",
         description: "User removed successfully.",
@@ -520,7 +520,7 @@ const AdminDashboard = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "User created",
         description: "New user added successfully.",
@@ -629,7 +629,7 @@ const AdminDashboard = () => {
       return newAvailability;
     },
     onSuccess: (newAvailability) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Listing updated",
         description: `Listing marked as ${
@@ -659,7 +659,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Listing deleted",
         description: "Equipment removed successfully.",
@@ -698,7 +698,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({ title: "Payout updated", description: "Payout status changed." });
     },
     onError: (error: Error) => {
@@ -753,7 +753,7 @@ const AdminDashboard = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Refund processed",
         description: "Payment was refunded.",
@@ -807,7 +807,7 @@ const AdminDashboard = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Deposit released",
         description: "Deposit refund processed.",
@@ -855,7 +855,7 @@ const AdminDashboard = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Escrow released",
         description: "Escrow marked released.",
@@ -885,7 +885,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({ title: "Claim updated", description: "Claim status updated." });
     },
     onError: (error: Error) => {
@@ -924,7 +924,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Inspection updated",
         description: "Inspection status updated.",
@@ -974,7 +974,7 @@ const AdminDashboard = () => {
       if (profileError) throw profileError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Verification approved",
         description: "User verification has been approved.",
@@ -1025,7 +1025,7 @@ const AdminDashboard = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       toast({
         title: "Verification rejected",
         description: "User has been notified of the rejection.",

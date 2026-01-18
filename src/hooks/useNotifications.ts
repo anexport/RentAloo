@@ -42,7 +42,7 @@ const fetchNotifications = async (
   return (data as NotificationWithActor[]) || [];
 };
 
-const fetchUnreadCount = async (_userId: string): Promise<number> => {
+const fetchUnreadCount = async (): Promise<number> => {
   // Function uses auth.uid() internally, no parameters needed
   const { data, error } = await supabase.rpc("get_notification_count");
 
@@ -135,7 +135,7 @@ export const useNotifications = (): UseNotificationsReturn => {
   // Query for unread count
   const { data: unreadCount = 0 } = useQuery({
     queryKey: queryKeys.notifications.unreadCount(user?.id ?? ""),
-    queryFn: () => fetchUnreadCount(user!.id),
+    queryFn: () => fetchUnreadCount(),
     enabled: !!user,
     staleTime: 30 * 1000, // 30 seconds - more real-time
   });

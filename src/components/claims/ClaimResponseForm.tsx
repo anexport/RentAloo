@@ -326,7 +326,7 @@ export default function ClaimResponseForm({
           </Button>
         )}
         <Button
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={isSubmitting}
           variant={action === "accept" ? "default" : "outline"}
           className="flex-1"

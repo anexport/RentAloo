@@ -153,11 +153,11 @@ export default function HomePage() {
     }
 
     const queryString = params.toString();
-    navigate(queryString ? `/explore?${queryString}` : "/explore");
+    void navigate(queryString ? `/explore?${queryString}` : "/explore");
   };
 
   const handleBrowseAll = () => {
-    navigate("/explore");
+    void navigate("/explore");
   };
 
   // Debounce filters for better performance

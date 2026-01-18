@@ -39,23 +39,60 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
         };
       }
 
-      // Fetch booking with equipment and owner details
-      const { data: bookingData, error: bookingError } = await supabase
-        .from("booking_requests")
-        .select(`
+      const bookingSelect = `
+        *,
+        equipment:equipment_id (
           *,
-          equipment:equipment_id (
-            *,
-            owner:owner_id (id, email, username, full_name, avatar_url),
-            category:category_id (id, name),
-            photos:equipment_photos (id, photo_url, is_primary, order_index)
-          ),
-          renter:renter_id (id, email, username, full_name, avatar_url)
-        `)
-        .eq("id", bookingId)
-        .single();
+          owner:owner_id (id, email, username, full_name, avatar_url),
+          category:category_id (id, name),
+          photos:equipment_photos (id, photo_url, is_primary, order_index)
+        ),
+        renter:renter_id (id, email, username, full_name, avatar_url)
+      `;
 
-      if (bookingError) throw bookingError;
+      // Try booking_request id first, then fall back to bookings.id -> booking_request_id.
+      let resolvedBookingId = bookingId;
+      let bookingData: BookingRequestWithDetails | null = null;
+
+      const { data: directBooking, error: directError } = await supabase
+        .from("booking_requests")
+        .select(bookingSelect)
+        .eq("id", bookingId)
+        .maybeSingle();
+
+      if (directError) throw directError;
+      if (directBooking) {
+        bookingData = directBooking as BookingRequestWithDetails;
+        resolvedBookingId = bookingData.id;
+      } else {
+        const { data: bookingRow, error: bookingRowError } = await supabase
+          .from("bookings")
+          .select("booking_request_id")
+          .eq("id", bookingId)
+          .maybeSingle();
+
+        if (bookingRowError) throw bookingRowError;
+
+        if (bookingRow?.booking_request_id) {
+          resolvedBookingId = bookingRow.booking_request_id;
+          const { data: mappedBooking, error: mappedError } = await supabase
+            .from("booking_requests")
+            .select(bookingSelect)
+            .eq("id", resolvedBookingId)
+            .maybeSingle();
+
+          if (mappedError) throw mappedError;
+          bookingData = mappedBooking as BookingRequestWithDetails | null;
+        }
+      }
+
+      if (!bookingData) {
+        return {
+          booking: null,
+          pickupInspection: null,
+          returnInspection: null,
+        };
+      }
 
       // Verify user has access (is renter or owner)
       const isRenter = bookingData.renter_id === user.id;
@@ -75,7 +112,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
           photos,
           checklist_items
         `)
-        .eq("booking_id", bookingId);
+        .eq("booking_id", resolvedBookingId);
 
       if (inspectionsError) throw inspectionsError;
 
@@ -113,7 +150,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
       }
 
       return {
-        booking: bookingData as BookingRequestWithDetails,
+        booking: bookingData,
         pickupInspection,
         returnInspection,
       };
@@ -123,18 +160,20 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
   });
 
   // Subscribe to real-time updates
+  const resolvedBookingId = data?.booking?.id;
+
   useEffect(() => {
-    if (!bookingId) return;
+    if (!resolvedBookingId) return;
 
     const channel = supabase
-      .channel(`rental-${bookingId}`)
+      .channel(`rental-${resolvedBookingId}`)
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "booking_requests",
-          filter: `id=eq.${bookingId}`,
+          filter: `id=eq.${resolvedBookingId}`,
         },
         () => {
           void refetch();
@@ -146,7 +185,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
           event: "*",
           schema: "public",
           table: "equipment_inspections",
-          filter: `booking_id=eq.${bookingId}`,
+          filter: `booking_id=eq.${resolvedBookingId}`,
         },
         () => {
           void refetch();
@@ -161,7 +200,7 @@ export function useActiveRental(bookingId: string | undefined): ActiveRentalData
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [bookingId, refetch]);
+  }, [resolvedBookingId, refetch]);
 
   return {
     booking: data?.booking ?? null,
@@ -273,4 +312,3 @@ export function useActiveRentals(role: "renter" | "owner" | "both" = "both"): {
     },
   };
 }
-

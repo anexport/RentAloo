@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -18,6 +18,7 @@ interface ConversationListItemProps {
   onSelect: (conversation: ConversationWithDetails) => void;
   otherParticipantName: string;
   otherParticipantInitials: string;
+  otherParticipantAvatar?: string | null;
   isOnline: boolean;
   lastSeenAt?: string | null;
   unread: boolean;
@@ -29,6 +30,7 @@ export const ConversationListItem = ({
   onSelect,
   otherParticipantName,
   otherParticipantInitials,
+  otherParticipantAvatar,
   isOnline,
   lastSeenAt,
   unread,
@@ -75,6 +77,12 @@ export const ConversationListItem = ({
         <div className="flex items-start gap-3 px-4 py-3">
           <div className="relative shrink-0">
             <Avatar className="h-11 w-11">
+              {otherParticipantAvatar && (
+                <AvatarImage
+                  src={otherParticipantAvatar}
+                  alt={otherParticipantName}
+                />
+              )}
               <AvatarFallback>{otherParticipantInitials}</AvatarFallback>
             </Avatar>
             <OnlineStatusIndicator

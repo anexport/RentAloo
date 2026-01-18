@@ -282,6 +282,7 @@ const ConversationList = ({
               onSelect={onSelectConversation}
               otherParticipantName={otherParticipantName}
               otherParticipantInitials={otherParticipantInitials}
+              otherParticipantAvatar={otherParticipant?.avatar_url}
               isOnline={
                 otherParticipantId ? isOnline(otherParticipantId) : false
               }

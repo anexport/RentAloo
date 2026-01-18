@@ -115,14 +115,14 @@ const MobileBottomNav = () => {
 
     if (isHome) {
       e.preventDefault();
-      navigate("/");
+      void navigate("/");
       return;
     }
 
     // specific check for "Account" -> redirect to login with no special message needed
     // others -> redirect to login
     e.preventDefault();
-    navigate("/login");
+    void navigate("/login");
   };
 
   // Helper to get badge count for an item

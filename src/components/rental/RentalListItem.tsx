@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
 import {
   ArrowRight,
   Package,
@@ -10,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { getRentalPath } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   calculateRentalCountdown,

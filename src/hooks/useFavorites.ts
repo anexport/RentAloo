@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import type { Database } from "@/lib/database.types";
 
 type UserFavoriteInsert = Database["public"]["Tables"]["user_favorites"]["Insert"];
-type UserFavoriteRow = Database["public"]["Tables"]["user_favorites"]["Row"];
 
 // Fetch favorites function
 const fetchFavorites = async (userId: string): Promise<string[]> => {
@@ -134,7 +133,7 @@ export const useFavorites = () => {
     async (equipmentId: string) => {
       try {
         await toggleMutation.mutateAsync(equipmentId);
-      } catch (error) {
+      } catch {
         // Error already handled by mutation onError callback
         // Swallow error to prevent unhandled promise rejection
       }
@@ -156,7 +155,7 @@ export const useFavorites = () => {
           table: "user_favorites",
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
+        () => {
           try {
             // Invalidate query cache on real-time changes
             void queryClient.invalidateQueries({

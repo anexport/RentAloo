@@ -164,7 +164,7 @@ export default function ManageClaimPage() {
                 Invalid claim or not authenticated
               </AlertDescription>
             </Alert>
-            <Button variant="outline" onClick={() => navigate(-1)}>
+            <Button variant="outline" onClick={() => void navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Back
             </Button>
@@ -206,7 +206,7 @@ export default function ManageClaimPage() {
             <Alert variant="destructive">
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
-            <Button variant="outline" onClick={() => navigate(-1)}>
+            <Button variant="outline" onClick={() => void navigate(-1)}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Back
             </Button>

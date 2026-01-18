@@ -17,7 +17,6 @@ import type {
 
 type NotificationPanelProps = {
   notifications: UseNotificationsReturn;
-  onClose?: () => void;
 };
 
 // ============================================================================
@@ -36,7 +35,7 @@ const filterTabs: { value: NotificationCategory; labelKey: string }[] = [
 // COMPONENT
 // ============================================================================
 
-const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) => {
+const NotificationPanel = ({ notifications }: NotificationPanelProps) => {
   const { t } = useTranslation("common");
 
   const {
@@ -81,7 +80,7 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
             variant="ghost"
             size="sm"
             className="h-8 text-xs"
-            onClick={handleMarkAllAsRead}
+            onClick={() => void handleMarkAllAsRead()}
           >
             <Check className="h-3 w-3 mr-1" />
             {t("notifications.actions.mark_all_read")}
@@ -154,8 +153,8 @@ const NotificationPanel = ({ notifications, onClose }: NotificationPanelProps) =
                 <NotificationGroup
                   key={group.group_key}
                   group={group}
-                  onMarkAsRead={markAsRead}
-                  onDelete={deleteNotification}
+                  onMarkAsRead={(id) => void markAsRead(id)}
+                  onDelete={(id) => void deleteNotification(id)}
                   onToggleExpand={toggleGroupExpanded}
                 />
               ))}

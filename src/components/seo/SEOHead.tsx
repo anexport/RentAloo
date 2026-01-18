@@ -117,13 +117,11 @@ export default function SEOHead({
       canonical ||
       (typeof window !== "undefined" ? window.location.href.split("?")[0] : "");
     let canonicalElement = document.querySelector('link[rel="canonical"]');
-    let createdCanonical = false;
     if (!canonicalElement) {
       canonicalElement = document.createElement("link");
       canonicalElement.setAttribute("rel", "canonical");
       document.head.appendChild(canonicalElement);
       createdElements.push(canonicalElement);
-      createdCanonical = true;
     } else if (!originalContent.has('link[rel="canonical"]')) {
       originalContent.set('link[rel="canonical"]', canonicalElement.getAttribute("href"));
     }

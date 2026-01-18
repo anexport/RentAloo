@@ -105,7 +105,7 @@ export default function EquipmentInspectionPage() {
 
         // Only the renter should complete the pickup inspection; redirect owners away
         if (inspectionType === "pickup" && isOwner) {
-          navigate(getInspectionsPath("owner"), { replace: true });
+          void navigate(getInspectionsPath("owner"), { replace: true });
           setLoading(false);
           return;
         }
@@ -127,7 +127,7 @@ export default function EquipmentInspectionPage() {
           }
 
           if (existingReturnInspection?.id) {
-            navigate(
+            void navigate(
               getInspectionPath({
                 role: "owner",
                 bookingId,
@@ -137,7 +137,7 @@ export default function EquipmentInspectionPage() {
               { replace: true }
             );
           } else {
-            navigate(getInspectionsPath("owner"), { replace: true });
+            void navigate(getInspectionsPath("owner"), { replace: true });
           }
 
           setLoading(false);
@@ -174,27 +174,27 @@ export default function EquipmentInspectionPage() {
       }
     };
 
-    fetchBooking();
+    void fetchBooking();
   }, [bookingId, inspectionType, navigate, user]);
 
   const handleSuccess = () => {
     // Navigate back to appropriate dashboard
     const isOwner = booking?.equipment?.owner_id === user?.id;
-    navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
+    void navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
   };
 
   const handleCancel = () => {
-    navigate(-1);
+    void navigate(-1);
   };
 
   const handleReviewClick = () => {
     // Navigate to review flow after rental completion
     const isOwner = booking?.equipment?.owner_id === user?.id;
     if (!booking?.id) {
-      navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
+      void navigate(isOwner ? "/owner/dashboard" : "/renter/dashboard");
       return;
     }
-    navigate(`/reviews/${booking.id}`);
+    void navigate(`/reviews/${booking.id}`);
   };
 
   if (loading) {

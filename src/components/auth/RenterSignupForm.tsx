@@ -541,7 +541,11 @@ const RenterSignupForm = ({
           </Button>
 
           {currentStep < STEPS.length ? (
-            <Button type="button" onClick={handleNextStep} className="flex-1">
+            <Button
+              type="button"
+              onClick={() => void handleNextStep()}
+              className="flex-1"
+            >
               Continue
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>

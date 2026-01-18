@@ -12,7 +12,7 @@ export const fireConfetti = () => {
   };
 
   function fire(particleRatio: number, opts: confetti.Options) {
-    confetti({
+    void confetti({
       ...defaults,
       ...opts,
       particleCount: Math.floor(count * particleRatio),
@@ -75,7 +75,7 @@ export const fireHeartConfetti = () => {
 
     const particleCount = 50 * (timeLeft / duration);
 
-    confetti({
+    void confetti({
       ...defaults,
       particleCount,
       colors: ['#ef4444', '#f87171', '#fca5a5', '#ec4899', '#f9a8d4'],
@@ -113,7 +113,7 @@ export const fireSuccessConfetti = () => {
     const particleCount = 50 * (timeLeft / duration);
 
     // Left side burst
-    confetti({
+    void confetti({
       ...defaults,
       particleCount,
       origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
@@ -121,7 +121,7 @@ export const fireSuccessConfetti = () => {
     });
 
     // Right side burst
-    confetti({
+    void confetti({
       ...defaults,
       particleCount,
       origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },

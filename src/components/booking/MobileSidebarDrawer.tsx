@@ -55,10 +55,6 @@ interface MobileSidebarDrawerProps {
   onPaymentSuccess?: () => void;
   /** Called when user cancels payment */
   onPaymentCancel?: () => void;
-  /** Whether user is verified */
-  isVerified?: boolean;
-  /** Whether verification is loading */
-  verificationLoading?: boolean;
 }
 
 /**
@@ -72,8 +68,6 @@ export const MobileSidebarDrawer = ({
   bookingData,
   onPaymentSuccess,
   onPaymentCancel,
-  isVerified = true,
-  verificationLoading = false,
   ...sidebarProps
 }: MobileSidebarDrawerProps) => {
   const { t } = useTranslation("booking");
@@ -86,7 +80,7 @@ export const MobileSidebarDrawer = ({
   const hasConflicts = sidebarProps.conflicts.length > 0;
   // TODO: Re-enable verification requirement
   // const showVerificationNudge =
-  //   sidebarProps.user && !isOwner && !isVerified && !verificationLoading;
+  //   sidebarProps.user && !isOwner && !isVerified;
   const showVerificationNudge = false;
 
   // Determine button state and text
@@ -106,7 +100,7 @@ export const MobileSidebarDrawer = ({
       };
     }
     // TODO: Re-enable verification requirement
-    // if (!isVerified && !verificationLoading) {
+    // if (!isVerified) {
     //   return {
     //     disabled: true,
     //     text: t("button.verify_to_book", { defaultValue: "Verify to Book" }),
