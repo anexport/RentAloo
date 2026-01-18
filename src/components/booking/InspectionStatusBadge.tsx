@@ -45,10 +45,12 @@ export default function InspectionStatusBadge({
       return `Awaiting renter's ${label.toLowerCase()} inspection`;
     }
     // Renter can start
-    if (type === "pickup" && bookingStatus === "approved") {
+    // Support both new status (awaiting_pickup_inspection) and legacy (approved)
+    if (type === "pickup" && (bookingStatus === "awaiting_pickup_inspection" || bookingStatus === "approved")) {
       return "Tap to start pickup inspection";
     }
-    if (type === "return" && bookingStatus === "active") {
+    // Support both new status (awaiting_return_inspection) and legacy (active)
+    if (type === "return" && (bookingStatus === "awaiting_return_inspection" || bookingStatus === "active")) {
       return "Tap to start return inspection";
     }
     return `${label} inspection pending`;

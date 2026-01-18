@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeft,
   Calendar,
   Camera,
+  Check,
   ChevronRight,
   Clock,
   DollarSign,
@@ -12,6 +14,7 @@ import {
   MessageCircle,
   Package,
   ShieldCheck,
+  TriangleAlert,
 } from "lucide-react";
 import { differenceInHours, format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,10 +22,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import BookingLifecycleStepper from "@/components/booking/inspection-flow/BookingLifecycleStepper";
-import { useActiveRental } from "@/hooks/useActiveRental";
+import { useRental } from "@/contexts/RentalContext";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { getInspectionPath } from "@/lib/user-utils";
@@ -65,9 +79,68 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { booking, pickupInspection, returnInspection, isLoading, error } =
-    useActiveRental(bookingId);
+  const {
+    currentRental: booking,
+    pickupInspection,
+    returnInspection,
+    isLoading,
+    error,
+    loadRental,
+    canInitiateReturn,
+    initiateReturn,
+    canOwnerConfirm,
+    ownerConfirm,
+    ownerReportDamage,
+    isOwner,
+  } = useRental();
+
+  // State for damage report dialog
+  const [showDamageDialog, setShowDamageDialog] = useState(false);
+  const [damageDescription, setDamageDescription] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isEmbedded = embedded;
+
+  // Load rental data when bookingId changes
+  useEffect(() => {
+    if (bookingId) {
+      void loadRental(bookingId);
+    }
+  }, [bookingId, loadRental]);
+
+  // Handler for owner confirming no issues
+  const handleOwnerConfirm = async () => {
+    setIsSubmitting(true);
+    try {
+      await ownerConfirm();
+      // Navigate to dashboard after successful confirmation
+      navigate("/owner/dashboard");
+    } catch (err) {
+      console.error("Failed to confirm rental:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handler for owner reporting damage
+  const handleReportDamage = async () => {
+    if (!damageDescription.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const cost = estimatedCost ? parseFloat(estimatedCost) : undefined;
+      await ownerReportDamage(damageDescription, cost);
+      setShowDamageDialog(false);
+      setDamageDescription("");
+      setEstimatedCost("");
+      // Navigate to claims page after filing
+      navigate(`/claims/file/${booking?.id}`);
+    } catch (err) {
+      console.error("Failed to report damage:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -165,8 +238,10 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
 
   const isEndingSoon = hoursUntilEnd <= 24 && hoursUntilEnd > 0;
   const isOverdue = countdown.isOverdue;
-  const isApproved = booking.status === "approved";
+  // With new statuses: awaiting_pickup_inspection is when renter needs to do pickup
+  const isAwaitingPickupInspection = booking.status === "awaiting_pickup_inspection";
   const isActiveStatus = booking.status === "active";
+  const isAwaitingReturnInspection = booking.status === "awaiting_return_inspection";
 
   // Determine sticky bar state
   let ctaConfig = {
@@ -184,7 +259,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
   };
 
   if (isRenter) {
-    if (isApproved && !pickupInspection) {
+    if (isAwaitingPickupInspection && !pickupInspection) {
       ctaConfig = {
         label: "Start Pickup Inspection",
         action: () =>
@@ -199,7 +274,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         show: true,
         icon: <Camera className="h-4 w-4 mr-2" />,
       };
-    } else if (isActiveStatus && !returnInspection) {
+    } else if ((isActiveStatus || isAwaitingReturnInspection) && !returnInspection) {
       if (isOverdue) {
         ctaConfig = {
           label: "Return Required - Start Inspection",
@@ -243,13 +318,24 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
     }
   } else {
     // Owner View
-    ctaConfig = {
-      label: "Message Renter",
-      action: () => void navigate(`/messages/${booking.renter.id}`),
-      variant: "secondary",
-      show: true,
-      icon: <MessageCircle className="h-4 w-4 mr-2" />,
-    };
+    if (canOwnerConfirm) {
+      // Owner needs to review return inspection - show in section, not CTA
+      ctaConfig = {
+        label: "",
+        action: () => {},
+        variant: "default",
+        show: false,
+        icon: null,
+      };
+    } else {
+      ctaConfig = {
+        label: "Message Renter",
+        action: () => navigate(`/messages/${booking.renter.id}`),
+        variant: "secondary",
+        show: true,
+        icon: <MessageCircle className="h-4 w-4 mr-2" />,
+      };
+    }
   }
 
   // Count down text logic
@@ -369,6 +455,76 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
       </Alert>
     ) : null;
 
+  // Owner review section when pending_owner_review
+  const ownerReviewSection = canOwnerConfirm ? (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="py-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Review Return Inspection</h3>
+            <p className="text-sm text-muted-foreground">
+              The renter has completed the return inspection. Please review the equipment condition.
+            </p>
+          </div>
+        </div>
+
+        {/* Link to view return inspection */}
+        {returnInspection && (
+          <Button
+            variant="outline"
+            className="w-full justify-between h-10"
+            onClick={() =>
+              navigate(
+                getInspectionPath({
+                  role: "owner",
+                  bookingId: booking.id,
+                  type: "return",
+                  view: true,
+                })
+              )
+            }
+          >
+            <span className="flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              View Return Inspection Photos
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        )}
+
+        <Separator />
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            className="flex-1 gap-2"
+            onClick={handleOwnerConfirm}
+            disabled={isSubmitting}
+          >
+            <Check className="h-4 w-4" />
+            Confirm - No Issues
+          </Button>
+          <Button
+            variant="destructive"
+            className="flex-1 gap-2"
+            onClick={() => setShowDamageDialog(true)}
+            disabled={isSubmitting}
+          >
+            <TriangleAlert className="h-4 w-4" />
+            Report Damage
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground text-center">
+          By confirming, the deposit will be released to the renter.
+        </p>
+      </CardContent>
+    </Card>
+  ) : null;
+
   const detailsSection = (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Rental Details</h3>
@@ -460,8 +616,8 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
                 view: true,
               })
             );
-          } else if (isRenter && isApproved) {
-            void navigate(
+          } else if (isRenter && isAwaitingPickupInspection) {
+            navigate(
               getInspectionPath({
                 role: inspectionRole,
                 bookingId: booking.id,
@@ -595,8 +751,16 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
           >
             {booking.status === "active"
               ? "Active"
-              : booking.status === "approved"
-              ? "Approved"
+              : booking.status === "awaiting_pickup_inspection"
+              ? "Awaiting Pickup"
+              : booking.status === "awaiting_start_date"
+              ? "Ready to Start"
+              : booking.status === "awaiting_return_inspection"
+              ? "Awaiting Return"
+              : booking.status === "pending_owner_review"
+              ? "Pending Review"
+              : booking.status === "disputed"
+              ? "Disputed"
               : booking.status}
           </Badge>
         </div>
@@ -617,6 +781,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
               {progressSection}
               {countdownSection}
               {warningSection}
+              {ownerReviewSection}
             </div>
             <div className="space-y-6">
               {detailsSection}
@@ -633,6 +798,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
               {progressSection}
               {countdownSection}
               {warningSection}
+              {ownerReviewSection}
               {detailsSection}
               <Separator className="my-6" />
               {actionsSection}
@@ -662,6 +828,72 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
           </div>
         </div>
       )}
+
+      {/* Damage Report Dialog */}
+      <Dialog open={showDamageDialog} onOpenChange={setShowDamageDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TriangleAlert className="h-5 w-5 text-destructive" />
+              Report Equipment Damage
+            </DialogTitle>
+            <DialogDescription>
+              Describe the damage you found and provide an estimated repair cost.
+              This will initiate a claim against the renter's deposit.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="damage-description">Damage Description</Label>
+              <Textarea
+                id="damage-description"
+                placeholder="Describe the damage in detail..."
+                value={damageDescription}
+                onChange={(e) => setDamageDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="estimated-cost">Estimated Repair Cost (Optional)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="estimated-cost"
+                  type="number"
+                  placeholder="0.00"
+                  value={estimatedCost}
+                  onChange={(e) => setEstimatedCost(e.target.value)}
+                  className="pl-9"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                You can provide quotes and additional evidence in the next step.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setShowDamageDialog(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReportDamage}
+              disabled={isSubmitting || !damageDescription.trim()}
+            >
+              {isSubmitting ? "Submitting..." : "Report Damage"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

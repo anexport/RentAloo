@@ -229,33 +229,41 @@ export const formatBookingDuration = (
 };
 
 export const getBookingStatusColor = (status: string): string => {
-  switch (status) {
-    case "approved":
-      return "bg-green-100 text-green-800";
-    case "active":
-      return "bg-purple-100 text-purple-800";
-    case "cancelled":
-      return "bg-gray-100 text-gray-800";
-    case "completed":
-      return "bg-blue-100 text-blue-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
+  const colors: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800",
+    paid: "bg-blue-100 text-blue-800",
+    awaiting_pickup_inspection: "bg-orange-100 text-orange-800",
+    awaiting_start_date: "bg-purple-100 text-purple-800",
+    active: "bg-green-100 text-green-800",
+    awaiting_return_inspection: "bg-orange-100 text-orange-800",
+    pending_owner_review: "bg-blue-100 text-blue-800",
+    completed: "bg-gray-100 text-gray-800",
+    cancelled: "bg-red-100 text-red-800",
+    declined: "bg-red-100 text-red-800",
+    disputed: "bg-red-100 text-red-800",
+    // Legacy
+    approved: "bg-green-100 text-green-800",
+  };
+  return colors[status] || "bg-gray-100 text-gray-800";
 };
 
 export const getBookingStatusText = (status: string): string => {
-  switch (status) {
-    case "approved":
-      return "Confirmed";
-    case "active":
-      return "In Progress";
-    case "cancelled":
-      return "Cancelled";
-    case "completed":
-      return "Completed";
-    default:
-      return "Unknown";
-  }
+  const texts: Record<string, string> = {
+    pending: "Pending Payment",
+    paid: "Payment Received",
+    awaiting_pickup_inspection: "Awaiting Pickup Inspection",
+    awaiting_start_date: "Ready to Start",
+    active: "Active Rental",
+    awaiting_return_inspection: "Awaiting Return Inspection",
+    pending_owner_review: "Pending Owner Review",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    declined: "Declined",
+    disputed: "Disputed",
+    // Legacy
+    approved: "Approved",
+  };
+  return texts[status] || status;
 };
 
 /**

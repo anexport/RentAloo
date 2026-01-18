@@ -47,7 +47,7 @@ const EmptyState = ({
   headingLevel = "h3",
 }: EmptyStateProps) => {
   // Runtime guards for required props
-  if (!Icon || typeof Icon !== "function") {
+  if (!Icon || (typeof Icon !== "function" && typeof Icon !== "object")) {
     console.warn("EmptyState: Invalid or missing 'icon' prop");
     return null;
   }

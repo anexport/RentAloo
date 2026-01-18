@@ -145,13 +145,13 @@ export default function EquipmentInspectionPage() {
         }
 
         // Check booking status based on inspection type
-        // Pickup inspection: booking must be 'approved'
-        // Return inspection: booking must be 'active'
-        const validPickupStatuses = ["approved"];
-        const validReturnStatuses = ["active"];
+        // Pickup inspection: booking must be 'awaiting_pickup_inspection' (new status)
+        // Return inspection: booking must be 'active' or 'awaiting_return_inspection'
+        const validPickupStatuses = ["awaiting_pickup_inspection", "approved"]; // approved for legacy
+        const validReturnStatuses = ["active", "awaiting_return_inspection"];
 
         if (inspectionType === "pickup" && !validPickupStatuses.includes(data.status)) {
-          setError("Booking must be approved before pickup inspection");
+          setError("Booking must be awaiting pickup inspection");
           setLoading(false);
           return;
         }
