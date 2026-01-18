@@ -13,6 +13,7 @@ import {
   Star,
   Shield,
   Banknote,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -173,7 +174,7 @@ export default function ReturnConfirmationStep({
   const pickupCounts = getStatusCounts(pickupChecklistItems);
   const returnCounts = getStatusCounts(returnChecklistItems);
 
-  const handleCompleteRental = async () => {
+  const handleSubmitForOwnerReview = async () => {
     setError("");
     setIsCompleting(true);
 
@@ -181,11 +182,44 @@ export default function ReturnConfirmationStep({
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) throw new Error("Authentication required");
 
-      const { error: completeError } = await supabase.rpc("complete_rental", {
-        p_booking_id: bookingId,
-      });
+      // First, check current booking status
+      const { data: booking, error: fetchError } = await supabase
+        .from("booking_requests")
+        .select("status")
+        .eq("id", bookingId)
+        .single();
 
-      if (completeError) throw new Error(completeError.message);
+      if (fetchError) throw new Error(fetchError.message);
+
+      // If still in 'active', first initiate the return
+      if (booking.status === "active") {
+        const { data: initiateResult, error: initiateError } = await supabase.functions.invoke(
+          "transition-rental-state",
+          {
+            body: {
+              booking_id: bookingId,
+              action: "initiate_return",
+            },
+          }
+        );
+
+        if (initiateError) throw new Error(initiateError.message);
+        if (!initiateResult?.success) throw new Error(initiateResult?.error || "Failed to initiate return");
+      }
+
+      // Now complete the return inspection to move to pending_owner_review
+      const { data: result, error: transitionError } = await supabase.functions.invoke(
+        "transition-rental-state",
+        {
+          body: {
+            booking_id: bookingId,
+            action: "complete_return_inspection",
+          },
+        }
+      );
+
+      if (transitionError) throw new Error(transitionError.message);
+      if (!result?.success) throw new Error(result?.error || "Failed to submit for review");
 
       // Send system message (non-critical)
       try {
@@ -199,7 +233,7 @@ export default function ReturnConfirmationStep({
           await supabase.from("messages").insert({
             conversation_id: conversation.id,
             sender_id: user.id,
-            content: `✅ Rental completed! ${equipmentTitle} has been returned.`,
+            content: `📋 Return inspection completed for ${equipmentTitle}. Awaiting owner confirmation.`,
             message_type: "system",
           });
         }
@@ -212,49 +246,56 @@ export default function ReturnConfirmationStep({
         if (isMountedRef.current) onSuccess();
       }, 2500);
     } catch (err) {
-      console.error("Error completing rental:", err);
-      setError(err instanceof Error ? err.message : "Failed to complete rental.");
+      console.error("Error submitting for owner review:", err);
+      setError(err instanceof Error ? err.message : "Failed to submit for review.");
     } finally {
       setIsCompleting(false);
     }
   };
 
-  // Success state
+  // Success state - Awaiting owner confirmation
   if (isComplete) {
     return (
       <div className="flex flex-col items-center justify-center py-10 space-y-4 animate-in fade-in duration-500">
-        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
-          <PartyPopper className="h-8 w-8 text-white" />
+        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
+          <UserCheck className="h-8 w-8 text-white" />
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-bold">Rental Complete!</h2>
+          <h2 className="text-xl font-bold">Submitted for Review!</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Thanks for using Vaymo!
+            The owner will review and confirm the return.
           </p>
         </div>
 
         {depositInfo && (
-          <Card className="w-full max-w-xs border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+          <Card className="w-full max-w-xs border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
             <CardContent className="p-3 flex items-start gap-2">
-              <Banknote className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
+              <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
               <div>
-                <p className="text-xs font-medium text-green-800 dark:text-green-200">
-                  Deposit Release
+                <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                  Deposit Status
                 </p>
-                <p className="text-[11px] text-green-700 dark:text-green-300">
-                  ${depositInfo.amount.toFixed(2)} within {depositInfo.claimWindowHours}h
+                <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                  ${depositInfo.amount.toFixed(2)} held until owner confirms
                 </p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {onReviewClick && (
-          <Button onClick={onReviewClick} variant="outline" size="sm" className="h-9">
-            <Star className="h-3.5 w-3.5 mr-1.5" />
-            Leave a Review
-          </Button>
-        )}
+        <Card className="w-full max-w-xs border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                What happens next?
+              </p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                Owner reviews the return inspection and confirms completion. You'll be notified once done.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -439,19 +480,19 @@ export default function ReturnConfirmationStep({
       <div className="fixed left-0 right-0 z-40 bottom-16 md:bottom-0 p-3 bg-background/95 backdrop-blur-lg border-t">
         <div className="max-w-2xl mx-auto">
           <Button
-            onClick={handleCompleteRental}
+            onClick={handleSubmitForOwnerReview}
             disabled={isCompleting}
-            className="w-full h-11 font-medium text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            className="w-full h-11 font-medium text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
           >
             {isCompleting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                Completing...
+                Submitting...
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                Complete Rental
+                <UserCheck className="h-4 w-4 mr-1.5" />
+                Submit for Owner Review
               </>
             )}
           </Button>
