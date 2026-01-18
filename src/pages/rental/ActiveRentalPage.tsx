@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertTriangle,
@@ -22,7 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import BookingLifecycleStepper from "@/components/booking/inspection-flow/BookingLifecycleStepper";
-import { useActiveRental } from "@/hooks/useActiveRental";
+import { useRental } from "@/contexts/RentalContext";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { getInspectionPath } from "@/lib/user-utils";
@@ -65,9 +66,24 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { booking, pickupInspection, returnInspection, isLoading, error } =
-    useActiveRental(bookingId);
+  const {
+    currentRental: booking,
+    pickupInspection,
+    returnInspection,
+    isLoading,
+    error,
+    loadRental,
+    canInitiateReturn,
+    initiateReturn,
+  } = useRental();
   const isEmbedded = embedded;
+
+  // Load rental data when bookingId changes
+  useEffect(() => {
+    if (bookingId) {
+      void loadRental(bookingId);
+    }
+  }, [bookingId, loadRental]);
 
   if (isLoading) {
     return (
@@ -165,8 +181,10 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
 
   const isEndingSoon = hoursUntilEnd <= 24 && hoursUntilEnd > 0;
   const isOverdue = countdown.isOverdue;
-  const isApproved = booking.status === "approved";
+  // With new statuses: awaiting_pickup_inspection is when renter needs to do pickup
+  const isAwaitingPickupInspection = booking.status === "awaiting_pickup_inspection";
   const isActiveStatus = booking.status === "active";
+  const isAwaitingReturnInspection = booking.status === "awaiting_return_inspection";
 
   // Determine sticky bar state
   let ctaConfig = {
@@ -184,7 +202,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
   };
 
   if (isRenter) {
-    if (isApproved && !pickupInspection) {
+    if (isAwaitingPickupInspection && !pickupInspection) {
       ctaConfig = {
         label: "Start Pickup Inspection",
         action: () =>
@@ -199,7 +217,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
         show: true,
         icon: <Camera className="h-4 w-4 mr-2" />,
       };
-    } else if (isActiveStatus && !returnInspection) {
+    } else if ((isActiveStatus || isAwaitingReturnInspection) && !returnInspection) {
       if (isOverdue) {
         ctaConfig = {
           label: "Return Required - Start Inspection",
@@ -460,7 +478,7 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
                 view: true,
               })
             );
-          } else if (isRenter && isApproved) {
+          } else if (isRenter && isAwaitingPickupInspection) {
             navigate(
               getInspectionPath({
                 role: inspectionRole,
@@ -596,8 +614,16 @@ export default function ActiveRentalPage({ embedded = false }: ActiveRentalPageP
           >
             {booking.status === "active"
               ? "Active"
-              : booking.status === "approved"
-              ? "Approved"
+              : booking.status === "awaiting_pickup_inspection"
+              ? "Awaiting Pickup"
+              : booking.status === "awaiting_start_date"
+              ? "Ready to Start"
+              : booking.status === "awaiting_return_inspection"
+              ? "Awaiting Return"
+              : booking.status === "pending_owner_review"
+              ? "Pending Review"
+              : booking.status === "disputed"
+              ? "Disputed"
               : booking.status}
           </Badge>
         </div>
