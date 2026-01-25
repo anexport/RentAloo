@@ -10,6 +10,9 @@ import { generateEquipmentPageMeta } from "@/lib/seo/meta";
 import { generateProductSchema, generateBreadcrumbSchema } from "@/lib/seo/schema";
 
 const EquipmentDetailPage = () => {
+  // TEMP: Verify web page is loaded in mobile app
+  console.log("WEB_EQUIPMENT_DETAIL_PAGE_LOADED");
+  
   const { id } = useParams();
 
   const { data, isLoading, isError, error } = useQuery({

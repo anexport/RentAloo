@@ -8,7 +8,8 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import SignupScreen from './screens/auth/SignupScreen';
 import VerifyScreen from './screens/auth/VerifyScreen';
-import { EquipmentDetailScreen } from './screens/EquipmentDetailScreen';
+// Use web app page directly for full parity
+import EquipmentDetailPage from '@web/pages/equipment/EquipmentDetailPage';
 import { BookingDetailScreen } from './screens/BookingDetailScreen';
 import { ConversationScreen } from './screens/ConversationScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
@@ -58,7 +59,7 @@ export function App() {
         <Route path="/profile" element={<ProfileScreen />} />
         
         {/* Detail screens (still show bottom nav) */}
-        <Route path="/equipment/:id" element={<EquipmentDetailScreen />} />
+        <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
         <Route path="/booking/:id" element={<BookingDetailScreen />} />
         <Route path="/conversation/:id" element={<ConversationScreen />} />
         <Route path="/payment/:bookingId" element={<PaymentScreen />} />

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Include web app source files for shared components */
+@source "../../src/**/*.{ts,tsx}";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
