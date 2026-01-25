@@ -7,6 +7,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@web/*": ["../../src/*"],
+      "@web-components/*": ["../../src/components/*"],
+      "@web-pages/*": ["../../src/pages/*"],
       "@rentaloo/shared": ["../../packages/shared/src"],
       "@rentaloo/shared/*": ["../../packages/shared/src/*"]
     }
