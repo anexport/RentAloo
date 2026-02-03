@@ -28,3 +28,6 @@ project(':capacitor-splash-screen').projectDir = new File('../../../node_modules
 
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../../../node_modules/.pnpm/@capacitor+status-bar@7.0.4_@capacitor+core@7.4.4/node_modules/@capacitor/status-bar/android')
+
+include ':capacitor-secure-storage-plugin'
+project(':capacitor-secure-storage-plugin').projectDir = new File('../../../node_modules/.pnpm/capacitor-secure-storage-plugin@0.9.0_@capacitor+core@7.4.4/node_modules/capacitor-secure-storage-plugin/android')

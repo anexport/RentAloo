@@ -16,6 +16,21 @@ const queryClient = new QueryClient({
   },
 });
 
+// Export the full app tree with all providers for mobile
+export function WebAppWithProviders() {
+  return (
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </StrictMode>
+  );
+}
+
 const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error(

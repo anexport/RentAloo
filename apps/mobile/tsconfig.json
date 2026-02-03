@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
@@ -14,8 +13,8 @@
       "@rentaloo/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "ios", "android"],
+  "include": ["src/**/*", "../../src/**/*"],
+  "exclude": ["node_modules", "dist", "ios", "android", "src/_backup"],
   "references": [
     { "path": "../../packages/shared" }
   ]

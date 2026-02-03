@@ -34,17 +34,8 @@ function contextualAliasPlugin(): Plugin {
       }
 
       const baseResolved = resolve(basePath, relativePath);
-      
-      // Try different extensions
-      const extensions = ['', '.ts', '.tsx', '.js', '.jsx'];
-      for (const ext of extensions) {
-        const fullPath = baseResolved + ext;
-        if (existsSync(fullPath)) {
-          return fullPath;
-        }
-      }
-      
-      // Try index files
+
+      // Try index files first (for directory imports)
       const indexExtensions = ['/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
       for (const ext of indexExtensions) {
         const fullPath = baseResolved + ext;
@@ -53,8 +44,17 @@ function contextualAliasPlugin(): Plugin {
         }
       }
 
-      // Return base path and let vite handle the rest
-      return baseResolved;
+      // Try different extensions
+      const extensions = ['', '.ts', '.tsx', '.js', '.jsx'];
+      for (const ext of extensions) {
+        const fullPath = baseResolved + ext;
+        if (existsSync(fullPath)) {
+          return fullPath;
+        }
+      }
+
+      // Let vite handle the rest
+      return null;
     }
   };
 }

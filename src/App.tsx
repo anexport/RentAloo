@@ -19,6 +19,7 @@ import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import { OnboardingGuard } from "@/components/auth/OnboardingGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageTransitionLoader } from "@/components/ui/PageSkeleton";
+import { isNative } from "@/lib/platform";
 
 // Lazy-loaded page components
 const EmailVerification = lazy(() => import("@/pages/auth/EmailVerification"));
@@ -118,8 +119,15 @@ const AdminRoute = () => {
 function App() {
   const { user, loading } = useAuth();
 
-  // Initialize Marker.io feedback widget
+  // SMOKE TEST: Verify web app is loaded in mobile
   useEffect(() => {
+    console.log("WRAP_WEB_APP_BOOT_OK_123");
+  }, []);
+
+  // Initialize Marker.io feedback widget (web only)
+  useEffect(() => {
+    if (isNative) return; // Skip in native mobile app
+
     void markerSDK
       .loadWidget({
         project: "69643cd3175800e4c150231c",
@@ -331,7 +339,8 @@ function App() {
           </RoleModeProvider>
         </TooltipProvider>
       </Router>
-      <Analytics />
+      {/* Vercel Analytics - web only */}
+      {!isNative && <Analytics />}
     </>
   );
 }

@@ -1,9 +1,17 @@
-import React from 'react';
+/**
+ * Mobile Entry Point
+ *
+ * IMPORTANT: Web App (imported via App.tsx) already contains:
+ * - BrowserRouter
+ * - AuthProvider, ThemeProvider, RoleModeProvider, RentalProvider
+ * - QueryClientProvider
+ *
+ * So we DON'T wrap with these providers here to avoid conflicts.
+ * We only initialize Capacitor plugins and mount the app.
+ */
+
 import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
 import { initConfig } from '@rentaloo/shared';
-import { AuthProvider } from './contexts/AuthContext';
 import { App } from './App';
 import { initCapacitorPlugins } from './plugins/init';
 import './index.css';
@@ -18,23 +26,5 @@ initConfig({
 // Initialize Capacitor plugins
 initCapacitorPlugins();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 2,
-    },
-  },
-});
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+// Disable StrictMode in mobile to avoid double-mount issues
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />);
