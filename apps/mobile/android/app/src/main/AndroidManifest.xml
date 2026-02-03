@@ -27,7 +27,9 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Support both rentaloo://auth-callback and rentaloo://auth/callback -->
                 <data android:scheme="rentaloo" android:host="auth-callback" />
+                <data android:scheme="rentaloo" android:host="auth" android:pathPrefix="/callback" />
             </intent-filter>
 
         </activity>

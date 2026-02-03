@@ -205,20 +205,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         window.Capacitor?.isNativePlatform?.() === true;
 
       if (isNative) {
-        // Native mobile: use deep link redirect
-        const deepLinkRedirect = 'rentaloo://auth-callback';
+        // Native mobile: use web bridge URL (no Supabase dashboard changes needed!)
+        // The bridge extracts tokens and redirects to rentaloo://auth/callback#tokens
+        // IMPORTANT: Use VITE_PUBLIC_WEB_URL (not window.location.origin which is https://localhost in Capacitor)
+        const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || window.location.origin;
+        const bridgeUrl = `${webUrl}/auth/bridge`;
+
+        console.log('OAUTH_START', { provider, redirectTo: bridgeUrl });
+
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
-            redirectTo: deepLinkRedirect,
+            redirectTo: bridgeUrl,
             skipBrowserRedirect: true, // Return URL instead of navigating
           },
         });
 
-        if (error) return { error };
+        if (error) {
+          console.error('OAUTH_START_ERROR', error);
+          return { error };
+        }
 
         // Open OAuth URL in system browser
         if (data?.url) {
+          console.log('OAUTH_OPENING_BROWSER', data.url);
           // Dynamic import to avoid bundling Capacitor in web build
           // @ts-expect-error - Capacitor global exists in native runtime
           if (window.Capacitor?.Plugins?.Browser) {

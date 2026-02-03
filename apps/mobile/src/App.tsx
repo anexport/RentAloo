@@ -99,27 +99,65 @@ export function App() {
 
       if (!url) return;
 
-      // Only handle our OAuth callback
-      if (!url.startsWith('rentaloo://auth-callback')) return;
+      // Handle both rentaloo://auth-callback and rentaloo://auth/callback
+      const isAuthCallback = url.startsWith('rentaloo://auth-callback') || url.startsWith('rentaloo://auth/callback');
+      if (!isAuthCallback) return;
 
       try {
-        // Parse code from URL (PKCE flow)
+        // Parse URL - tokens can be in hash (#) or query (?)
         const urlObj = new URL(url);
-        const code = urlObj.searchParams.get('code');
-        const error = urlObj.searchParams.get('error_description') || urlObj.searchParams.get('error');
+
+        // Check hash first (used by AuthBridge)
+        const hash = urlObj.hash?.startsWith('#') ? urlObj.hash.slice(1) : '';
+        const hashParams = new URLSearchParams(hash);
+
+        // Check for error in hash or query
+        const error =
+          hashParams.get('error_description') ||
+          hashParams.get('error') ||
+          urlObj.searchParams.get('error_description') ||
+          urlObj.searchParams.get('error');
 
         if (error) {
           console.error('OAUTH_CALLBACK_ERROR', error);
+          await Browser.close();
           return;
         }
 
-        if (code) {
-          // Exchange code for session with Supabase
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            console.error('OAUTH_EXCHANGE_ERROR', exchangeError);
+        // Try to get tokens from hash (AuthBridge flow)
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
+
+        if (access_token && refresh_token) {
+          // Direct token flow (from AuthBridge)
+          console.log('OAUTH_TOKENS_RECEIVED', {
+            access_token_length: access_token.length,
+            refresh_token_length: refresh_token.length
+          });
+
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          if (sessionError) {
+            console.error('OAUTH_SESSION_SET_FAIL', sessionError.message, sessionError);
           } else {
-            console.log('OAUTH_EXCHANGED_OK');
+            console.log('OAUTH_SESSION_SET_OK');
+          }
+        } else {
+          // Fallback: try PKCE code exchange (direct deep link flow)
+          const code = urlObj.searchParams.get('code');
+          if (code) {
+            console.log('OAUTH_CODE_RECEIVED', { code_length: code.length });
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              console.error('OAUTH_EXCHANGE_FAIL', exchangeError.message, exchangeError);
+            } else {
+              console.log('OAUTH_EXCHANGED_OK');
+            }
+          } else {
+            console.error('OAUTH_NO_TOKENS_OR_CODE', { url });
           }
         }
 
@@ -127,6 +165,7 @@ export function App() {
         await Browser.close();
       } catch (err) {
         console.error('OAUTH_CALLBACK_HANDLER_ERROR', err);
+        await Browser.close().catch(() => {/* ignore */});
       }
     };
 

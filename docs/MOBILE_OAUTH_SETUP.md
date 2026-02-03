@@ -2,33 +2,42 @@
 
 ## Overview
 
-This guide explains how to configure Google OAuth to work with the Capacitor mobile app, ensuring users are redirected back to the app after authentication instead of staying in the browser.
+This guide explains how Google OAuth works with the Capacitor mobile app using the **AuthBridge** pattern. This approach requires **NO Supabase dashboard changes** because it uses an existing HTTPS redirect URL.
 
 ## Architecture
 
-**Flow:**
+**Flow (AuthBridge Pattern):**
 1. User taps "Sign in with Google" in mobile app
 2. App opens system browser with Supabase OAuth URL
 3. User authenticates with Google
 4. Google redirects to Supabase
-5. Supabase redirects to deep link: `rentaloo://auth-callback?code=...`
-6. Android opens the app via deep link
-7. App exchanges code for session with Supabase
-8. Browser closes automatically
-9. User is logged in
+5. Supabase redirects to **web bridge**: `https://your-domain.com/auth/bridge`
+6. Bridge page extracts tokens from URL hash
+7. Bridge redirects to deep link: `rentaloo://auth/callback#access_token=...&refresh_token=...`
+8. Android opens the app via deep link
+9. App calls `supabase.auth.setSession()` with tokens
+10. Browser closes automatically
+11. User is logged in
+
+**Why this works:**
+- Supabase only sees an HTTPS URL (already in allowlist)
+- No dashboard configuration changes needed
+- Tokens are passed securely via deep link
+- Works for all OAuth providers (Google, GitHub, Facebook, Twitter)
 
 ## Configuration Steps
 
 ### 1. Supabase Dashboard Configuration
 
-**Navigate to:** Supabase Dashboard → Authentication → URL Configuration
+**✅ NO CHANGES NEEDED!**
 
-**Add Redirect URL:**
+The mobile app uses the web bridge at `https://your-domain.com/auth/bridge`, which is already an allowed redirect URL in Supabase (any HTTPS URL from your domain is allowed by default).
+
+**Optional:** If you want to use direct deep link flow (without bridge), add:
 ```
 rentaloo://auth-callback
 ```
-
-**Important:** This URL must be added to the "Redirect URLs" allowlist in Supabase Auth settings.
+to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs.
 
 ### 2. Google Cloud OAuth Configuration
 
@@ -50,46 +59,86 @@ The deep link handler is already configured in `apps/mobile/android/app/src/main
     <action android:name="android.intent.action.VIEW" />
     <category android:name="android.intent.category.DEFAULT" />
     <category android:name="android.intent.category.BROWSABLE" />
+    <!-- Support both rentaloo://auth-callback and rentaloo://auth/callback -->
     <data android:scheme="rentaloo" android:host="auth-callback" />
+    <data android:scheme="rentaloo" android:host="auth" android:pathPrefix="/callback" />
 </intent-filter>
 ```
 
-This allows Android to open the app when it receives a URL like `rentaloo://auth-callback?code=...`
+This allows Android to open the app when it receives URLs like:
+- `rentaloo://auth/callback#access_token=...` (from AuthBridge)
+- `rentaloo://auth-callback?code=...` (direct deep link, if configured)
 
 ## Implementation Details
 
-### Deep Link Listener (`apps/mobile/src/App.tsx`)
+### 1. Web Bridge (`src/pages/auth/AuthBridge.tsx`)
 
-The mobile shell listens for deep link events:
+The bridge page extracts tokens from Supabase OAuth redirect and forwards to mobile app:
+
+```typescript
+useEffect(() => {
+  // Get tokens from URL hash (Supabase puts them here)
+  const hash = window.location.hash?.slice(1);
+  const params = new URLSearchParams(hash);
+
+  const access_token = params.get("access_token");
+  const refresh_token = params.get("refresh_token");
+
+  if (access_token && refresh_token) {
+    // Redirect to mobile app with tokens
+    const deepLinkUrl = `rentaloo://auth/callback#access_token=${access_token}&refresh_token=${refresh_token}`;
+    window.location.href = deepLinkUrl;
+  }
+}, []);
+```
+
+### 2. Deep Link Listener (`apps/mobile/src/App.tsx`)
+
+The mobile shell listens for deep link events and handles both token and code flows:
 
 ```typescript
 CapApp.addListener('appUrlOpen', async ({ url }) => {
-  if (!url.startsWith('rentaloo://auth-callback')) return;
-  
+  // Handle both rentaloo://auth-callback and rentaloo://auth/callback
+  if (!url.startsWith('rentaloo://auth')) return;
+
   const urlObj = new URL(url);
-  const code = urlObj.searchParams.get('code');
-  
-  if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+  const hash = urlObj.hash?.slice(1);
+  const hashParams = new URLSearchParams(hash);
+
+  // Try token flow first (from AuthBridge)
+  const access_token = hashParams.get('access_token');
+  const refresh_token = hashParams.get('refresh_token');
+
+  if (access_token && refresh_token) {
+    await supabase.auth.setSession({ access_token, refresh_token });
     await Browser.close();
+  } else {
+    // Fallback: PKCE code exchange (direct deep link)
+    const code = urlObj.searchParams.get('code');
+    if (code) {
+      await supabase.auth.exchangeCodeForSession(code);
+      await Browser.close();
+    }
   }
 });
 ```
 
-### OAuth Trigger (`src/contexts/AuthContext.tsx`)
+### 3. OAuth Trigger (`src/contexts/AuthContext.tsx`)
 
-The `signInWithOAuth` function detects native platform and uses appropriate flow:
+The `signInWithOAuth` function detects native platform and uses the web bridge:
 
 ```typescript
 if (isNative) {
+  // Use web bridge URL (no Supabase dashboard changes needed!)
+  const bridgeUrl = `${window.location.origin}/auth/bridge`;
   const { data } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'rentaloo://auth-callback',
+      redirectTo: bridgeUrl,
       skipBrowserRedirect: true
     }
   });
-  
+
   await Browser.open({ url: data.url });
 }
 ```
@@ -113,8 +162,17 @@ adb logcat -s "Capacitor/Console:*" | grep -iE "APP_URL_OPEN|OAUTH|auth-callback
 
 ### 3. Expected Log Output
 
+**AuthBridge flow (default):**
+```
+APP_URL_OPEN rentaloo://auth/callback#access_token=...&refresh_token=...
+OAUTH_TOKENS_RECEIVED
+OAUTH_SESSION_SET_OK
+```
+
+**Direct deep link flow (if configured):**
 ```
 APP_URL_OPEN rentaloo://auth-callback?code=...
+OAUTH_CODE_RECEIVED
 OAUTH_EXCHANGED_OK
 ```
 
