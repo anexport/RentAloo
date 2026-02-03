@@ -9,8 +9,11 @@
  */
 
 import { useEffect, useState, Component, ReactNode, lazy, Suspense } from 'react';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 // import { useDeepLinks } from './plugins/deepLinks'; // TODO: Move inside Router context
 import { isNativePlatform, platform, logger } from './lib/nativeBridge';
+import { supabase } from '@web/lib/supabase';
 
 // Lazy load web app to isolate crashes
 const WebAppWithProviders = lazy(() => import('@web/main').then(m => ({ default: m.WebAppWithProviders })));
@@ -89,9 +92,51 @@ export function App() {
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
 
+    // Deep link listener for OAuth callback
+    const handleAppUrlOpen = async (data: { url: string }) => {
+      const url = data.url;
+      console.log('APP_URL_OPEN', url);
+
+      if (!url) return;
+
+      // Only handle our OAuth callback
+      if (!url.startsWith('rentaloo://auth-callback')) return;
+
+      try {
+        // Parse code from URL (PKCE flow)
+        const urlObj = new URL(url);
+        const code = urlObj.searchParams.get('code');
+        const error = urlObj.searchParams.get('error_description') || urlObj.searchParams.get('error');
+
+        if (error) {
+          console.error('OAUTH_CALLBACK_ERROR', error);
+          return;
+        }
+
+        if (code) {
+          // Exchange code for session with Supabase
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error('OAUTH_EXCHANGE_ERROR', exchangeError);
+          } else {
+            console.log('OAUTH_EXCHANGED_OK');
+          }
+        }
+
+        // Close the browser
+        await Browser.close();
+      } catch (err) {
+        console.error('OAUTH_CALLBACK_HANDLER_ERROR', err);
+      }
+    };
+
+    // Add deep link listener
+    const urlListener = CapApp.addListener('appUrlOpen', handleAppUrlOpen);
+
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
+      void urlListener.then(listener => listener.remove());
     };
   }, []);
 

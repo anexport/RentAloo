@@ -198,14 +198,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     redirectTo?: string
   ) => {
     try {
-      const redirectUrl = redirectTo || `${window.location.origin}/`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl,
-        },
-      });
-      return { error };
+      // Detect if running in native mobile app
+      const isNative = typeof window !== 'undefined' &&
+        'Capacitor' in window &&
+        // @ts-expect-error - Capacitor is added by native runtime
+        window.Capacitor?.isNativePlatform?.() === true;
+
+      if (isNative) {
+        // Native mobile: use deep link redirect
+        const deepLinkRedirect = 'rentaloo://auth-callback';
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: deepLinkRedirect,
+            skipBrowserRedirect: true, // Return URL instead of navigating
+          },
+        });
+
+        if (error) return { error };
+
+        // Open OAuth URL in system browser
+        if (data?.url) {
+          // Dynamic import to avoid bundling Capacitor in web build
+          // @ts-expect-error - Capacitor global exists in native runtime
+          if (window.Capacitor?.Plugins?.Browser) {
+            // @ts-expect-error - Browser plugin is available in native
+            await window.Capacitor.Plugins.Browser.open({
+              url: data.url,
+              presentationStyle: 'popover'
+            });
+          }
+        }
+
+        return { error: null };
+      } else {
+        // Web: use normal redirect
+        const redirectUrl = redirectTo || `${window.location.origin}/`;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: redirectUrl,
+          },
+        });
+        return { error };
+      }
     } catch (error) {
       return { error: error as AuthError };
     }
