@@ -177,6 +177,7 @@ function App() {
                         />
                         <Route path="/verify" element={<EmailVerification />} />
                         <Route path="/auth/bridge" element={<AuthBridge />} />
+                        <Route path="/auth/callback-mobile" element={<AuthBridge />} />
                         <Route
                           path="/onboarding"
                           element={<OnboardingPage />}

@@ -209,7 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // The bridge extracts tokens and redirects to rentaloo://auth/callback#tokens
         // IMPORTANT: Use VITE_PUBLIC_WEB_URL (not window.location.origin which is https://localhost in Capacitor)
         const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || window.location.origin;
-        const bridgeUrl = `${webUrl}/auth/bridge`;
+        const bridgeUrl = `${webUrl}/auth/callback-mobile`;
 
         console.log('OAUTH_START', { provider, redirectTo: bridgeUrl });
 

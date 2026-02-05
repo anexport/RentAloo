@@ -5,7 +5,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*", "../../src/*"],
       "@web/*": ["../../src/*"],
       "@web-components/*": ["../../src/components/*"],
       "@web-pages/*": ["../../src/pages/*"],
