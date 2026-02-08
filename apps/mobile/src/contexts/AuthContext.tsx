@@ -198,7 +198,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     redirectTo?: string
   ) => {
     try {
-      const redirectUrl = redirectTo || `${window.location.origin}/`;
+      // Mobile MUST use web bridge for OAuth redirect
+      // Web domain serves as intermediary that forwards tokens via deep link
+      // CRITICAL: Use www.vaymo.it NOT vaymo.it to avoid 307 redirect that loses hash fragment tokens
+      const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || 'https://www.vaymo.it';
+      const redirectUrl = redirectTo || `${webUrl}/auth/bridge`;
+      
+      console.log('[AuthContext] OAuth redirect URL:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {

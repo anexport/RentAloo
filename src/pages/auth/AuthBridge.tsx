@@ -21,13 +21,22 @@ export default function AuthBridge() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // DEBUG: Log everything
+    console.log("[AuthBridge] Full URL:", window.location.href);
+    console.log("[AuthBridge] Hash:", window.location.hash);
+    console.log("[AuthBridge] Search params:", window.location.search);
+    
     // Get the hash fragment (Supabase puts tokens here)
     const hash = window.location.hash?.startsWith("#")
       ? window.location.hash.slice(1)
       : "";
 
+    console.log("[AuthBridge] Parsed hash:", hash);
+
     // Parse the hash as URL params
     const params = new URLSearchParams(hash);
+    
+    console.log("[AuthBridge] All params:", Object.fromEntries(params.entries()));
 
     // Check for errors first
     const error = params.get("error_description") || params.get("error");
