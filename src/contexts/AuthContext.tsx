@@ -206,12 +206,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (isNative) {
         // Native mobile: use web bridge URL (no Supabase dashboard changes needed!)
-        // The bridge extracts tokens and redirects to rentaloo://auth/callback#tokens
-        // IMPORTANT: Use VITE_PUBLIC_WEB_URL (not window.location.origin which is https://localhost in Capacitor)
-        const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || window.location.origin;
-        const bridgeUrl = `${webUrl}/auth/callback-mobile`;
+        // The bridge extracts tokens (or exchanges PKCE code) and redirects to rentaloo://auth/callback#tokens
+        // CRITICAL: Use www.vaymo.it NOT vaymo.it to avoid 307 redirect that loses hash fragment tokens
+        const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || 'https://www.vaymo.it';
+        const bridgeUrl = `${webUrl}/auth/bridge`;
 
-        console.log('OAUTH_START', { provider, redirectTo: bridgeUrl });
+        console.log('OAUTH_START provider=' + provider + ' redirectTo=' + bridgeUrl);
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
@@ -221,14 +221,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           },
         });
 
+        // DEBUG: Log exact redirectTo that was used
+        console.log('OAUTH_REDIRECT_TO_USED ' + bridgeUrl);
+
+        // DEBUG: Log auth storage key
+        try {
+          const storageKey = (supabase as any)?.auth?.storageKey || (supabase as any)?.auth?.storage?.key || 'unknown';
+          console.log('OAUTH_STORAGE_KEY ' + String(storageKey));
+        } catch (e) {
+          console.log('OAUTH_STORAGE_KEY_ERROR ' + String(e));
+        }
+
+        // DEBUG: Inspect localStorage for code_verifier / PKCE keys
+        try {
+          const pkceKeys: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.toLowerCase().includes('supabase') || key.toLowerCase().includes('pkce') || key.toLowerCase().includes('code_verifier'))) {
+              const val = localStorage.getItem(key) || '';
+              pkceKeys.push(key + '=' + val.slice(0, 50));
+            }
+          }
+          console.log('OAUTH_PKCE_KEYS_AFTER_SIGN_IN count=' + pkceKeys.length + ' keys=' + JSON.stringify(pkceKeys));
+        } catch (e) {
+          console.log('OAUTH_PKCE_KEYS_ERROR ' + String(e));
+        }
+
         if (error) {
-          console.error('OAUTH_START_ERROR', error);
+          console.error('OAUTH_START_ERROR ' + (error.message || JSON.stringify(error)));
           return { error };
         }
 
         // Open OAuth URL in system browser
         if (data?.url) {
-          console.log('OAUTH_OPENING_BROWSER', data.url);
+          console.log('OAUTH_OPENING_BROWSER_URL ' + String(data.url));
           // Dynamic import to avoid bundling Capacitor in web build
           // @ts-expect-error - Capacitor global exists in native runtime
           if (window.Capacitor?.Plugins?.Browser) {

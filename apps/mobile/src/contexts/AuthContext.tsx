@@ -199,20 +199,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ) => {
     try {
       // Mobile MUST use web bridge for OAuth redirect
-      // Web domain serves as intermediary that forwards tokens via deep link
+      // Web domain serves as intermediary that forwards tokens (or exchanges PKCE code) via deep link
       // CRITICAL: Use www.vaymo.it NOT vaymo.it to avoid 307 redirect that loses hash fragment tokens
       const webUrl = import.meta.env.VITE_PUBLIC_WEB_URL || 'https://www.vaymo.it';
-      const redirectUrl = redirectTo || `${webUrl}/auth/bridge`;
-      
-      console.log('[AuthContext] OAuth redirect URL:', redirectUrl);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
+      const bridgeUrl = redirectTo || `${webUrl}/auth/bridge`;
+
+      console.log('OAUTH_START', { provider, redirectTo: bridgeUrl });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: bridgeUrl,
+          skipBrowserRedirect: true, // Return URL instead of auto-navigating
         },
       });
-      return { error };
+
+      if (error) {
+        console.error('OAUTH_START_ERROR', error);
+        return { error };
+      }
+
+      // Open OAuth URL in system browser (Capacitor Browser plugin)
+      if (data?.url) {
+        console.log('OAUTH_OPENING_BROWSER', { oauthUrl: data.url });
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({
+          url: data.url,
+          presentationStyle: 'popover',
+        });
+      }
+
+      return { error: null };
     } catch (error) {
       return { error: error as AuthError };
     }

@@ -95,7 +95,7 @@ export function App() {
     // Deep link listener for OAuth callback
     const handleAppUrlOpen = async (data: { url: string }) => {
       const url = data.url;
-      console.log('APP_URL_OPEN', url);
+      console.log('APP_URL_OPEN_RAW ' + url);
 
       if (!url) return;
 
@@ -106,6 +106,7 @@ export function App() {
       try {
         // Parse URL - tokens can be in hash (#) or query (?)
         const urlObj = new URL(url);
+        console.log('APP_URL_PARSED hash=' + (urlObj.hash || 'none') + ' search=' + (urlObj.search || 'none'));
 
         // Check hash first (used by AuthBridge)
         const hash = urlObj.hash?.startsWith('#') ? urlObj.hash.slice(1) : '';
@@ -119,8 +120,8 @@ export function App() {
           urlObj.searchParams.get('error');
 
         if (error) {
-          console.error('OAUTH_CALLBACK_ERROR', error);
-          await Browser.close();
+          console.error('OAUTH_CALLBACK_ERROR ' + error);
+          await Browser.close().catch(() => {});
           return;
         }
 
@@ -130,10 +131,7 @@ export function App() {
 
         if (access_token && refresh_token) {
           // Direct token flow (from AuthBridge)
-          console.log('OAUTH_TOKENS_RECEIVED', {
-            access_token_length: access_token.length,
-            refresh_token_length: refresh_token.length
-          });
+          console.log('TOKENS_PARSED_OK access=' + access_token.length + ' refresh=' + refresh_token.length);
 
           const { error: sessionError } = await supabase.auth.setSession({
             access_token,
@@ -141,31 +139,66 @@ export function App() {
           });
 
           if (sessionError) {
-            console.error('OAUTH_SESSION_SET_FAIL', sessionError.message, sessionError);
+            console.error('SET_SESSION_FAIL ' + sessionError.message);
           } else {
-            console.log('OAUTH_SESSION_SET_OK');
+            console.log('SET_SESSION_OK via_tokens');
           }
+
+          const { data: sessionData } = await supabase.auth.getSession();
+          console.log('SESSION_AFTER_SET ' + !!sessionData.session + ' ' + (sessionData.session?.user?.id || 'no-user'));
         } else {
-          // Fallback: try PKCE code exchange (direct deep link flow)
+          // PKCE code exchange (primary flow with direct deep link)
           const code = urlObj.searchParams.get('code');
           if (code) {
-            console.log('OAUTH_CODE_RECEIVED', { code_length: code.length });
-            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchangeError) {
-              console.error('OAUTH_EXCHANGE_FAIL', exchangeError.message, exchangeError);
-            } else {
-              console.log('OAUTH_EXCHANGED_OK');
+            const codePreview = code.slice(0, 6) + '...' + code.slice(-6);
+            console.log('EXCHANGE_CODE_RECEIVED len=' + code.length + ' preview=' + codePreview);
+
+            // Dump localStorage keys containing supabase/pkce BEFORE exchange
+            try {
+              const storageKeys: string[] = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.toLowerCase().includes('supabase') || key.toLowerCase().includes('pkce') || key.toLowerCase().includes('code_verifier'))) {
+                  const val = localStorage.getItem(key) || '';
+                  storageKeys.push(key + '=' + val.slice(0, 50));
+                }
+              }
+              console.log('EXCHANGE_STORAGE_BEFORE count=' + storageKeys.length + ' keys=' + JSON.stringify(storageKeys));
+            } catch (e) {
+              console.log('EXCHANGE_STORAGE_BEFORE_ERROR ' + String(e));
             }
+
+            // Attempt PKCE code exchange
+            console.log('EXCHANGE_CALLING exchangeCodeForSession...');
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+            if (exchangeError) {
+              console.error('EXCHANGE_FAIL_MESSAGE ' + String(exchangeError.message));
+              console.error('EXCHANGE_FAIL_STATUS ' + String((exchangeError as any).status));
+              console.error('EXCHANGE_FAIL_NAME ' + String(exchangeError.name));
+              console.error('EXCHANGE_FAIL_CODE ' + String((exchangeError as any).code || 'none'));
+              try {
+                console.error('EXCHANGE_FAIL_FULL ' + JSON.stringify(exchangeError, Object.getOwnPropertyNames(exchangeError)));
+              } catch {
+                console.error('EXCHANGE_FAIL_FULL [unserializable]');
+              }
+            } else {
+              console.log('EXCHANGE_OK session=' + !!exchangeData?.session + ' user=' + (exchangeData?.session?.user?.id || 'none'));
+            }
+
+            // Verify session after exchange
+            const { data: sessionData } = await supabase.auth.getSession();
+            console.log('SESSION_AFTER_EXCHANGE ' + !!sessionData.session + ' ' + (sessionData.session?.user?.id || 'no-user'));
           } else {
-            console.error('OAUTH_NO_TOKENS_OR_CODE', { url });
+            console.error('APP_NO_TOKENS_OR_CODE url=' + url);
           }
         }
 
         // Close the browser
-        await Browser.close();
+        await Browser.close().catch(() => {});
       } catch (err) {
-        console.error('OAUTH_CALLBACK_HANDLER_ERROR', err);
-        await Browser.close().catch(() => {/* ignore */});
+        console.error('OAUTH_CALLBACK_HANDLER_ERROR ' + String(err));
+        await Browser.close().catch(() => {});
       }
     };
 

@@ -20,7 +20,7 @@ Ran terminal command:  adb start-server && adb devices
 
 Il telefono è rilevato correttamente. Ora installo e avvio l'app: 
 
-Ran terminal command:  pnpm exec cap run android --target R58M82VRJ9F
+Ran terminal command:  pnpm exec cap run android --target RFCY30XC72F o R58M82VRJ9F in base a quale dispositivo vuoi usare
 
 ✅ **App installata e avviata con successo sul telefono!**
 

@@ -18,4 +18,6 @@ export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
   detectSessionInUrl: false, // IMPORTANT: mobile handles deep links manually
   autoRefreshToken: true,
   persistSession: true,
+  flowType: 'implicit', // CRITICAL: forces tokens in hash (#access_token) instead of PKCE (?code)
+  // The deployed bridge at www.vaymo.it only handles hash tokens, not PKCE codes
 });

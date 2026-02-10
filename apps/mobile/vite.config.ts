@@ -8,6 +8,53 @@ const webSrcPath = normalize(resolve(__dirname, '../../src'));
 const mobileSrcPath = normalize(resolve(__dirname, './src'));
 
 /**
+ * Transforms the web AuthContext for mobile builds:
+ * - Changes OAuth redirectTo from the web bridge to a direct deep link.
+ * - Keeps PKCE flow (default) since the code_verifier stays in the WebView's localStorage.
+ *
+ * WHY bypass the bridge?
+ * The web bridge at www.vaymo.it only handles hash tokens (#access_token).
+ * Modern Supabase always uses authorization code flow (sends ?code=...) regardless of
+ * client flowType. The bridge can't exchange the code because the PKCE code_verifier
+ * lives on the mobile device's WebView, not on the www.vaymo.it server.
+ *
+ * By redirecting directly to rentaloo://auth/callback, the code comes straight to the app.
+ * The app then calls exchangeCodeForSession(code) using the same Supabase client that
+ * generated the code_verifier — so the PKCE exchange succeeds.
+ *
+ * PREREQUISITE: Add rentaloo://auth/callback to Supabase Dashboard → Auth → URL Configuration → Redirect URLs
+ */
+function mobileOAuthPlugin(): Plugin {
+  return {
+    name: 'mobile-oauth-redirect',
+    enforce: 'pre',
+    transform(code, id) {
+      const normalizedId = normalize(id);
+      // Only transform the web AuthContext, not the mobile one
+      if (!normalizedId.includes('contexts/AuthContext')) return null;
+      if (normalizedId.includes('apps/mobile/src/contexts/')) return null;
+      if (!code.includes('OAUTH_START')) return null;
+
+      let transformed = code;
+
+      // Change the bridgeUrl to use direct deep link instead of web bridge
+      //    The web AuthContext builds: const bridgeUrl = `${webUrl}/auth/bridge`;
+      //    We replace it with a direct deep link so PKCE code comes to the app.
+      transformed = transformed.replace(
+        /const bridgeUrl = `\$\{webUrl\}\/auth\/bridge`;/,
+        "const bridgeUrl = 'rentaloo://auth/callback';"
+      );
+
+      if (transformed !== code) {
+        console.log('[mobileOAuthPlugin] Transformed AuthContext: bridgeUrl → rentaloo://auth/callback');
+        return { code: transformed, map: null };
+      }
+      return null;
+    },
+  };
+}
+
+/**
  * Custom plugin to resolve @/ imports correctly based on the importing file's location.
  * Files from web src (../../src) should resolve @/ to web src.
  * Files from mobile src (./src) should resolve @/ to mobile src.
@@ -61,7 +108,7 @@ function contextualAliasPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [contextualAliasPlugin(), react(), tailwindcss()],
+  plugins: [mobileOAuthPlugin(), contextualAliasPlugin(), react(), tailwindcss()],
   resolve: {
     alias: {
       // Note: @/ is handled by contextualAliasPlugin for context-aware resolution

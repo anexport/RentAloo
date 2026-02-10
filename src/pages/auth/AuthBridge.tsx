@@ -4,89 +4,188 @@
  * This page acts as a "bridge" between Supabase OAuth and the mobile app.
  * 
  * Flow:
- * 1. Mobile app initiates OAuth with redirectTo: "https://your-domain.com/auth/bridge"
- * 2. Supabase completes OAuth and redirects here with tokens in URL hash
- * 3. This page extracts tokens and redirects to deep link: rentaloo://auth/callback#...
+ * 1. Mobile app initiates OAuth with redirectTo: "https://www.vaymo.it/auth/bridge"
+ * 2. Supabase completes OAuth and redirects here:
+ *    A) With tokens in URL hash: #access_token=...&refresh_token=...  (implicit flow)
+ *    B) With PKCE code in query: ?code=...  (PKCE flow, default in Supabase)
+ * 3. This page extracts tokens (or exchanges PKCE code for tokens) and redirects
+ *    to deep link: rentaloo://auth/callback#access_token=...&refresh_token=...
  * 4. Mobile app receives deep link and calls supabase.auth.setSession()
- * 
- * This approach works because:
- * - Supabase only sees an HTTPS URL (which is in the allowlist)
- * - The mobile app receives tokens via deep link (no dashboard changes needed)
  */
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function AuthBridge() {
   const [status, setStatus] = useState<'processing' | 'redirecting' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // DEBUG: Log everything
-    console.log("[AuthBridge] Full URL:", window.location.href);
-    console.log("[AuthBridge] Hash:", window.location.hash);
-    console.log("[AuthBridge] Search params:", window.location.search);
-    
-    // Get the hash fragment (Supabase puts tokens here)
-    const hash = window.location.hash?.startsWith("#")
-      ? window.location.hash.slice(1)
-      : "";
+    console.log("BRIDGE_START", {
+      fullUrl: window.location.href,
+      hash: window.location.hash,
+      search: window.location.search,
+    });
 
-    console.log("[AuthBridge] Parsed hash:", hash);
+    const handleBridge = async () => {
+      // --- CASE A: tokens in hash (#access_token=...&refresh_token=...) ---
+      const hash = window.location.hash?.startsWith("#")
+        ? window.location.hash.slice(1)
+        : "";
+      const hashParams = new URLSearchParams(hash);
 
-    // Parse the hash as URL params
-    const params = new URLSearchParams(hash);
-    
-    console.log("[AuthBridge] All params:", Object.fromEntries(params.entries()));
+      // Check for error in hash
+      const hashError = hashParams.get("error_description") || hashParams.get("error");
+      if (hashError) {
+        console.error("BRIDGE_HASH_ERROR", hashError);
+        setStatus('error');
+        setErrorMessage(hashError);
+        setTimeout(() => {
+          window.location.href = `rentaloo://auth/callback?error=${encodeURIComponent(hashError)}`;
+        }, 500);
+        return;
+      }
 
-    // Check for errors first
-    const error = params.get("error_description") || params.get("error");
-    if (error) {
-      console.error("[AuthBridge] OAuth error:", error);
+      const hashAccessToken = hashParams.get("access_token");
+      const hashRefreshToken = hashParams.get("refresh_token");
+
+      if (hashAccessToken && hashRefreshToken) {
+        console.log("BRIDGE_HAS_HASH_TOKENS", {
+          access_token_len: hashAccessToken.length,
+          refresh_token_len: hashRefreshToken.length,
+        });
+
+        redirectToAppWithTokens(hashAccessToken, hashRefreshToken, {
+          expires_in: hashParams.get("expires_in"),
+          token_type: hashParams.get("token_type"),
+        });
+        return;
+      }
+
+      // --- CASE B: PKCE code in query string (?code=...) ---
+      const queryParams = new URLSearchParams(window.location.search);
+
+      // Check for error in query
+      const queryError = queryParams.get("error_description") || queryParams.get("error");
+      if (queryError) {
+        console.error("BRIDGE_QUERY_ERROR", queryError);
+        setStatus('error');
+        setErrorMessage(queryError);
+        setTimeout(() => {
+          window.location.href = `rentaloo://auth/callback?error=${encodeURIComponent(queryError)}`;
+        }, 500);
+        return;
+      }
+
+      const code = queryParams.get("code");
+
+      if (code) {
+        console.log("BRIDGE_HAS_CODE", { code_length: code.length });
+
+        try {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (exchangeError) {
+            // The code may have already been consumed by Supabase's detectSessionInUrl.
+            // Fallback: check if a session was auto-set by the client.
+            console.warn("BRIDGE_EXCHANGE_FAIL_TRYING_SESSION", {
+              message: exchangeError.message,
+              status: exchangeError.status,
+            });
+
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData.session?.access_token && sessionData.session?.refresh_token) {
+              console.log("BRIDGE_EXCHANGE_FALLBACK_SESSION_OK", {
+                user_id: sessionData.session.user?.id,
+                access_token_len: sessionData.session.access_token.length,
+              });
+              redirectToAppWithTokens(sessionData.session.access_token, sessionData.session.refresh_token, {
+                expires_in: String(sessionData.session.expires_in ?? ""),
+                token_type: "bearer",
+              });
+              return;
+            }
+
+            console.error("BRIDGE_EXCHANGE_FAIL", {
+              message: exchangeError.message,
+              status: exchangeError.status,
+            });
+            setStatus('error');
+            setErrorMessage(`Code exchange failed: ${exchangeError.message}`);
+            setTimeout(() => {
+              window.location.href = `rentaloo://auth/callback?error=exchange_failed&message=${encodeURIComponent(exchangeError.message)}`;
+            }, 500);
+            return;
+          }
+
+          const session = data?.session;
+          if (session?.access_token && session?.refresh_token) {
+            console.log("BRIDGE_EXCHANGE_OK", {
+              user_id: session.user?.id,
+              access_token_len: session.access_token.length,
+              refresh_token_len: session.refresh_token.length,
+            });
+
+            redirectToAppWithTokens(session.access_token, session.refresh_token, {
+              expires_in: String(session.expires_in ?? ""),
+              token_type: "bearer",
+            });
+            return;
+          }
+
+          // Session returned but no tokens (shouldn't happen)
+          console.error("BRIDGE_EXCHANGE_NO_SESSION", { data });
+          setStatus('error');
+          setErrorMessage("Code exchanged but no session returned");
+          setTimeout(() => {
+            window.location.href = `rentaloo://auth/callback?error=no_session_after_exchange`;
+          }, 500);
+        } catch (err) {
+          console.error("BRIDGE_EXCHANGE_EXCEPTION", err);
+          setStatus('error');
+          setErrorMessage(`Exchange exception: ${String(err)}`);
+          setTimeout(() => {
+            window.location.href = `rentaloo://auth/callback?error=exchange_exception`;
+          }, 500);
+        }
+        return;
+      }
+
+      // --- CASE C: Neither hash tokens nor PKCE code found ---
+      console.error("BRIDGE_NO_TOKENS_NO_CODE", {
+        hash: window.location.hash,
+        search: window.location.search,
+      });
       setStatus('error');
-      setErrorMessage(error);
-      
-      // Still redirect to app with error info
+      setErrorMessage("No authentication tokens or code received");
       setTimeout(() => {
-        window.location.href = `rentaloo://auth/callback#error=${encodeURIComponent(error)}`;
+        window.location.href = `rentaloo://auth/callback?error=missing_tokens`;
       }, 1000);
-      return;
-    }
+    };
 
-    // Extract tokens
-    const access_token = params.get("access_token");
-    const refresh_token = params.get("refresh_token");
-    const expires_in = params.get("expires_in");
-    const token_type = params.get("token_type");
-
-    if (access_token && refresh_token) {
-      console.log("[AuthBridge] Tokens received, redirecting to app...");
+    /** Redirect to mobile deep link with tokens in hash fragment */
+    const redirectToAppWithTokens = (
+      accessToken: string,
+      refreshToken: string,
+      extra: { expires_in?: string | null; token_type?: string | null }
+    ) => {
       setStatus('redirecting');
 
-      // Build deep link URL with all token info
       const deepLinkParams = new URLSearchParams();
-      deepLinkParams.set("access_token", access_token);
-      deepLinkParams.set("refresh_token", refresh_token);
-      if (expires_in) deepLinkParams.set("expires_in", expires_in);
-      if (token_type) deepLinkParams.set("token_type", token_type);
+      deepLinkParams.set("access_token", accessToken);
+      deepLinkParams.set("refresh_token", refreshToken);
+      if (extra.expires_in) deepLinkParams.set("expires_in", extra.expires_in);
+      if (extra.token_type) deepLinkParams.set("token_type", extra.token_type);
 
-      // Redirect to app via deep link
       const deepLinkUrl = `rentaloo://auth/callback#${deepLinkParams.toString()}`;
-      
-      // Small delay to show status before redirect
+      console.log("BRIDGE_REDIRECTING", { deepLinkUrl: deepLinkUrl.slice(0, 80) + "..." });
+
       setTimeout(() => {
         window.location.href = deepLinkUrl;
-      }, 500);
-    } else {
-      // No tokens found
-      console.error("[AuthBridge] No tokens in URL hash");
-      setStatus('error');
-      setErrorMessage("No authentication tokens received");
+      }, 300);
+    };
 
-      // Redirect to app with error
-      setTimeout(() => {
-        window.location.href = `rentaloo://auth/callback#error=missing_tokens`;
-      }, 1000);
-    }
+    void handleBridge();
   }, []);
 
   // Minimal UI - this page should redirect almost instantly

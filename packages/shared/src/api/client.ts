@@ -21,6 +21,8 @@ export interface SupabaseClientOptions {
   autoRefreshToken?: boolean;
   /** Whether to persist session */
   persistSession?: boolean;
+  /** OAuth flow type: 'implicit' returns tokens in hash, 'pkce' returns code in query */
+  flowType?: 'implicit' | 'pkce';
 }
 
 /**
@@ -50,6 +52,7 @@ export const createSupabaseClient = (
     detectSessionInUrl = true,
     autoRefreshToken = true,
     persistSession = true,
+    flowType,
   } = options;
 
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -58,6 +61,7 @@ export const createSupabaseClient = (
       persistSession,
       detectSessionInUrl,
       ...(storage && { storage }),
+      ...(flowType && { flowType }),
     },
   });
 };
