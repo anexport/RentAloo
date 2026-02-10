@@ -40,9 +40,16 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const { signIn, signInWithOAuth } = useAuth();
+  const { signIn, signInWithOAuth, user } = useAuth();
   const navigate = useNavigate();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-close modal when user becomes authenticated (e.g., after OAuth deep link callback)
+  useEffect(() => {
+    if (open && user) {
+      onOpenChange(false);
+    }
+  }, [open, user, onOpenChange]);
 
   const {
     register,

@@ -103,6 +103,11 @@ export function App() {
       const isAuthCallback = url.startsWith('rentaloo://auth-callback') || url.startsWith('rentaloo://auth/callback');
       if (!isAuthCallback) return;
 
+      // Close the system browser IMMEDIATELY so user sees the app
+      console.log('BROWSER_CLOSE_ATTEMPT');
+      await Browser.close().catch((e) => { console.log('BROWSER_CLOSE_ERROR ' + String(e)); });
+      console.log('BROWSER_CLOSE_DONE');
+
       try {
         // Parse URL - tokens can be in hash (#) or query (?)
         const urlObj = new URL(url);
@@ -121,7 +126,6 @@ export function App() {
 
         if (error) {
           console.error('OAUTH_CALLBACK_ERROR ' + error);
-          await Browser.close().catch(() => {});
           return;
         }
 
@@ -194,11 +198,8 @@ export function App() {
           }
         }
 
-        // Close the browser
-        await Browser.close().catch(() => {});
       } catch (err) {
         console.error('OAUTH_CALLBACK_HANDLER_ERROR ' + String(err));
-        await Browser.close().catch(() => {});
       }
     };
 
