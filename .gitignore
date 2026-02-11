@@ -30,3 +30,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MCP config
+.mcp.json
+
+# Design references and investigation notes
+design-references/
+findings.md
+investigation-results.md
