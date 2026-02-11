@@ -92,35 +92,25 @@ const MobileBottomNav = () => {
   }
 
   // Select nav items based on active role mode
-  // For guests, we default to renter-style layout but will intercept clicks
-  const navItems = activeMode === "owner" ? OWNER_NAV_ITEMS : RENTER_NAV_ITEMS;
+  // For guests, remap Home to "/" so NavLink navigates natively
+  const baseItems = activeMode === "owner" ? OWNER_NAV_ITEMS : RENTER_NAV_ITEMS;
+  const navItems = !user
+    ? baseItems.map((item) =>
+        item.label === "Home"
+          ? { ...item, to: "/", matchPaths: ["/"] }
+          : item
+      )
+    : baseItems;
 
   const handleItemClick = (e: React.MouseEvent, item: NavItem) => {
     // If user is logged in, let the link work as normal
     if (user) return;
 
-    // For guests, allow public routes
-    // Home typically goes to /renter/dashboard in RENTER_NAV_ITEMS
-    // We'll handle the "Home" redirect in the effect or render logic below,
-    // but here we just need to gate the protected ones.
-
-    // Public paths for guests:
-    // - Explore (/explore)
-    // - Home (we'll remap /renter/dashboard to / visually, but if they click it we want to go home)
-
-    const isPublic = item.to === "/explore";
-    const isHome = item.label === "Home";
-
+    // For guests, allow public routes (Home is already remapped to "/")
+    const isPublic = item.to === "/explore" || item.to === "/";
     if (isPublic) return;
 
-    if (isHome) {
-      e.preventDefault();
-      void navigate("/");
-      return;
-    }
-
-    // specific check for "Account" -> redirect to login with no special message needed
-    // others -> redirect to login
+    // All other routes require login
     e.preventDefault();
     void navigate("/login");
   };
