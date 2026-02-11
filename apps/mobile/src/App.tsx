@@ -54,8 +54,6 @@ class ErrorBoundary extends Component<
   }
 }
 
-// Top-level proof of component load
-console.log("MOBILE_APP_COMPONENT_LOADED");
 
 export function App() {
   const [fatal, setFatal] = useState<{ msg: string; stack?: string } | null>(null);
@@ -214,28 +212,10 @@ export function App() {
   }, []);
 
   return (
-    <div style={{ padding: 16 }}>
-      {/* Banner outside WebApp so it renders even if WebApp crashes */}
-      <div
-        id="mobile-shell-banner"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 99999,
-          background: '#111',
-          color: '#0f0',
-          padding: '8px 12px',
-          fontSize: 12,
-        }}
-      >
-        MOBILE SHELL OK
-      </div>
-
+    <>
       {/* Show fatal error if caught */}
       {fatal && (
-        <div style={{ marginTop: 60, color: 'red', whiteSpace: 'pre-wrap', fontSize: 11 }}>
+        <div style={{ padding: 20, paddingTop: 60, color: 'red', whiteSpace: 'pre-wrap', fontSize: 11 }}>
           <strong>FATAL ERROR:</strong>
           <pre>{fatal.msg}</pre>
           <pre>{fatal.stack}</pre>
@@ -244,12 +224,12 @@ export function App() {
 
       {/* Mount web app with error boundary + suspense */}
       {!fatal && (
-        <ErrorBoundary fallback={<div style={{ marginTop: 60 }}>WEB APP CRASHED - check logcat</div>}>
-          <Suspense fallback={<div style={{ marginTop: 60 }}>Loading web app…</div>}>
+        <ErrorBoundary fallback={<div style={{ padding: 20, paddingTop: 60 }}>WEB APP CRASHED - check logcat</div>}>
+          <Suspense fallback={<div style={{ padding: 20, paddingTop: 60 }}>Loading web app…</div>}>
             <WebAppWithProviders />
           </Suspense>
         </ErrorBoundary>
       )}
-    </div>
+    </>
   );
 }

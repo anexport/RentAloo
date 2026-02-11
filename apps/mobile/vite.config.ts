@@ -106,9 +106,40 @@ function contextualAliasPlugin(): Plugin {
   };
 }
 
+/**
+ * Strips :root and .dark CSS variable blocks from the web app's index.css
+ * so the mobile index.css is the sole source of theme variables.
+ *
+ * Without this, the web CSS loads after mobile CSS and overwrites
+ * the mobile theme (e.g., orange primary → back to black).
+ */
+function mobileThemePlugin(): Plugin {
+  return {
+    name: 'mobile-theme-override',
+    enforce: 'pre',
+    transform(code, id) {
+      const normalizedId = normalize(id);
+      // Only strip from web's index.css, not mobile's
+      if (!normalizedId.endsWith('src/index.css')) return null;
+      if (normalizedId.includes('apps/mobile')) return null;
+
+      // Remove :root { ... } and .dark { ... } blocks that define CSS variables
+      const transformed = code
+        .replace(/:root\s*\{[^}]*\}/g, '/* [mobile-theme-override] :root variables stripped */')
+        .replace(/\.dark\s*\{[^}]*\}/g, '/* [mobile-theme-override] .dark variables stripped */');
+
+      if (transformed !== code) {
+        console.log('[mobileThemePlugin] Stripped web CSS variables — mobile theme takes precedence');
+        return { code: transformed, map: null };
+      }
+      return null;
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [mobileOAuthPlugin(), contextualAliasPlugin(), react(), tailwindcss()],
+  plugins: [mobileOAuthPlugin(), mobileThemePlugin(), contextualAliasPlugin(), react(), tailwindcss()],
   resolve: {
     alias: {
       // Note: @/ is handled by contextualAliasPlugin for context-aware resolution
