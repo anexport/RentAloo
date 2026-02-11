@@ -8,83 +8,59 @@
  * - Web App already contains Router, so we don't add another one
  */
 
-import { useEffect, useState, Component, ReactNode, lazy, Suspense } from 'react';
+import { useEffect, Component, ReactNode, lazy, Suspense } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
-// import { useDeepLinks } from './plugins/deepLinks'; // TODO: Move inside Router context
 import { isNativePlatform, platform, logger } from './lib/nativeBridge';
 import { supabase } from '@web/lib/supabase';
 
 // Lazy load web app to isolate crashes
 const WebAppWithProviders = lazy(() => import('@web/main').then(m => ({ default: m.WebAppWithProviders })));
 
-// Error Boundary for debugging
+// Error Boundary — logs errors but does NOT block rendering
+// The web app can recover from most transient errors (lazy load retries, etc.)
 class ErrorBoundary extends Component<
-  { children: ReactNode; fallback?: ReactNode },
-  { error: Error | null }
+  { children: ReactNode },
+  { hasError: boolean }
 > {
-  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+  constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught:', error, errorInfo);
-    console.error('MOBILE_ERROR_BOUNDARY', error.message, error.stack);
+    console.error('MOBILE_ERROR_BOUNDARY', error.message, error.stack, errorInfo);
   }
 
   render() {
-    if (this.state.error) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-      return (
-        <div style={{ padding: 20, paddingTop: 60, color: 'red', whiteSpace: 'pre-wrap', fontSize: 12 }}>
-          <h2>App Crash</h2>
-          <pre>{this.state.error.message}</pre>
-          <pre>{this.state.error.stack}</pre>
-        </div>
-      );
-    }
+    // Always render children — don't replace with a fallback
+    // Errors are logged to console/logcat for debugging
     return this.props.children;
   }
 }
 
 
 export function App() {
-  const [fatal, setFatal] = useState<{ msg: string; stack?: string } | null>(null);
-
   useEffect(() => {
     logger.log('App initialized', { isNativePlatform, platform });
 
-    // Enhanced error logging with stack traces
+    // Log errors to console/logcat for debugging — don't block rendering
     const handleError = (event: ErrorEvent) => {
       const error = event.error;
-      const isDOMException = error?.name === 'DOMException' || error instanceof DOMException;
-
       console.error('MOBILE_WINDOW_ERROR', event.message, {
         name: error?.name,
         message: error?.message,
         stack: error?.stack || error,
-        isDOMException,
       });
-
-      if (isDOMException) {
-        console.error('MOBILE_DOM_EXCEPTION', error.name, error.message, error.stack);
-      }
-
-      setFatal({ msg: String(event.message), stack: error?.stack });
-      return true;
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       console.error('MOBILE_UNHANDLED_REJECTION', reason?.stack || reason);
-      setFatal({ msg: 'Unhandled Promise Rejection', stack: reason?.stack || String(reason) });
     };
 
     window.addEventListener('error', handleError);
@@ -212,24 +188,10 @@ export function App() {
   }, []);
 
   return (
-    <>
-      {/* Show fatal error if caught */}
-      {fatal && (
-        <div style={{ padding: 20, paddingTop: 60, color: 'red', whiteSpace: 'pre-wrap', fontSize: 11 }}>
-          <strong>FATAL ERROR:</strong>
-          <pre>{fatal.msg}</pre>
-          <pre>{fatal.stack}</pre>
-        </div>
-      )}
-
-      {/* Mount web app with error boundary + suspense */}
-      {!fatal && (
-        <ErrorBoundary fallback={<div style={{ padding: 20, paddingTop: 60 }}>WEB APP CRASHED - check logcat</div>}>
-          <Suspense fallback={<div style={{ padding: 20, paddingTop: 60 }}>Loading web app…</div>}>
-            <WebAppWithProviders />
-          </Suspense>
-        </ErrorBoundary>
-      )}
-    </>
+    <ErrorBoundary>
+      <Suspense fallback={<div style={{ padding: 20, paddingTop: 60 }}>Loading…</div>}>
+        <WebAppWithProviders />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

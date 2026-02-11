@@ -25,9 +25,6 @@ const config: CapacitorConfig = {
       // iOS keyboard behavior
       style: 'dark', // or 'light'
     },
-    PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert'],
-    },
     StatusBar: {
       style: 'light', // 'dark' for light backgrounds
       backgroundColor: '#ffffff',

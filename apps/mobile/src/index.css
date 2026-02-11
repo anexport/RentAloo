@@ -25,6 +25,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -88,9 +90,20 @@ textarea {
   --accent: oklch(0.954 0.038 75.164);
   --accent-foreground: oklch(0.553 0.195 38.402);
   --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.48 0.2 145);
+  --success-foreground: oklch(1 0 0);
   --border: oklch(0.922 0.005 80);
   --input: oklch(0.922 0.005 80);
   --ring: oklch(0.705 0.191 47.604);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --trust-excellent: oklch(0.48 0.2 145);
+  --trust-good: oklch(0.52 0.17 135);
+  --trust-fair: oklch(0.58 0.17 95);
+  --trust-low: oklch(0.55 0.17 50);
 }
 
 .dark {
@@ -109,9 +122,20 @@ textarea {
   --accent: oklch(0.32 0.04 50);
   --accent-foreground: oklch(0.954 0.038 75.164);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.7 0.18 145);
+  --success-foreground: oklch(1 0 0);
   --border: oklch(0.3 0.015 50);
   --input: oklch(0.3 0.015 50);
   --ring: oklch(0.705 0.191 47.604);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --trust-excellent: oklch(0.7 0.18 145);
+  --trust-good: oklch(0.68 0.15 135);
+  --trust-fair: oklch(0.72 0.15 95);
+  --trust-low: oklch(0.65 0.15 50);
 }
 
 /* Main content area with tab bar padding */
@@ -196,6 +220,7 @@ textarea {
 /* === MOBILE COMPONENT OVERRIDES === */
 
 [data-slot="button"] {
+  min-height: 48px;
   border-radius: 12px;
   font-weight: 600;
   transition: opacity 0.15s ease, transform 0.1s ease;

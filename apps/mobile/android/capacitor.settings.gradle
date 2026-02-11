@@ -2,17 +2,11 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../../../node_modules/.pnpm/@capacitor+android@7.4.4_@capacitor+core@7.4.4/node_modules/@capacitor/android/capacitor')
 
-include ':capacitor-community-stripe'
-project(':capacitor-community-stripe').projectDir = new File('../../../node_modules/.pnpm/@capacitor-community+stripe@7.2.2_@capacitor+core@7.4.4_react@19.2.3_stripe-pwa-elements@2.1.0/node_modules/@capacitor-community/stripe/android')
-
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../../../node_modules/.pnpm/@capacitor+app@7.1.1_@capacitor+core@7.4.4/node_modules/@capacitor/app/android')
 
 include ':capacitor-browser'
 project(':capacitor-browser').projectDir = new File('../../../node_modules/.pnpm/@capacitor+browser@7.0.3_@capacitor+core@7.4.4/node_modules/@capacitor/browser/android')
-
-include ':capacitor-haptics'
-project(':capacitor-haptics').projectDir = new File('../../../node_modules/.pnpm/@capacitor+haptics@7.0.3_@capacitor+core@7.4.4/node_modules/@capacitor/haptics/android')
 
 include ':capacitor-keyboard'
 project(':capacitor-keyboard').projectDir = new File('../../../node_modules/.pnpm/@capacitor+keyboard@7.0.4_@capacitor+core@7.4.4/node_modules/@capacitor/keyboard/android')
@@ -20,14 +14,8 @@ project(':capacitor-keyboard').projectDir = new File('../../../node_modules/.pnp
 include ':capacitor-preferences'
 project(':capacitor-preferences').projectDir = new File('../../../node_modules/.pnpm/@capacitor+preferences@7.0.3_@capacitor+core@7.4.4/node_modules/@capacitor/preferences/android')
 
-include ':capacitor-push-notifications'
-project(':capacitor-push-notifications').projectDir = new File('../../../node_modules/.pnpm/@capacitor+push-notifications@7.0.4_@capacitor+core@7.4.4/node_modules/@capacitor/push-notifications/android')
-
 include ':capacitor-splash-screen'
 project(':capacitor-splash-screen').projectDir = new File('../../../node_modules/.pnpm/@capacitor+splash-screen@7.0.4_@capacitor+core@7.4.4/node_modules/@capacitor/splash-screen/android')
 
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../../../node_modules/.pnpm/@capacitor+status-bar@7.0.4_@capacitor+core@7.4.4/node_modules/@capacitor/status-bar/android')
-
-include ':capacitor-secure-storage-plugin'
-project(':capacitor-secure-storage-plugin').projectDir = new File('../../../node_modules/.pnpm/capacitor-secure-storage-plugin@0.9.0_@capacitor+core@7.4.4/node_modules/capacitor-secure-storage-plugin/android')
