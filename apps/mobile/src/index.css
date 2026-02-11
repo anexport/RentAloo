@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Include web app source files for shared components */
-@source "../../src/**/*.{ts,tsx}";
+@source "../../../src/**/*.{ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -232,6 +232,13 @@ textarea {
   border-radius: 12px;
   font-size: 16px;
 }
+
+/* Keep search bar inputs compact (h-auto) so the pill shape isn't inflated */
+.rounded-full [data-slot="input"] {
+  height: auto;
+  border-radius: 0;
+}
+
 
 [data-slot="dialog-content"] {
   border-radius: 20px;
