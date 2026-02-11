@@ -30,6 +30,23 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-trust-excellent: var(--trust-excellent);
+  --color-trust-good: var(--trust-good);
+  --color-trust-fair: var(--trust-fair);
+  --color-trust-low: var(--trust-low);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 /* Safe area insets for notched devices */
@@ -104,6 +121,14 @@ textarea {
   --trust-good: oklch(0.52 0.17 135);
   --trust-fair: oklch(0.58 0.17 95);
   --trust-low: oklch(0.55 0.17 50);
+  --sidebar: oklch(0.985 0.002 90);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.705 0.191 47.604);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.954 0.038 75.164);
+  --sidebar-accent-foreground: oklch(0.553 0.195 38.402);
+  --sidebar-border: oklch(0.922 0.005 80);
+  --sidebar-ring: oklch(0.705 0.191 47.604);
 }
 
 .dark {
@@ -136,6 +161,14 @@ textarea {
   --trust-good: oklch(0.68 0.15 135);
   --trust-fair: oklch(0.72 0.15 95);
   --trust-low: oklch(0.65 0.15 50);
+  --sidebar: oklch(0.205 0.008 50);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.705 0.191 47.604);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.32 0.04 50);
+  --sidebar-accent-foreground: oklch(0.954 0.038 75.164);
+  --sidebar-border: oklch(0.3 0.015 50);
+  --sidebar-ring: oklch(0.705 0.191 47.604);
 }
 
 /* Main content area with tab bar padding */
