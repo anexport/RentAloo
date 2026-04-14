@@ -1,7 +1,7 @@
 {
   "redirects": [
     {
-      "source": "/(.*)",
+      "source": "/((?!maintenance).*)",
       "destination": "/maintenance",
       "permanent": false
     }
