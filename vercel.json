@@ -1,7 +1,14 @@
 {
   "redirects": [
     {
-      "source": "/((?!maintenance|assets|public|.*\\.(svg|png|jpg|jpeg|gif|css|js|ico)).*)",
+      "source": "/:path(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "text/html"
+        }
+      ],
       "destination": "/maintenance",
       "permanent": false
     }
@@ -9,10 +16,6 @@
   "rewrites": [
     {
       "source": "/maintenance",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/((?!maintenance).*)",
       "destination": "/index.html"
     }
   ]
