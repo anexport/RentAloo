@@ -34,6 +34,7 @@ const HelpPage = lazy(() => import("@/pages/HelpPage"));
 const TermsPage = lazy(() => import("@/pages/TermsPage"));
 const PrivacyPage = lazy(() => import("@/pages/PrivacyPage"));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+const MaintenancePage = lazy(() => import("@/pages/MaintenancePage"));
 const MessagingPage = lazy(() => import("@/pages/MessagingPage"));
 const PaymentConfirmation = lazy(
   () => import("@/pages/payment/PaymentConfirmation")
@@ -154,6 +155,7 @@ function App() {
                     <OnboardingGuard>
                       <Routes>
                         {/* Public routes */}
+                        <Route path="/maintenance" element={<MaintenancePage />} />
                         <Route path="/" element={<HomePage />} />
                         <Route path="/explore" element={<ExplorePage />} />
                         <Route path="/help" element={<HelpPage />} />
