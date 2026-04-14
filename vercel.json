@@ -1,7 +1,7 @@
 {
   "redirects": [
     {
-      "source": "/((?!maintenance).*)",
+      "source": "/((?!maintenance|assets|public).*)",
       "destination": "/maintenance",
       "permanent": false
     }
@@ -9,6 +9,10 @@
   "rewrites": [
     {
       "source": "/maintenance",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!maintenance).*)",
       "destination": "/index.html"
     }
   ]
