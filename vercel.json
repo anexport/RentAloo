@@ -5,5 +5,11 @@
       "destination": "/maintenance",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/maintenance",
+      "destination": "/index.html"
+    }
   ]
 }
