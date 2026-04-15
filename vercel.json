@@ -1,22 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/:path(.*)",
-      "has": [
-        {
-          "type": "header",
-          "key": "accept",
-          "value": "text/html"
-        }
-      ],
-      "destination": "/maintenance",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/maintenance",
-      "destination": "/index.html"
-    }
-  ]
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "cleanUrls": true
 }
